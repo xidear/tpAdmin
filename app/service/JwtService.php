@@ -5,12 +5,14 @@ namespace app\service;
 use app\model\AdminToken;
 use think\facade\Config;
 use think\facade\Db;
+use think\facade\Cache;
 use Exception;
 
 class JwtService
 {
     const string TYPE_ADMIN = 'admin';
     const string TYPE_WEAPP = 'weapp'; // 预留字段
+    const string CACHE_PREFIX = 'jwt_'; // 自定义 JWT 缓存前缀
 
     /**
      * 验证令牌（默认验证管理员令牌）
@@ -26,9 +28,23 @@ class JwtService
      */
     private static function verifyToken(string $token, ?string $type = null): array
     {
-        // 1. 从数据库获取记录
-        $record = AdminToken::where('token', $token)
-            ->findOrEmpty();
+        // 生成带自定义前缀的缓存键
+        $cacheKey = self::CACHE_PREFIX . 'token_' . $token;
+        $record = Cache::get($cacheKey);
+
+        if (!$record) {
+            // 缓存未命中，从数据库获取记录
+            $record = AdminToken::where('token', $token)
+                ->findOrEmpty();
+
+            if (!$record->isEmpty()) {
+                // 将记录存入缓存，设置缓存过期时间为令牌剩余有效期
+                $remainingTime = $record['expire_time'] - time();
+                if ($remainingTime > 0) {
+                    Cache::set($cacheKey, $record, $remainingTime);
+                }
+            }
+        }
 
         if ($record->isEmpty()) {
             throw new Exception('令牌无效', 40100);
@@ -57,6 +73,8 @@ class JwtService
 
         // 验证过期时间
         if (time() > $record['expire_time']) {
+            // 令牌过期，删除缓存
+            Cache::delete($cacheKey);
             throw new Exception('令牌已过期', 40102);
         }
 
@@ -69,6 +87,10 @@ class JwtService
     public static function refreshToken(string $token): array
     {
         $payload = self::verifyToken($token);
+
+        // 删除旧令牌缓存
+        $cacheKey = self::CACHE_PREFIX . 'token_' . $token;
+        Cache::delete($cacheKey);
 
         // 删除旧令牌
         Db::name('admin_token')
@@ -91,9 +113,7 @@ class JwtService
      */
     public static function makeToken(int $adminId, string $type = self::TYPE_ADMIN): array
     {
-
         $config = Config::get("jwt.{$type}");
-
 
         $payload = [
             'iat' => time(), // 签发时间
@@ -108,21 +128,82 @@ class JwtService
         $secret = $config['secret'];
         $token = hash_hmac('sha256', $jsonPayload, $secret);
 
-
-
         // 存入数据库
-        (new AdminToken)->save([
+        $adminToken = new AdminToken();
+        $adminToken->save([
             'admin_id' => $adminId,
             'client_type' => $type,
             'token' => $token,
             'expire_time' => $payload['exp'],
             'created_at' => $payload['iat'],
-            'jti' => $payload['jti']   // 添加这一行
+            'jti' => $payload['jti']
         ]);
+
+        // 将新令牌记录存入缓存
+        $cacheKey = self::CACHE_PREFIX . 'token_' . $token;
+        $remainingTime = $payload['exp'] - time();
+        if ($remainingTime > 0) {
+            Cache::set($cacheKey, $adminToken, $remainingTime);
+        }
 
         return [
             'token' => $token,
             'expires_in' => $config['expire'],
         ];
     }
+
+    /**
+     * 注销登录，将 token 拉黑
+     *
+     * @param string $token 要拉黑的 token
+     * @return array 包含操作结果和消息的数组
+     */
+    public static function logout(string $token): array
+    {
+        try {
+            // 验证令牌
+            self::verifyToken($token);
+
+            // 删除缓存
+            $cacheKey = self::CACHE_PREFIX . 'token_' . $token;
+            Cache::delete($cacheKey);
+
+            // 将令牌拉黑
+            $result = AdminToken::where('token', $token)
+                ->delete();
+
+            if ($result) {
+                return [
+                    'success' => true,
+                    'message' => '注销成功，令牌已被拉黑'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => '注销失败，无法拉黑令牌'
+                ];
+            }
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => '注销失败，' . $e->getMessage()
+            ];
+        }
+    }
+
+
+    public static function getTokenFromHeader($request): ?string
+    {
+        $authorization = $request->header('Authorization');
+        if (!empty($authorization)) {
+            if (!preg_match('/Bearer\s+(\S+)/i', $authorization, $matches)) {
+                return null;
+            }
+            return $matches[1];
+        }
+        $token=  $request->header('x-access-token')?:request()->header('token')?:request()->post('token')?:request()->get('token')?:request()->param('token');
+        return $token??null;
+    }
+
+
 }

@@ -10,6 +10,9 @@ return [
         'HttpEnd'  => [],
         'LogLevel' => [],
         'LogWrite' => [],
+        'AdminInfoUpdated'=>[
+            \app\listener\AdminInfoUpdated::class
+        ]
     ],
 
     'subscribe' => [

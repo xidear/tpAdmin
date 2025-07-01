@@ -3,6 +3,7 @@
 namespace app\service;
 
 use app\common\trait\BaseTrait;
+use app\model\Admin;
 use app\model\AdminRole;
 use app\model\Menu;
 use app\model\MenuPermissionDependency;
@@ -21,11 +22,15 @@ class PermissionService
      */
     public function getAdminPermissions($adminId): array
     {
-        // 1. 获取用户所有角色
-        $roleIds = AdminRole::where('admin_id', $adminId)->column('role_id');
+        $where=[];
+        if (!(new Admin())->isSuper($adminId)){
+            // 1. 获取用户所有角色
+            $roleIds = (new AdminRole)->where('admin_id', $adminId)->column('role_id');
+            $where[]=["role_id", "in", $roleIds];
+        }
 
         // 2. 获取角色直接分配的权限
-        $permissionIds = RolePermission::whereIn('role_id', $roleIds)
+        $permissionIds = (new \app\model\RolePermission)->where($where)
             ->column('permission_id');
 
         return array_unique($permissionIds);

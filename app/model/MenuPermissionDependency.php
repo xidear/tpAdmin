@@ -8,4 +8,5 @@ class MenuPermissionDependency extends BasePivot
 {
     protected $pk = 'dependency_id';
 
+    protected string $table = 'menu_permission_dependency';
 }

@@ -8,32 +8,53 @@ use app\model\AdminRole;
 use app\model\Menu;
 use app\service\JwtService;
 use app\service\PermissionService;
+use think\facade\Cookie;
+use think\facade\Session;
 use think\facade\View;
 
 class AuthCheck
 {
     public function handle($request, \Closure $next)
     {
-        // 从header获取Token
-        $token = $this->getTokenFromHeader($request);
+        $adminId=null;
+//        if (!empty(Session::get("admin_id"))){
+//            $adminId = Session::get("admin_id");
+//        }
+//        if (empty($adminId)&&!empty(Cookie::get("admin_id"))){
+//            $adminId = Cookie::get("admin_id");
+//        }
 
-        if (!$token) {
-            return $this->unauthorized('缺少Token');
-        }
+        if (empty($adminId)){
 
-        try {
+            // 从header获取Token
+            $token = JwtService::getTokenFromHeader($request);
+
+
+            if (!$token) {
+                return $this->unauthorized('请登录');
+            }
             // 验证管理员Token
             $payload = JwtService::verifyAdminToken($token);
 
+            $adminId=$payload['admin_id']?:null;
+        }
 
-            $admin=(new Admin)->findOrFail($payload['admin_id']);
+        if (empty($adminId)) {
+            return $this->unauthorized('请登录');
+        }
+
+        try {
+
+
+
+            $admin=Admin::getInfoFromCache($adminId);
 
             if ($admin->status!=Status::Normal->value){
                 return $this->unauthorized("用户已禁用");
             }
 
             // 将管理员信息存入请求上下文
-            $request->adminId = $payload['admin_id'];
+            $request->adminId =$adminId;
             $request->admin=$admin;
 
             return $next($request);
@@ -45,22 +66,7 @@ class AuthCheck
         }
     }
 
-    private function getTokenFromHeader($request): ?string
-    {
-        $authorization = $request->header('Authorization');
 
-        if (!empty($authorization)) {
-            if (!preg_match('/Bearer\s+(\S+)/i', $authorization, $matches)) {
-                return null;
-            }
-
-            return $matches[1];
-        }
-
-        $token=request()->header('token')?:request()->post('token')?:request()->get('token')?:request()->param('token');
-
-        return $token??null;
-    }
 
     private function unauthorized(string $message, int $code = Code::TOKEN_INVALID->value): \think\response\Json|\think\response\Redirect
     {

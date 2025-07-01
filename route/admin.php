@@ -4,11 +4,12 @@ use app\middleware\AuthCheck;
 use think\facade\Route;
 
 // 后台路由组
-Route::group('admin', function () {
+Route::group('adminapi', function () {
     // 获取登录所需数据 比如 是否需要验证码
     Route::get('login', 'Login/index');
     //登录表单
     Route::post('login', 'Login/doLogin');
+    Route::post('logout', 'Login/logout');
 //    需要登录不需要权限验证
     Route::group(function () {
         // 首页

@@ -6,6 +6,10 @@ use app\common\BasePivot;
 
 class RolePermission extends BasePivot
 {
+    protected string $table = 'role_permission';
+    protected $pk=null;
+
+
     public function permission(): \think\model\relation\BelongsTo
     {
         return $this->belongsTo(Permission::class,'admin_id','admin_id');

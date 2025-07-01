@@ -3,6 +3,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
+use think\facade\Cache;
 use think\model\relation\BelongsToMany;
 
 /**
@@ -13,6 +14,23 @@ use think\model\relation\BelongsToMany;
 class Admin extends BaseModel
 {
     protected $pk = 'admin_id';
+
+    public static function getInfoFromCache($adminId){
+        // 从缓存获取管理员信息
+        $cacheKey = 'admin_info_' . $adminId;
+        $admin = Cache::get($cacheKey);
+
+        if (!$admin) {
+            // 缓存未命中，从数据库获取
+            $admin = (new Admin)->findOrEmpty($adminId);
+            if (                $admin->isEmpty()            ){
+                return [];
+            }
+            // 将管理员信息存入缓存，设置合理的过期时间，这里设为 3600 秒
+            Cache::set($cacheKey, $admin, 86400);
+        }
+        return  $admin;
+    }
 
     /**
      * 关联角色
@@ -25,10 +43,14 @@ class Admin extends BaseModel
 
     /**
      * 是否超管
+     * @param int $adminId
      * @return bool
      */
-    public function isSuper(): bool
+    public function isSuper(int $adminId=0): bool
     {
-        return $this->getKey() == 1;
+        if (empty($adminId)){
+            $adminId=$this->getKey()?:0;
+        }
+        return $adminId == 1;
     }
 }

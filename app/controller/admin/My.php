@@ -6,6 +6,7 @@ namespace app\controller\admin;
 use app\common\BaseController;
 use app\common\BaseRequest;
 use app\common\enum\Code;
+use app\model\AdminRole;
 use app\request\admin\my\changePassword;
 use app\service\JwtService;
 use think\Response;
@@ -47,7 +48,7 @@ class My extends BaseController
     public function getMenu(BaseRequest $request): \think\Response
     {
 
-        $menus=(new  \app\model\Menu())->getUserMenus($request->adminId);
+        $menus= \app\model\Menu::getUserMenuTree($request->adminId);
 
         return $this->success($menus);
     }

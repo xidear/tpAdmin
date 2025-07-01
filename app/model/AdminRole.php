@@ -6,6 +6,9 @@ use app\common\BasePivot;
 
 class AdminRole extends BasePivot
 {
+
+    protected string $table = 'admin_role';
+    protected $pk=null;
     public function admin(): \think\model\relation\BelongsTo
     {
         return $this->belongsTo(Admin::class,'admin_id','admin_id');
