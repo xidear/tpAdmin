@@ -18,6 +18,7 @@ Route::group('adminapi', function () {
         Route::get('change_password', 'My/changePassword');
 //        获取菜单
         Route::get('get_menu', 'My/getMenu');
+        Route::get('get_buttons', 'My/getButtons');
     })->middleware([AuthCheck::class]);
     // 需要登录同时需要权限验证
     Route::group(function () {

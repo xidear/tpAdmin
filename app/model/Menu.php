@@ -11,6 +11,68 @@ class Menu extends BaseModel
     protected $pk = 'menu_id';
 
     // 关联必需权限
+    public static function getUserButtons($adminId)
+    {
+        // 检查是否为超级管理员（角色ID=1）
+        $isSuperAdmin = (new Admin())->isSuper($adminId);
+        if ($isSuperAdmin) {
+            // 超级管理员：获取所有OPTIONAL_BUTTON类型的所有依赖关系
+            $dependencies = MenuPermissionDependency::where('permission_type', 'button')
+                ->select()
+                ->toArray();
+        } else {
+            // 普通用户：获取相关角色
+            $roleIds = AdminRole::where('admin_id', $adminId)->column('role_id');
+            if (empty($roleIds)) return [];
+
+            // 获取用户关联的菜单ID
+            $menuIds = RoleMenu::whereIn('role_id', $roleIds)->column('menu_id');
+            if (empty($menuIds)) return [];
+
+            // 获取用户关联的权限ID
+            $permissionIds = RolePermission::whereIn('role_id', $roleIds)->column('permission_id');
+            if (empty($permissionIds)) return [];
+
+            // 获取按钮权限依赖
+            $dependencies = MenuPermissionDependency::whereIn('menu_id', $menuIds)
+                ->where('permission_type', 'button')
+                ->whereIn('permission_id', $permissionIds)
+                ->select()
+                ->toArray();
+        }
+
+        if (empty($dependencies)) return [];
+
+        // 高效获取菜单名和权限节点信息
+        $menuIds = array_unique(array_column($dependencies, 'menu_id'));
+        $menuMap = Menu::whereIn('menu_id', $menuIds)
+            ->column('name', 'menu_id');
+
+        $permissionIds = array_unique(array_column($dependencies, 'permission_id'));
+        $permissionMap = Permission::whereIn('permission_id', $permissionIds)
+            ->column('node', 'permission_id');
+
+        // 组织按钮数据
+        $buttons = [];
+        foreach ($dependencies as $dep) {
+            $menuName = $menuMap[$dep['menu_id']] ?? null;
+            $permissionNode = $permissionMap[$dep['permission_id']] ?? null;
+
+            if ($menuName && $permissionNode) {
+                $buttonName = substr(strrchr($permissionNode, '/'), 1);  // 高效提取按钮名
+
+                if (!isset($buttons[$menuName])) {
+                    $buttons[$menuName] = [];
+                }
+
+                if (!in_array($buttonName, $buttons[$menuName])) {
+                    $buttons[$menuName][] = $buttonName;
+                }
+            }
+        }
+
+        return $buttons;
+    }
     public function requiredPermission(): \think\model\relation\BelongsTo
     {
         return $this->belongsTo(Permission::class, 'required_permission_id');

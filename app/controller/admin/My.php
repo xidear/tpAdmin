@@ -52,4 +52,10 @@ class My extends BaseController
 
         return $this->success($menus);
     }
+
+    public function getButtons(BaseRequest $request): \think\Response{
+        $menus= \app\model\Menu::getUserButtons($request->adminId);
+
+        return $this->success($menus);
+    }
 }
