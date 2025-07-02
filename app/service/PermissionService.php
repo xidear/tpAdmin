@@ -7,6 +7,7 @@ use app\model\Admin;
 use app\model\AdminRole;
 use app\model\Menu;
 use app\model\MenuPermissionDependency;
+use app\model\Permission;
 use app\model\RoleMenu;
 use app\model\RolePermission;
 use think\Exception;
@@ -23,15 +24,18 @@ class PermissionService
     public function getAdminPermissions($adminId): array
     {
         $where=[];
-        if (!(new Admin())->isSuper($adminId)){
+        if ((new Admin())->isSuper($adminId)){
+            $permissionIds=(new Permission())->column("permission_id");
+        }else{
             // 1. 获取用户所有角色
             $roleIds = (new AdminRole)->where('admin_id', $adminId)->column('role_id');
             $where[]=["role_id", "in", $roleIds];
+
+            // 2. 获取角色直接分配的权限
+            $permissionIds = (new \app\model\RolePermission)->where($where)
+                ->column('permission_id');
         }
 
-        // 2. 获取角色直接分配的权限
-        $permissionIds = (new \app\model\RolePermission)->where($where)
-            ->column('permission_id');
 
         return array_unique($permissionIds);
     }

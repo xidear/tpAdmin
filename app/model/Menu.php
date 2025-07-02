@@ -4,6 +4,7 @@ namespace app\model;
 use app\common\BaseModel;
 use app\service\PermissionService;
 use think\db\exception\DataNotFoundException;
+use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
 
 class Menu extends BaseModel
@@ -11,37 +12,53 @@ class Menu extends BaseModel
     protected $pk = 'menu_id';
 
     // 关联必需权限
-    public static function getUserButtons($adminId)
+    public static function getUserButtons($adminId): array
     {
+
+
         // 检查是否为超级管理员（角色ID=1）
-        $isSuperAdmin = (new Admin())->isSuper($adminId);
-        if ($isSuperAdmin) {
+        if ( (new Admin())->isSuper($adminId)) {
             // 超级管理员：获取所有OPTIONAL_BUTTON类型的所有依赖关系
-            $dependencies = MenuPermissionDependency::where('permission_type', 'button')
-                ->select()
-                ->toArray();
+            try {
+                $dependencies = MenuPermissionDependency::where('permission_type', 'button')
+                    ->select()
+                    ->toArray();
+            } catch (DataNotFoundException|DbException $e) {
+                return  [];
+            }
         } else {
             // 普通用户：获取相关角色
             $roleIds = AdminRole::where('admin_id', $adminId)->column('role_id');
-            if (empty($roleIds)) return [];
+            if (empty($roleIds)) {
+                return [];
+            }
 
             // 获取用户关联的菜单ID
             $menuIds = RoleMenu::whereIn('role_id', $roleIds)->column('menu_id');
-            if (empty($menuIds)) return [];
+            if (empty($menuIds)) {
+                return [];
+            }
+            $permissionIds = (new PermissionService)->getAdminPermissions($adminId);
 
-            // 获取用户关联的权限ID
-            $permissionIds = RolePermission::whereIn('role_id', $roleIds)->column('permission_id');
-            if (empty($permissionIds)) return [];
+            if (empty($permissionIds)) {
+                return [];
+            }
 
             // 获取按钮权限依赖
-            $dependencies = MenuPermissionDependency::whereIn('menu_id', $menuIds)
-                ->where('permission_type', 'button')
-                ->whereIn('permission_id', $permissionIds)
-                ->select()
-                ->toArray();
+            try {
+                $dependencies = MenuPermissionDependency::whereIn('menu_id', $menuIds)
+                    ->where('permission_type', 'button')
+                    ->whereIn('permission_id', $permissionIds)
+                    ->select()
+                    ->toArray();
+            } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
+                return [];
+            }
         }
 
-        if (empty($dependencies)) return [];
+        if (empty($dependencies)) {
+            return [];
+        }
 
         // 高效获取菜单名和权限节点信息
         $menuIds = array_unique(array_column($dependencies, 'menu_id'));
@@ -96,7 +113,6 @@ class Menu extends BaseModel
         }
         try {
             $permissionIds = (new PermissionService)->getAdminPermissions($adminId);
-
             return self::hasWhere('requiredPermission', function ($query) use ($permissionIds) {
                 $query->whereIn('permission_id', $permissionIds);
             })->append(["meta"])
