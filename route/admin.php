@@ -1,6 +1,7 @@
 <?php
 
 use app\middleware\AuthCheck;
+use app\middleware\AutoPermissionCheck;
 use think\facade\Route;
 
 // 后台路由组

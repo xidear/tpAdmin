@@ -2,9 +2,10 @@
 namespace app\model;
 
 use app\common\BaseModel;
+use app\common\BasePivot;
 use think\model\Pivot;
 
-class RoleMenu extends Pivot
+class RoleMenu extends BasePivot
 {
     protected string $table = 'role_menu';
     protected $pk=null;

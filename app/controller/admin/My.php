@@ -48,7 +48,7 @@ class My extends BaseController
     public function getMenu(BaseRequest $request): \think\Response
     {
 
-        $menus= \app\model\Menu::getUserMenuTree($request->adminId);
+        $menus= \app\model\Menu::getUserMenuTree($request->adminId,$request);
 
         return $this->success($menus);
     }

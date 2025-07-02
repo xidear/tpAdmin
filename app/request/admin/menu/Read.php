@@ -4,7 +4,7 @@ namespace app\request\admin\login;
 
 use app\common\BaseRequest;
 
-class doLogin extends BaseRequest
+class Read extends BaseRequest
 {
 
     public function __construct()
@@ -15,13 +15,9 @@ class doLogin extends BaseRequest
     public function rules(): array
     {
         if (request()->isGet()) {
-
-            return [];
+            return [ 'id'=>"require"];
         }
-        return [
-            'username'=>"require",
-            'password'=>"require",
-        ];
+        return [        ];
     }
 
     public function message(): array

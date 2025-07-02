@@ -11,11 +11,7 @@ trait BaseTrait
     public string $msg = "";
     public int $code = \app\common\enum\Code::SUCCESS->value;
 
-    /**返回错误信息*/
-    public function getError(): string
-    {
-        return $this->msg;
-    }
+
 
     public function getCode(): int
     {
@@ -64,7 +60,6 @@ trait BaseTrait
     {
 
         \think\facade\Log::error("API Error [$code]: $title",(array) $content);
-
         return  true;
 //        $msgModel = new Msg();
 //        return $msgModel->sendMsg(

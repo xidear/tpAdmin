@@ -3,7 +3,8 @@ namespace app\controller\admin;
 use app\common\BaseController;
 use app\common\enum\AdminType;
 use app\model\Admin;
-use app\request\admin\login\doLogin;
+use app\request\admin\login\Delete;
+use app\request\admin\login\DoLogin;
 use app\service\JwtService;
 use app\common\enum\Status;
 use think\facade\Cookie;
@@ -26,10 +27,10 @@ class Login extends BaseController{
 
     /**
      * 登录
-     * @param doLogin $request
+     * @param DoLogin $request
      * @return Response
      */
-    public function doLogin(doLogin $request): \think\Response
+    public function doLogin(DoLogin $request): \think\Response
     {
         $data = $request->post();
 
@@ -73,8 +74,8 @@ class Login extends BaseController{
         $token = JwtService::getTokenFromHeader($this->request);
         $result = JwtService::logout($token);
         if ($result['success']) {
-            Cookie::set("token",null);
-            Session::set("token",null);
+            Cookie::set("admin_id",null);
+            Session::set("admin_id",null);
             return $this->success($result['message']);
         } else {
             return $this->error($result['message']);

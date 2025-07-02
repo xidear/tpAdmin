@@ -1,5 +1,5 @@
 <?php
-
+namespace app\middleware;
 
 use app\service\PermissionService;
 
