@@ -127,12 +127,17 @@ use think\{
 use think\db\exception\{DbException, DataNotFoundException, ModelNotFoundException};
 use Closure;
 use think\Paginator as ThinkPaginator;
+use app\common\trait\BaseTrait;
+use app\common\trait\LaravelTrait;
+
 
 class BaseModel extends Model
 {
+    use BaseTrait;
+    use LaravelTrait;
     // 默认配置
-    protected $defaultPageSize = 15;
-    protected $maxResults = 1000;
+    protected int $defaultPageSize = 15;
+    protected int $maxResults = 1000;
 
     /**
      * 获取分页数据
@@ -197,6 +202,7 @@ class BaseModel extends Model
      */
     protected function prepareConfig(array $config): array
     {
+
         return array_merge([
             'page' => 1,
             'pageSize' => $this->defaultPageSize,
@@ -213,7 +219,7 @@ class BaseModel extends Model
     /**
      * 构建基础查询
      */
-    protected function buildBaseQuery($conditions, array $config): Query
+    protected function buildBaseQuery($conditions, array $config): BaseModel
     {
         $query = $this->newQuery();
 
@@ -243,17 +249,63 @@ class BaseModel extends Model
      */
     protected function applyQueryConditions(Query $query, $conditions): void
     {
-        // 空条件直接返回
-        if (!$conditions) return;
 
+        // 1. 空条件返回
+        if (empty($conditions)) {return;}
+
+        // 2. 主键查询优先
+        if ($this->isPrimaryKeyCondition($conditions)) {
+            $query->where($this->getPk(), $conditions);
+            return;
+        }
+
+        // 3. 闭包条件
+        if ($conditions instanceof Closure) {
+            $conditions($query);
+            return;
+        }
+
+        // 4. ThinkPHP查询对象
         if ($conditions instanceof Query || $conditions instanceof Where) {
             $query->where($conditions);
-        } elseif ($conditions instanceof Closure) {
-            $conditions($query);
-        } elseif (is_array($conditions) || is_string($conditions)) {
-            $query->where($conditions);
+            return;
         }
+
+        // 5. 数组条件
+        if (is_array($conditions)) {
+            $query->where($conditions);
+            return;
+        }
+
+        // 6. 字符串条件
+        if (is_string($conditions)) {
+            $query->whereRaw($conditions);
+        }
+
+
     }
+
+
+    /**
+     * 判断是否主键
+     * @param $conditions
+     * @return bool
+     */
+    protected function isPrimaryKeyCondition($conditions): bool
+    {
+        // 纯数字（整数主键）
+        if (is_numeric($conditions)) {
+            return true;
+        }
+
+        // 不含空格的字符串（字符串主键）
+        if (is_string($conditions) && !preg_match('/\s+/', $conditions)) {
+            return true;
+        }
+
+        return false;
+    }
+
 
     /**
      * 应用查询字段
@@ -411,4 +463,40 @@ class BaseModel extends Model
             'pageSize' => $this->getPageSizeParam([])
         ];
     }
+
+
+
+    /**
+     * 获取单条数据（优化版本）
+     */
+    public function fetchOne($conditions, array $config = []): Model
+    {
+        // 处理配置参数
+        $config = $this->prepareConfig($config);
+
+        // 构建查询
+        $query = $this->buildBaseQuery($conditions, $config);
+
+        // 获取结果（找不到时返回空模型）
+        return $query->findOrEmpty();
+    }
+
+    /**
+     * 查询数据或创建（使用fetchOne优化）
+     */
+    public function firstOrCreate($data): Model|\think\model\contract\Modelable
+    {
+        // 使用fetchOne替代直接查询
+        $model = $this->fetchOne($data);
+
+        // 如果找到则返回
+        if (!$model->isEmpty()) {
+            return $model;
+        }
+
+        // 否则创建新记录
+        return $this->create($data);
+    }
+
+
 }
