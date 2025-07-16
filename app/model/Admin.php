@@ -53,4 +53,26 @@ class Admin extends BaseModel
         }
         return $adminId == 1;
     }
+
+    /**
+     * 获取超管模型
+     */
+    public function getSuperAdmin():Admin
+    {
+
+        return  self::findOrEmpty(self::getSuperAdminId());
+    }
+
+    /**
+     * 获取超管ID
+     */
+    public function getSuperAdminId(): int
+    {
+
+        return  1;
+    }
+
+
+
+
 }
