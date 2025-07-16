@@ -1,6 +1,6 @@
 <?php
 
-namespace app\request\admin\login;
+namespace app\request\admin\menu;
 
 use app\common\BaseRequest;
 
