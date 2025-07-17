@@ -3,6 +3,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
+use app\Request;
 use app\service\PermissionService;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
@@ -99,21 +100,38 @@ class Menu extends BaseModel
 
     /**
      * 获取用户可访问菜单树
-     * @param $adminId
+     * @param int|null $adminId
+     * @param Request|null $request
      * @return array
      */
-    public static function getUserMenuTree($adminId, $request): array
+    public static function getUserMenuTree(?int $adminId,?Request $request): array
     {
         $menus = self::getUserMenus($adminId, $request);
         return self::buildTree($menus);
     }
 
+
     /**
-     * 获取用户可访问菜单
-     * @param $adminId
+     * 获取用户可访问菜单树
+     * @param Request|null $request
      * @return array
      */
-    public static function getUserMenus($adminId): array
+    public static function getMenuTree(?Request $request): array
+    {
+        $superAdminId=(new Admin())->getSuperAdminId();
+        $menus = self::getUserMenus($superAdminId, $request);
+        return self::buildTree($menus);
+    }
+
+
+
+    /**
+     * 获取用户可访问菜单
+     * @param int|null $adminId
+     * @param Request|null $request
+     * @return array
+     */
+    public static function getUserMenus(?int $adminId,?Request $request =null): array
     {
         if (empty($adminId)) {
             return [];
@@ -127,7 +145,6 @@ class Menu extends BaseModel
                 ->order("order_num asc")
                 ->selectOrFail()
                 ->each(function ($item) {
-
                     if (!empty($item['redirect'])) {
                         unset($item['component']);
                     }
@@ -227,13 +244,19 @@ class Menu extends BaseModel
 
 
 
-    // 关联依赖权限
-
+    /**
+     * 必备权限
+     * @return BelongsTo
+     */
     public function requiredPermission(): BelongsTo
     {
         return $this->belongsTo(Permission::class, 'required_permission_id');
     }
 
+    /**
+     * 已有权限中间表
+     * @return HasMany
+     */
     public function dependencies(): HasMany
     {
         return $this->hasMany(MenuPermissionDependency::class, 'menu_id');

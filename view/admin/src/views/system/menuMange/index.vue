@@ -54,10 +54,83 @@
 
       <!-- 菜单操作 -->
       <template #operation="scope">
-        <el-button type="primary" link :icon="EditPen">编辑</el-button>
+        <el-button @click="handleEdit(scope.row)"  type="primary" link :icon="EditPen">编辑</el-button>
         <el-button type="primary" link :icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
       </template>
     </ProTable>
+
+    <el-dialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑菜单' : '新增菜单'"
+      width="40%"
+      destroy-on-close
+    >
+      <el-form
+        ref="menuFormRef"
+        :model="menuForm"
+        :rules="formRules"
+        label-width="120px"
+      >
+        <!-- 父级菜单选择 -->
+        <el-form-item label="父级菜单" prop="parent_id">
+          <el-cascader
+            v-model="menuForm.parent_id"
+            :options="menuCascadeOptions"
+            :props="cascadeProps"
+            placeholder="选择父级菜单"
+            clearable
+            filterable
+            @change="updateAutoPath"
+          />
+          <div class="text-gray-500 text-xs mt-1">
+            顶级菜单请留空或选择空值
+          </div>
+        </el-form-item>
+
+        <!-- 菜单标题 -->
+        <el-form-item label="菜单标题" prop="meta.title">
+          <el-input v-model="menuForm.meta.title" placeholder="显示在菜单中的名称" />
+        </el-form-item>
+
+        <!-- 菜单图标 -->
+        <el-form-item label="菜单图标" prop="meta.icon">
+          <el-input v-model="menuForm.meta.icon" placeholder="输入图标组件名（如：Menu）" />
+        </el-form-item>
+
+        <!-- 路由名称 -->
+        <el-form-item label="路由名称" prop="name">
+          <el-input
+            v-model="menuForm.name"
+            placeholder="唯一的英文标识（如：userManage）"
+            @input="updateAutoPath"
+          />
+        </el-form-item>
+
+        <!-- 路由路径 -->
+        <el-form-item label="路由路径">
+          <el-input :value="menuForm.path" readonly />
+          <div class="text-xs text-gray-500 mt-1">
+            自动生成: {{ menuForm.path }}
+          </div>
+        </el-form-item>
+
+        <!-- 组件路径 -->
+        <el-form-item label="组件路径" prop="component">
+          <el-input v-model="menuForm.component" placeholder="vue组件文件路径" />
+          <div class="text-gray-500 text-xs mt-1">
+            例如：/system/userManage/index
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitMenuForm">
+          {{ isEdit ? '更新' : '创建' }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+
   </div>
 </template>
 
@@ -65,9 +138,239 @@
 import { onMounted, ref, reactive, computed } from "vue";
 import { ColumnProps } from "@/components/ProTable/interface";
 import { Delete, EditPen, CirclePlus } from "@element-plus/icons-vue";
-import {deleteMenuApi, getAuthMenuListApi} from "@/api/modules/menu";
+import {deleteDeleteApi, getTreeApi, putUpdateApi, postCreateApi, getReadApi} from "@/api/modules/menu";
+// 导入级联选择器
+import { ElCascader } from "element-plus";
+
+import type { FormInstance, FormRules } from "element-plus";
 import ProTable from "@/components/ProTable/index.vue";
 import {ElMessage, ElMessageBox} from "element-plus";
+
+const menuFormRef = ref<FormInstance>();
+
+// 新增状态
+const dialogVisible = ref(false);
+const isEdit = ref(false);
+
+
+// 表单验证规则
+const formRules = reactive<FormRules>({
+  parent_id: [
+    { required: false, message: "请选择父级菜单", trigger: "change" }
+  ],
+  "meta.title": [
+    { required: true, message: "菜单标题不能为空", trigger: "blur" }
+  ],
+  "meta.icon": [
+    { required: true, message: "图标不能为空", trigger: "blur" }
+  ],
+  name: [
+    { required: true, message: "路由名称不能为空", trigger: "blur" },
+    { pattern: /^[a-zA-Z0-9]+$/, message: "只能包含字母和数字", trigger: "blur" }
+  ],
+  component: [
+    { required: true, message: "组件路径不能为空", trigger: "blur" }
+  ]
+});
+
+
+interface MenuForm {
+  menu_id: number;
+  parent_id: number; // 明确类型为 number
+  meta: {
+    title: string;
+    icon: string;
+  };
+  name: string;
+  path: string;
+  component: string; // 明确类型为 string
+}
+
+const menuForm = ref<MenuForm>({
+  menu_id: 0,
+  parent_id: 0,
+  meta: {
+    title: "",
+    icon: ""
+  },
+  name: "",
+  path: "",
+  component: "" // 确保这里是字符串类型
+});
+const currentMenuChildrenIds = ref<number[]>([]);
+
+// 级联选择器配置
+const cascadeProps = {
+  value: 'menu_id',
+  label: 'title',
+  children: 'children',
+  checkStrictly: true,
+  emitPath: false
+};
+
+// 菜单级联选择器选项
+const menuCascadeOptions = computed(() => {
+  if (!originalMenuData.value.length) return [];
+
+  const filterMenu = (menus: any[], excludeIds: number[] = []) => {
+    return menus
+      .filter(menu => !excludeIds.includes(menu.menu_id))
+      .map(menu => ({
+        ...menu,
+        children: menu.children ? filterMenu(menu.children, excludeIds) : []
+      }));
+  };
+
+  // 编辑时排除当前菜单及其子菜单
+  const excludeIds = [...currentMenuChildrenIds.value];
+  if (isEdit.value && menuForm.value.menu_id) {
+    excludeIds.push(menuForm.value.menu_id);
+  }
+
+  return filterMenu([...originalMenuData.value], excludeIds);
+});
+
+// 收集子菜单ID的函数
+const getChildrenIds = (menu: any, idList: number[] = []) => {
+  if (menu.children && menu.children.length) {
+    menu.children.forEach((child: any) => {
+      idList.push(child.menu_id);
+      getChildrenIds(child, idList);
+    });
+  }
+  return idList;
+};
+
+// 自动更新路由路径
+const updateAutoPath = () => {
+  let basePath = "";
+
+  // 查找父级路径
+  if (menuForm.value.parent_id) {
+    const findParentPath = (menus: any[], parentId: number): string | null => {
+      for (const menu of menus) {
+        if (menu.menu_id === parentId) {
+          return menu.path;
+        }
+        if (menu.children) {
+          const found = findParentPath(menu.children, parentId);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const parentPath = findParentPath(originalMenuData.value, menuForm.value.parent_id);
+    if (parentPath) {
+      basePath = parentPath.endsWith('/')
+        ? parentPath.slice(0, -1)
+        : parentPath;
+    }
+  }
+
+  // 组合路径
+  if (menuForm.value.name) {
+    menuForm.value.path = `${basePath ? basePath + '/' : '/'}${menuForm.value.name}`;
+  } else {
+    menuForm.value.path = basePath;
+  }
+};
+
+// 新增菜单处理
+const handleAdd = () => {
+  isEdit.value = false;
+  currentMenuChildrenIds.value = [];
+  menuForm.value = {
+    menu_id: 0,
+    parent_id: 0,
+    meta: {
+      title: "",
+      icon: ""
+    },
+    name: "",
+    path: "",
+    component: ""
+  };
+  dialogVisible.value = true;
+};
+
+// 编辑菜单处理
+const handleEdit = async (row: any) => {
+  try {
+    isEdit.value = true;
+    const res = await getReadApi(row.menu_id);
+
+    // 收集当前菜单的子菜单ID
+    currentMenuChildrenIds.value = getChildrenIds(row);
+
+    // 填充表单数据
+    menuForm.value = {
+      menu_id: row.menu_id,
+      parent_id: Number(res.data.parent_id)||0,
+      meta: {
+        title: res.data.meta?.title || "",
+        icon: res.data.meta?.icon || ""
+      },
+      name: res.data.name || "",
+      path: res.data.path || "",
+      component: res.data.component || "" // 确保是字符串
+    };
+
+    dialogVisible.value = true;
+  } catch (error) {
+    console.error("获取菜单详情失败", error);
+    ElMessage.error("加载菜单详情失败");
+  }
+};
+
+// 提交菜单表单
+const submitMenuForm = () => {
+  if (!menuFormRef.value) return;
+
+  // 提交前确保路径正确生成
+  updateAutoPath();
+
+  // 其余提交逻辑保持不变
+  menuFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        // 准备API参数
+        const payload: Menu.MenuOptions = {
+          title: menuForm.value.meta.title,
+          name: menuForm.value.name,
+          icon: menuForm.value.meta.icon,
+          parent_id: menuForm.value.parent_id || 0,
+          path: menuForm.value.path,
+          component: menuForm.value.component,
+          meta: {
+            ...menuForm.value.meta,
+            isFull: false,
+            isLink: false,
+            isHide: false,
+            isAffix: false,
+            isKeepAlive: true
+          }
+        };
+
+        if (isEdit.value && menuForm.value.menu_id) {
+          await putUpdateApi(menuForm.value.menu_id, payload);
+          ElMessage.success("菜单更新成功");
+        } else {
+          await postCreateApi(payload);
+          ElMessage.success("菜单创建成功");
+        }
+
+        dialogVisible.value = false;
+        fetchMenuData();
+      } catch (error) {
+        console.error("提交菜单失败", error);
+        ElMessage.error("操作失败");
+      }
+    }
+  });
+};
+
+
 
 // 原始菜单数据
 const originalMenuData = ref<any[]>([]);
@@ -177,7 +480,7 @@ const resetSearch = () => {
 };
 
 // onMounted(() => {
-//   getAuthMenuListApi().then((res) => {
+//   getTreeApi().then((res) => {
 //     // 保存原始数据
 //     originalMenuData.value = res.data;
 //   }).catch((err) => {
@@ -188,7 +491,7 @@ const resetSearch = () => {
 
 const fetchMenuData = async () => {
   try {
-    const res = await getAuthMenuListApi();
+    const res = await getTreeApi();
     originalMenuData.value = res.data;
   } catch (err) {
     console.error("获取菜单数据失败", err);
@@ -214,7 +517,7 @@ const handleDelete = async (row: any) => {
     );
 
     // 调用删除API
-    await deleteMenuApi(row.menu_id);
+    await deleteDeleteApi(row.menu_id);
 
     // 成功提示
     ElMessage.success("删除成功");
@@ -234,9 +537,9 @@ const proTable = ref();
 const columns: ColumnProps[] = [
   { prop: "meta.title", label: "菜单标题", align: "left", width: 200 },
   { prop: "meta.icon", label: "菜单图标", width: 150 },
-  { prop: "name", label: "菜单名称", width: 200 },
-  { prop: "path", label: "菜单路径", width: 300 },
-  { prop: "component", label: "组件路径", width: 300 },
+  { prop: "name", label: "前端标识", width: 200 },
+  { prop: "path", label: "前端路由", width: 300 },
+  { prop: "component", label: "实际位置", width: 300 },
   { prop: "operation", label: "操作", width: 250, fixed: "right" }
 ];
 </script>

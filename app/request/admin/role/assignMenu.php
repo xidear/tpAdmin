@@ -7,6 +7,7 @@ use app\common\BaseRequest;
 class assignMenu extends BaseRequest
 {
 
+    //这里返回值不对
     public function __construct()
     {
         parent::__construct();

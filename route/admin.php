@@ -23,18 +23,29 @@ Route::group('adminapi', function () {
     })->middleware([AuthCheck::class]);
     // 需要登录同时需要权限验证
     Route::group(function () {
-        // 菜单管理
-        Route::get('menu', 'Menu/index');
-        Route::get('menu/:id', 'Menu/read');
-        Route::post('menu', 'Menu/save');
-        Route::put('menu/:id', 'Menu/update');
-        Route::delete('menu/:id', 'Menu/delete');
 
 
+//        权限
+        Route::group('permission',function () {
+            Route::get('index', 'index');
+            Route::get('read/:id','read');
+            Route::post('create', 'create');
+            Route::put('update/:id', 'update');
+            Route::delete('delete', 'delete');
+        })->prefix("admin/permission/");
+
+//        菜单
+        Route::group('menu',function () {
+            // 菜单管理
+            Route::get('tree', 'tree');
+            Route::get('read/:id','read');
+            Route::post('create', 'create');
+            Route::put('update/:id', 'update');
+            Route::delete('delete/:id', 'delete');
+        })->prefix("admin/menu/");
         // 角色管理
         Route::get('role', 'admin/Role/index');
         Route::post('role/:id/assign_menu', 'admin/Role/assignMenu');
-
     })->middleware([
         AuthCheck::class,
         AutoPermissionCheck::class

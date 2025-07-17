@@ -1,6 +1,6 @@
 <?php
 
-namespace app\request\admin\login;
+namespace app\request\admin\menu;
 
 use app\common\BaseRequest;
 
@@ -15,7 +15,7 @@ class Delete extends BaseRequest
     public function rules(): array
     {
         return [
-            'id'=>"require",
+            'id' => "require",
         ];
     }
 

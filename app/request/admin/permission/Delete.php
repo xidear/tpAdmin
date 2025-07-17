@@ -1,10 +1,10 @@
 <?php
 
-namespace app\request\admin\menu;
+namespace app\request\admin\permission;
 
 use app\common\BaseRequest;
 
-class Read extends BaseRequest
+class Delete extends BaseRequest
 {
 
     public function __construct()
@@ -14,7 +14,9 @@ class Read extends BaseRequest
 
     public function rules(): array
     {
-        return ['id' => "require"];
+        return [
+            'ids' => "require|array",
+        ];
     }
 
     public function message(): array

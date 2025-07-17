@@ -1,129 +1,9 @@
 <?php
-//
-//namespace app\common;
-//
-//use app\common\trait\BaseTrait;
-//use app\common\trait\LaravelTrait;
-//use think\Collection;
-//use think\db\exception\DataNotFoundException;
-//use think\db\exception\DbException;
-//use think\db\exception\ModelNotFoundException;
-//use think\db\Query;
-//use think\db\Where;
-//use think\Model;
-//
-//class BaseModel extends Model
-//{
-//    use LaravelTrait;
-//    use BaseTrait;
-//
-//    public array $queryAppend=[];
-//
-//    /**
-//     * 分页获取
-//     * @return Collection|array
-//     */
-//    public function getPaginatedList(补充传参,$isSimple=false): Collection|array
-//    {
-//
-//        //这里从request里面获取 page 和 list_rows参数 ,并
-//
-//        [$page,$listRows,$by,$order]=$this->parsePageQuery();
-//
-//        //下面用通用获取方法
-//
-//
-//    }
-//
-//
-//
-//    /**
-//     * 简单分页获取
-//     * @return Collection|array
-//     */
-//    public function getSimplePaginatedList(补充传参): Collection|array
-//    {
-//
-////            这里获取简单分页,复用上面的paginate方法
-//
-//
-//
-//    }
-//
-//
-//
-//    /**
-//     * 不分页获取
-//     * @return Collection|array
-//     */
-//    public function getAllList(补充传参,$isForce=false): Collection|array
-//    {
-//
-////            这里获取不分页数据,复用通用获取方法
-////        先计算总条数,大于某个数值(比如1000),截断,只获取1000条,如果$isForce==true,不考虑截断,不怕超时
-//
-//
-//    }
-//
-//
-//    /**
-//     * 通用获取数据方法,不获取数据,只返回model或query
-//     * @param $where
-//     * @param $field
-//     * @param $append
-//     * @param $hidden
-//     * @param $with
-//     * @param $withWhere
-//     * @param $isSimple
-//     * @return BaseModel|array
-//     */
-//    public function getList(array|Query|Where|或者别的RAW|闭包等等可用的类型 $where=[],补充类型限制  $join=null,array|string|或者RAW等可用类型 $field="*",?array $append=[],?array $hidden=[],array|或者别的with可用的类型 $with=[],array|Query|Where|或者别的RAW|闭包等等可用的类型 $withWhere=[],?bool $isSimple=false,?string $order='desc',?string $by=null): BaseModel|array
-//    {
-//
-////        join的结构我考虑如下 [表名=>'表名',join方式=>'默认inner',条件='',as=>'别名,默认原始表名',$filed='join中的字段,默认* ,这里要考虑是否有字段名重复的问题'] 是否合适
-//        if ($by===null){
-//            $by=self::getPk();
-//        }else{
-////          验证by有没有在所有表字段中(包括join里面的一个或多个表,如果指定字段要考虑字段)
-//        }
-////        验证order是不是 asc desc
-//        try {
-////            这里要考虑 传参
-//            return self::append($append)->buildQuery();
-//        } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
-//            $this->reportError($e->getMessage(),(array)$e,$e->getCode());
-//            return [];
-//        }
-//    }
-//
-//
-//
-//
-//    /**
-//     * 获取page和每页条数
-//     * @return array
-//     */
-//    private function parsePageQuery(): array
-//    {
-//        $page=request()->param('page',1);
-//        $listRows=request()->param('list_rows',15);
-//        $by=request()->param('by',self::getPk());
-//        $order=request()->param('order',"desc");
-//        return [$page,$listRows,$by,$order];
-//    }
-//
-//}
 
 
 namespace app\common;
 
-use think\{
-    Collection,
-    Model,
-    Paginator,
-    db\Query,
-    db\Where
-};
+use think\{Collection, facade\Log, Model, Paginator, db\Query, db\Where};
 use think\db\exception\{DbException, DataNotFoundException, ModelNotFoundException};
 use Closure;
 use think\Paginator as ThinkPaginator;
@@ -135,6 +15,9 @@ class BaseModel extends Model
 {
     use BaseTrait;
     use LaravelTrait;
+
+    protected bool $autoWriteTimestamp = true;
+
     // 默认配置
     protected int $defaultPageSize = 15;
     protected int $maxResults = 1000;
@@ -145,7 +28,7 @@ class BaseModel extends Model
     public function fetchPaginated(
         $conditions = [],
         array $config = []
-    ): ThinkPaginator
+    ): array
     {
         // 处理配置参数
         $config = $this->prepareConfig($config);
@@ -157,11 +40,18 @@ class BaseModel extends Model
         // 构建查询
         $query = $this->buildBaseQuery($conditions, $config);
 
-        return $query->paginate(
-            $pageSize,
-            false,
-            ['page' => $page]
-        );
+        $total=$query->count();
+        try {
+            $list = $query->page(
+                $page,
+                $pageSize
+            )->select()->toArray();
+        } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
+//            这里写入错误日志
+//            Log::error(文件名,方法,前端传参,方法传参,报错信息,用户(如果已登录)$e->getMessage());
+            $list=[];
+        }
+        return ['total'=>$total,'list'=>$list];
     }
 
     /**
@@ -219,7 +109,7 @@ class BaseModel extends Model
     /**
      * 构建基础查询
      */
-    protected function buildBaseQuery($conditions, array $config): BaseModel
+    protected function buildBaseQuery($conditions, array $config): BaseModel|Query
     {
         $query = $this->newQuery();
 
@@ -484,7 +374,7 @@ class BaseModel extends Model
     /**
      * 查询数据或创建（使用fetchOne优化）
      */
-    public function firstOrCreate($data): Model|\think\model\contract\Modelable
+    public function fetchOneOrCreate($data): Model|\think\model\contract\Modelable
     {
         // 使用fetchOne替代直接查询
         $model = $this->fetchOne($data);
@@ -498,5 +388,227 @@ class BaseModel extends Model
         return $this->create($data);
     }
 
+    /**
+     * 智能更新数据（主模型+一对多关联）
+     * @param array $data 更新数据
+     * @param array|string|int|null $condition 查询条件（主键值或条件数组），null 时从 data 提取主键
+     * @return bool 更新结果
+     */
+    public function intelligentUpdate(array $data,array|string|int|null $condition = null): bool
+    {
+        // 开启事务
+        $this->startTrans();
+        try {
+
+
+            // 4. 分离主模型数据和关联数据
+            [$mainData, $relationsData] = $this->separateData($this, $data);
+
+            // 5. 处理主模型更新（保留空值）
+            if (!empty($mainData) || array_key_exists($this->getPk(), $mainData)) {
+                // 保留所有有效字段（包括空值）
+                $mainData = $this->filterValidModelData($this, $mainData);
+                $this->save($mainData);
+            }
+
+            // 6. 处理一对多关联（保留空值）
+            foreach ($relationsData as $relationName => $relationItems) {
+                $this->saveHasManyRelation($this, $relationName, $relationItems);
+            }
+
+            $this->commit();
+            return true;
+
+        } catch (\Throwable $e) {
+            $this->rollback();
+            Log::error('智能更新失败: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 过滤有效模型数据（保留空值）
+     */
+    protected function filterValidModelData(Model $model, array $data): array
+    {
+        // 获取所有有效字段（主表字段和JSON字段）
+        $validFields =  $model->getTableFields();
+
+        // 移除主键（防止意外更新）
+        $pk = $model->getPk();
+        unset($data[$pk]);
+
+        // 只保留有效字段，包括值为空的
+        return array_intersect_key($data, array_flip($validFields));
+    }
+
+    /**
+     * 分离主模型数据和关联数据
+     */
+    protected function separateData(Model $model, array $data): array
+    {
+        $mainData = [];
+        $relationsData = [];
+
+        // 获取所有有效字段
+        $modelFields = $model->getTableFields();
+
+        foreach ($data as $key => $value) {
+            if (in_array($key, $modelFields)) {
+                // 主模型字段（保留空值）
+                $mainData[$key] = $value;
+            } elseif (is_array($value)) {
+                // 关联数据（保留空值）
+                $relationsData[$key] = $value;
+            }
+        }
+
+        return [$mainData, $relationsData];
+    }
+
+    /**
+     * 保存一对多关联（保留空值）
+     */
+    protected function saveHasManyRelation(Model $model, string $relationName, array $items): void
+    {
+        // 1. 验证关系类型
+        if (!method_exists($model, $relationName)) {
+            Log::warning("尝试更新未定义的关联: $relationName");
+            return;
+        }
+
+        $relation = $model->$relationName();
+
+        if (!$relation instanceof \think\model\relation\HasMany) {
+            Log::warning("尝试更新非HasMany关系: $relationName");
+            return;
+        }
+
+        // 2. 获取关联模型信息
+        $relatedModel = $relation->getModel();
+
+        // 3. 准备有效数据（保留空值）
+        $validItems = [];
+        $relatedFields = $relatedModel->getTableFields();
+
+        foreach ($items as $item) {
+            // 过滤无效字段（但保留空值）
+            $validItem = [];
+            foreach ($item as $key => $value) {
+                if (in_array($key, $relatedFields)) {
+                    $validItem[$key] = $value;
+                }
+            }
+
+            // 保留空数组也是有效数据
+            $validItems[] = $validItem;
+        }
+
+        // 4. 使用TP关联方法批量保存
+        if (!empty($validItems)) {
+            $model->$relationName()->saveAll($validItems);
+        }
+    }
+
+    /**
+     * 批量删除数据及其关联的HasMany关系数据（优化模型版）
+     *
+     * @param array $ids 要删除的主键ID数组
+     * @return bool|string 成功返回true，失败返回错误信息
+     */
+    public function batchDeleteWithRelation(array $ids): bool|string
+    {
+        if (empty($ids)) {
+            return $this->false('请提供要删除的数据ID');
+        }
+
+        // 验证所有ID是否存在
+        $existingIds = $this->where($this->getPk(), 'in', $ids)
+            ->column($this->getPk());
+
+        $nonExistingIds = array_diff($ids, $existingIds);
+        if (!empty($nonExistingIds)) {
+            return $this->false( '以下ID不存在: ' . implode(', ', $nonExistingIds));
+        }
+
+        // 开启事务
+        $this->startTrans();
+        try {
+            // 1. 批量删除所有关联数据
+            $relations = $this->getDeletableRelations();
+
+            foreach ($relations as $config) {
+                // 使用关联模型进行批量删除
+                $relationModel = $config['relationModel'];
+
+                $relationModel->where($config['foreign_key'], 'in', $ids)
+                    ->delete();
+            }
+
+            // 2. 删除主表数据
+            $this->where($this->getPk(), 'in', $ids)
+                ->delete();
+
+            $this->commit();
+            return true;
+
+        } catch (\Throwable $e) {
+            $this->rollback();
+            Log::error('批量删除失败: ' . $e->getMessage());
+            return $this->false( '批量删除操作失败: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 获取模型的可删除关联关系配置（优化版）
+     */
+    protected function getDeletableRelations(): array
+    {
+        static $cache = [];
+        $className = static::class;
+
+        // 使用缓存避免重复解析
+        if (isset($cache[$className])) {
+            return $cache[$className];
+        }
+
+        $relations = [];
+
+        // 使用反射获取所有公共方法
+        $reflection = new \ReflectionClass($this);
+        $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
+
+        foreach ($methods as $method) {
+            $methodName = $method->getName();
+
+            // 跳过魔术方法和基类方法
+            if (str_starts_with($methodName, '__') || $method->class === Model::class) {
+                continue;
+            }
+
+            try {
+                // 获取关联实例
+                $relation = $this->$methodName();
+
+                // 只处理HasMany关系
+                if ($relation instanceof \think\model\relation\HasMany) {
+                    // 获取关联模型实例
+                    $relationModel = $relation->getModel();
+                    $foreignKey = $relation->getForeignKey();
+
+                    // 构建关系配置
+                    $relations[$methodName] = [
+                        'relationModel' => $relationModel,
+                        'foreign_key' => $foreignKey,
+                    ];
+                }
+            } catch (\Throwable $e) {
+                // 忽略调用错误的关系
+            }
+        }
+
+        $cache[$className] = $relations;
+        return $relations;
+    }
 
 }

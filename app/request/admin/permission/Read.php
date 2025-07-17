@@ -1,6 +1,6 @@
 <?php
 
-namespace app\request\admin\menu;
+namespace app\request\admin\permission;
 
 use app\common\BaseRequest;
 
@@ -14,7 +14,10 @@ class Read extends BaseRequest
 
     public function rules(): array
     {
-        return ['id' => "require"];
+        if (request()->isGet()) {
+            return [ 'id'=>"require"];
+        }
+        return [        ];
     }
 
     public function message(): array
