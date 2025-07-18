@@ -5,6 +5,7 @@ namespace app\model;
 use app\common\BaseModel;
 use think\facade\Cache;
 use think\model\relation\BelongsToMany;
+use think\model\relation\HasManyThrough;
 
 /**
  * @property string $password
@@ -38,8 +39,9 @@ class Admin extends BaseModel
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'admin_role', 'role_id', 'admin_id');
+        return $this->belongsToMany(Role::class, AdminRole::class, 'role_id', 'admin_id');
     }
+
 
     /**
      * 是否超管
