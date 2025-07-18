@@ -10,6 +10,7 @@ use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
 use think\Exception;
 use think\model\relation\BelongsTo;
+use think\model\relation\BelongsToMany;
 use think\model\relation\HasMany;
 
 class Menu extends BaseModel
@@ -69,7 +70,7 @@ class Menu extends BaseModel
 
         // 高效获取菜单名和权限节点信息
         $menuIds = array_unique(array_column($dependencies, 'menu_id'));
-        $menuMap = Menu::whereIn('menu_id', $menuIds)
+        $menuMap = (new Menu)->whereIn('menu_id', $menuIds)
             ->column('name', 'menu_id');
 
         $permissionIds = array_unique(array_column($dependencies, 'permission_id'));
@@ -319,5 +320,9 @@ class Menu extends BaseModel
         if (!RoleMenu::where('menu_id', $id)->delete()) {
             throw new Exception("删除 主键为[{$this->getKey()}]的角色关联中间表数据 时出错");
         }
+    }
+
+    public function roles(): BelongsToMany{
+        return $this->belongsToMany(Role::class, RoleMenu::class, 'menu_id', 'role_id');
     }
 }
