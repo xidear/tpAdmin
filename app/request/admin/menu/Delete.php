@@ -15,7 +15,7 @@ class Delete extends BaseRequest
     public function rules(): array
     {
         return [
-            'id' => "require",
+            'ids' => "require|array",
         ];
     }
 

@@ -74,21 +74,13 @@ class Permission extends BaseController
      */
     public function delete(Delete $delete): Response
     {
-       $ids=$delete->post("ids/a");
-
-
+       $ids=$delete->delete("ids/a");
         $model=new PermissionModel();
-
-
-
-        if ($model->batchDeleteWithRelation($ids)){
+        if ($model->batchDeleteWithRelation($ids,["menu_dependencies"])){
             return $this->success("删除成功");
         }else{
             return $this->error($model->getMessage());
         }
-
-
-
     }
 
 

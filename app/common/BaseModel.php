@@ -22,6 +22,22 @@ class BaseModel extends Model
     protected int $defaultPageSize = 15;
     protected int $maxResults = 1000;
 
+public function columnToString($columnName,$sep=","):string
+{
+
+    if ($this->isEmpty()){
+        return "";
+    }
+    if ($this instanceof Collection){
+        $array=array_column($this->toArray(),$columnName);
+        return implode($sep,$array);
+    } else {
+        return implode($this->column($columnName), $sep);
+    }
+
+}
+
+
     /**
      * 获取分页数据
      */
@@ -516,7 +532,7 @@ class BaseModel extends Model
      * @param array $ids 要删除的主键ID数组
      * @return bool|string 成功返回true，失败返回错误信息
      */
-    public function batchDeleteWithRelation(array $ids): bool|string
+    public function batchDeleteWithRelation(array $ids,array $relationList=[]): bool|string
     {
         if (empty($ids)) {
             return $this->false('请提供要删除的数据ID');
@@ -535,7 +551,8 @@ class BaseModel extends Model
         $this->startTrans();
         try {
             // 1. 批量删除所有关联数据
-            $relations = $this->getDeletableRelations();
+            $relations = $this->getDeletableRelations($relationList);
+
 
             foreach ($relations as $config) {
                 // 使用关联模型进行批量删除
@@ -562,7 +579,7 @@ class BaseModel extends Model
     /**
      * 获取模型的可删除关联关系配置（优化版）
      */
-    protected function getDeletableRelations(): array
+    protected function getDeletableRelations(array $relationList=[]): array
     {
         static $cache = [];
         $className = static::class;
@@ -574,9 +591,9 @@ class BaseModel extends Model
 
         $relations = [];
 
-        // 使用反射获取所有公共方法
-        $reflection = new \ReflectionClass($this);
-        $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
+            // 使用反射获取所有公共方法
+            $reflection = new \ReflectionClass($this);
+            $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
 
         foreach ($methods as $method) {
             $methodName = $method->getName();
@@ -584,6 +601,11 @@ class BaseModel extends Model
             // 跳过魔术方法和基类方法
             if (str_starts_with($methodName, '__') || $method->class === Model::class) {
                 continue;
+            }
+            if (!empty($relationList)){
+                if (!in_array($methodName, $relationList)) {
+                    continue;
+                }
             }
 
             try {
