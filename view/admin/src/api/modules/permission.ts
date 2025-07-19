@@ -46,6 +46,13 @@ export const putUpdateApi = (
  * 删除权限（支持单个和批量删除）
  * @param params 删除参数
  */
+// export const deleteDeleteApi = (params: { ids: number[] }) => {
+//   return http.delete("/permission/delete", params, { loading: true });
+// };
+
+
 export const deleteDeleteApi = (params: { ids: number[] }) => {
-  return http.delete("/permission/delete", params, { loading: true });
+  return http.delete("/permission/delete", {
+    data: params,       // 请求体数据
+  });
 };

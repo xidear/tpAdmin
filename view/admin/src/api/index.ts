@@ -70,12 +70,12 @@ class RequestHttp {
         if (data.code == ResultEnum.OVERDUE) {
           userStore.setToken("");
           router.replace(LOGIN_URL);
-          ElMessage.error(data.message);
+          ElMessage.error(data.msg);
           return Promise.reject(data);
         }
         // 全局错误信息拦截（防止下载文件的时候返回数据流，没有 code 直接报错）
         if (data.code && data.code !== ResultEnum.SUCCESS) {
-          ElMessage.error(data.message);
+          ElMessage.error(data.msg);
           return Promise.reject(data);
         }
         // 成功请求（在页面上除非特殊情况，否则不用处理失败逻辑）
@@ -108,9 +108,24 @@ class RequestHttp {
   put<T>(url: string, params?: object, _object = {}): Promise<ResultData<T>> {
     return this.service.put(url, params, _object);
   }
-  delete<T>(url: string, params?: any, _object = {}): Promise<ResultData<T>> {
-    return this.service.delete(url, { params, ..._object });
+  // delete<T>(url: string, params?: any, _object = {}): Promise<ResultData<T>> {
+  //   return this.service.delete(url, { params, ..._object });
+  // }
+
+
+
+  /**
+   * DELETE 请求方法
+   * @param url 请求URL
+   * @param config 请求配置（可包含data作为请求体）
+   */
+  delete<T>(url: string, config: AxiosRequestConfig = {}): Promise<ResultData<T>> {
+    return this.service.delete(url, config);
   }
+
+
+
+
   download(url: string, params?: object, _object = {}): Promise<BlobPart> {
     return this.service.post(url, params, { ..._object, responseType: "blob" });
   }
