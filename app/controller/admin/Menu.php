@@ -6,6 +6,7 @@ use app\common\BaseController;
 use app\common\BaseRequest;
 use app\request\admin\menu\Delete;
 use app\request\admin\menu\Read;
+use app\request\admin\menu\Update;
 use think\Response;
 
 class Menu extends BaseController
@@ -46,19 +47,45 @@ class Menu extends BaseController
 
     /**
      * 读取
-     * @param $id
+     * @param $menu_id
      * @param Read $request
      * @return Response
      */
-    public function read($id, Read $request): Response
+    public function read($menu_id, Read $request): Response
     {
 
-        $id = request()->param('id');
         $menu = (new \app\model\Menu)->with([
            'dependencies.permission'
-        ])->findOrEmpty($id);
+        ])->findOrEmpty($menu_id);
 
         return $this->success($menu);
+    }
+
+    public function update($menu_id,Update $request): Response{
+        $data=$request->param();
+
+        $menu=(new \app\model\Menu)->findOrEmpty($menu_id);
+        if ($menu->isEmpty()) {
+            return $this->error("没找到数据");
+        }
+
+        $menu->startTrans();
+        try {
+            $menu->dependencies()->delete();
+            if (!empty($data['dependencies'])) {
+                $menu->dependencies()->saveAll($data['dependencies']);
+                unset($data['dependencies']);
+            }
+            $menu->save($data);
+            $menu->commit();
+        }catch (\Exception $e){
+            $menu->rollback();
+            return $this->error($e->getMessage());
+        }
+        return  $this->success($data);
+
+
+
     }
 
 

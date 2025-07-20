@@ -26,13 +26,13 @@ class Permission extends BaseController
 
 
     /**
-     * @param $id
+     * @param $permission_id
      * @param Read $read
      * @return Response
      */
-    public function read($id, Read $read): Response
+    public function read($permission_id, Read $read): Response
     {
-        return $this->success((new PermissionModel())->fetchOne($id));
+        return $this->success((new PermissionModel())->fetchOne($permission_id));
     }
 
 
@@ -48,14 +48,14 @@ class Permission extends BaseController
 
 
     /**
-     * @param $id
+     * @param $permission_id
      * @param Edit $edit
      * @return Response
      */
-    public function update( $id,Edit $edit): Response
+    public function update( $permission_id,Edit $edit): Response
     {
         $params = $this->request->param();
-        $info=(new PermissionModel())->fetchOne($id);
+        $info=(new PermissionModel())->fetchOne($permission_id);
         if ($info->isEmpty()){
             return $this->error("未找到指定数据");
         }

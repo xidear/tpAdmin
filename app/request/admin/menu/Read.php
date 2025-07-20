@@ -14,7 +14,7 @@ class Read extends BaseRequest
 
     public function rules(): array
     {
-        return ['id' => "require"];
+        return [];
     }
 
     public function message(): array

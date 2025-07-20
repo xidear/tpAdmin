@@ -28,9 +28,9 @@ Route::group('adminapi', function () {
 //        权限
         Route::group('permission',function () {
             Route::get('index', 'index');
-            Route::get('read/:id','read');
+            Route::get('read/:permission_id','read');
             Route::post('create', 'create');
-            Route::put('update/:id', 'update');
+            Route::put('update/:permission_id', 'update');
             Route::delete('delete', 'delete');
         })->prefix("admin/permission/");
 
@@ -38,9 +38,9 @@ Route::group('adminapi', function () {
         Route::group('menu',function () {
             // 菜单管理
             Route::get('tree', 'tree');
-            Route::get('read/:id','read');
+            Route::get('read/:menu_id','read');
             Route::post('create', 'create');
-            Route::put('update/:id', 'update');
+            Route::put('update/:menu_id', 'update');
             Route::delete('delete', 'delete');
         })->prefix("admin/menu/");
         // 角色管理
