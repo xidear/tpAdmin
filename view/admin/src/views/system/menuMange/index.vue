@@ -3,7 +3,7 @@
     <ProTable
       ref="proTable"
       title="菜单列表"
-      row-key="path"
+      row-key="menu_id"
       :indent="20"
       :columns="columns"
       :data="filteredMenuData"
@@ -12,53 +12,58 @@
       <template #tableHeader>
         <div class="flex items-center">
           <div class="search-box flex items-center gap-3">
-            <!-- 菜单名称搜索框 -->
+            <el-button 
+              type="primary" 
+              v-auth="'create'" 
+              :icon="CirclePlus" 
+              @click="handleAdd"
+              style="margin-right: 20px" 
+            >
+              新增菜单
+            </el-button>
+
+            <!-- 搜索框 -->
             <el-input
               v-model="searchParams.title"
               placeholder="菜单标题"
               clearable
               style="width: 200px"
             />
-            <!-- 菜单名称搜索框 -->
             <el-input
               v-model="searchParams.name"
-              placeholder="菜单名称"
+              placeholder="菜单标识"
               clearable
               style="width: 200px"
             />
-            <!-- 菜单路径搜索框 -->
             <el-input
               v-model="searchParams.path"
-              placeholder="菜单路径"
+              placeholder="路由路径"
               clearable
               style="width: 200px"
             />
-            <!-- 操作按钮 -->
-            <el-button type="primary" @click="handleSearch">搜索</el-button>
-            <el-button @click="resetSearch">重置</el-button>
+            <el-button-group  style="margin-left: 10px;">
+              <el-button type="primary" @click="handleSearch">搜索</el-button>
+              <el-button @click="resetSearch">重置</el-button>
+            </el-button-group>
           </div>
         </div>
-      </template>
-
-      <!-- 表格 header 右侧按钮 -->
-      <template #tableHeaderRight>
-        <el-button type="primary" :icon="CirclePlus">新增菜单</el-button>
       </template>
 
       <!-- 菜单图标 -->
       <template #icon="scope">
         <el-icon :size="18">
-          <component :is="scope.row.meta.icon"></component>
+          <component :is="scope.row.icon"></component>
         </el-icon>
       </template>
 
       <!-- 菜单操作 -->
       <template #operation="scope">
-        <el-button @click="handleEdit(scope.row)"  type="primary" link :icon="EditPen">编辑</el-button>
-        <el-button type="primary" link :icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+        <el-button @click="handleEdit(scope.row)" v-auth="'update'" type="primary" link :icon="EditPen">编辑</el-button>
+        <el-button @click="handleDelete(scope.row)" v-auth="'delete'" type="primary" link :icon="Delete">删除</el-button>
       </template>
     </ProTable>
 
+    <!-- 新增/编辑对话框 -->
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑菜单' : '新增菜单'"
@@ -80,7 +85,6 @@
             placeholder="选择父级菜单"
             clearable
             filterable
-            @change="updateAutoPath"
           />
           <div class="text-gray-500 text-xs mt-1">
             顶级菜单请留空或选择空值
@@ -88,37 +92,64 @@
         </el-form-item>
 
         <!-- 菜单标题 -->
-        <el-form-item label="菜单标题" prop="meta.title">
-          <el-input v-model="menuForm.meta.title" placeholder="显示在菜单中的名称" />
+        <el-form-item label="菜单标题" prop="title">
+          <el-input v-model="menuForm.title" placeholder="显示在菜单中的名称" />
         </el-form-item>
 
-        <!-- 菜单图标 -->
-        <el-form-item label="菜单图标" prop="meta.icon">
-          <el-input v-model="menuForm.meta.icon" placeholder="输入图标组件名（如：Menu）" />
+        <!-- 菜单图标选择器 -->
+        <el-form-item label="菜单图标" prop="icon">
+          <el-popover
+            v-model:visible="iconPopoverVisible"
+            placement="bottom"
+            width="600"
+            trigger="click"
+          >
+            <template #reference>
+              <el-input
+                v-model="menuForm.icon"
+                placeholder="点击选择图标"
+                readonly
+                class="icon-input"
+              />
+            </template>
+            <div class="icon-selector">
+              <el-input
+                v-model="iconSearch"
+                placeholder="搜索图标"
+                prefix-icon="Search"
+                class="icon-search"
+              />
+              <div class="icon-list">
+                <div
+                  v-for="icon in filteredIcons"
+                  :key="icon"
+                  class="icon-item"
+                  @click="selectIcon(icon)"
+                >
+                  <el-icon :size="24"><component :is="icon" /></el-icon>
+                  <span>{{ icon }}</span>
+                </div>
+              </div>
+            </div>
+          </el-popover>
         </el-form-item>
 
         <!-- 路由名称 -->
-        <el-form-item label="路由名称" prop="name">
+        <el-form-item label="菜单标识" prop="name">
           <el-input
             v-model="menuForm.name"
             placeholder="唯一的英文标识（如：userManage）"
-            @input="updateAutoPath"
           />
-        </el-form-item>
-
-        <!-- 路由路径 -->
-        <el-form-item label="路由路径">
-          <el-input :value="menuForm.path" readonly />
-          <div class="text-xs text-gray-500 mt-1">
-            自动生成: {{ menuForm.path }}
+          <div class="text-gray-500 text-xs mt-1">
+            后端将根据此字段和菜单结构自动生成路由路径
           </div>
         </el-form-item>
 
         <!-- 组件路径 -->
-        <el-form-item label="组件路径" prop="component">
-          <el-input v-model="menuForm.component" placeholder="vue组件文件路径" />
+        <el-form-item label="文件路径" prop="component">
+          <el-input v-model="menuForm.component" placeholder="vue文件的相对路径,不包括pages和.vue" />
           <div class="text-gray-500 text-xs mt-1">
-            例如：/system/userManage/index
+            例如：/system/userManage/index（对应views/system/userManage/index.vue）
           </div>
         </el-form-item>
       </el-form>
@@ -129,74 +160,100 @@
         </el-button>
       </template>
     </el-dialog>
-
-
   </div>
 </template>
 
 <script setup lang="ts" name="menuMange">
+import { useAuthButtons } from "@/hooks/useAuthButtons";
+const { BUTTONS } = useAuthButtons();
+
 import { onMounted, ref, reactive, computed } from "vue";
 import { ColumnProps } from "@/components/ProTable/interface";
 import { Delete, EditPen, CirclePlus } from "@element-plus/icons-vue";
-import {deleteDeleteApi, getTreeApi, putUpdateApi, postCreateApi, getReadApi} from "@/api/modules/menu";
-// 导入级联选择器
+import * as Icons from "@element-plus/icons-vue";
+import { 
+  deleteDeleteApi, 
+  getTreeApi, 
+  putUpdateApi, 
+  postCreateApi, 
+  getReadApi 
+} from "@/api/modules/menu";
 import { ElCascader } from "element-plus";
-
 import type { FormInstance, FormRules } from "element-plus";
 import ProTable from "@/components/ProTable/index.vue";
-import {ElMessage, ElMessageBox} from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const menuFormRef = ref<FormInstance>();
 
-// 新增状态
+// 对话框状态
 const dialogVisible = ref(false);
 const isEdit = ref(false);
 
+// 图标选择器状态
+const iconPopoverVisible = ref(false);
+const iconSearch = ref("");
+
+// 图标列表
+const allIcons = ref<string[]>([]);
+Object.keys(Icons).forEach(key => {
+  if (!key.startsWith('$')) {
+    allIcons.value.push(key);
+  }
+});
+
+// 过滤图标
+const filteredIcons = computed(() => {
+  if (!iconSearch.value) return allIcons.value;
+  return allIcons.value.filter(icon => 
+    icon.toLowerCase().includes(iconSearch.value.toLowerCase())
+  );
+});
+
+// 选择图标
+const selectIcon = (icon: string) => {
+  menuForm.value.icon = icon;
+  iconPopoverVisible.value = false;
+};
 
 // 表单验证规则
 const formRules = reactive<FormRules>({
-  parent_id: [
-    { required: false, message: "请选择父级菜单", trigger: "change" }
-  ],
-  "meta.title": [
-    { required: true, message: "菜单标题不能为空", trigger: "blur" }
-  ],
-  "meta.icon": [
-    { required: true, message: "图标不能为空", trigger: "blur" }
-  ],
+  parent_id: [{ required: false, message: "请选择父级菜单", trigger: "change" }],
+  title: [{ required: true, message: "菜单标题不能为空", trigger: "blur" }],
+  icon: [{ required: true, message: "图标不能为空", trigger: "blur" }],
   name: [
-    { required: true, message: "路由名称不能为空", trigger: "blur" },
+    { required: true, message: "菜单标识不能为空", trigger: "blur" },
     { pattern: /^[a-zA-Z0-9]+$/, message: "只能包含字母和数字", trigger: "blur" }
   ],
-  component: [
-    { required: true, message: "组件路径不能为空", trigger: "blur" }
-  ]
+  component: [{ required: true, message: "组件路径不能为空", trigger: "blur" }]
 });
 
-
+// 菜单表单数据模型（移除path字段）
 interface MenuForm {
   menu_id: number;
-  parent_id: number; // 明确类型为 number
-  meta: {
-    title: string;
-    icon: string;
-  };
+  parent_id: number;
+  title: string;
+  icon: string;
   name: string;
-  path: string;
-  component: string; // 明确类型为 string
+  component: string;
+  is_link?: number;
+  is_full?: number;
+  is_affix?: number;
+  is_keep_alive?: number;
 }
 
 const menuForm = ref<MenuForm>({
   menu_id: 0,
   parent_id: 0,
-  meta: {
-    title: "",
-    icon: ""
-  },
+  title: "",
+  icon: "",
   name: "",
-  path: "",
-  component: "" // 确保这里是字符串类型
+  component: "",
+  is_link: 2,
+  is_full: 2,
+  is_affix: 2,
+  is_keep_alive: 1
 });
+
 const currentMenuChildrenIds = ref<number[]>([]);
 
 // 级联选择器配置
@@ -230,7 +287,7 @@ const menuCascadeOptions = computed(() => {
   return filterMenu([...originalMenuData.value], excludeIds);
 });
 
-// 收集子菜单ID的函数
+// 收集子菜单ID
 const getChildrenIds = (menu: any, idList: number[] = []) => {
   if (menu.children && menu.children.length) {
     menu.children.forEach((child: any) => {
@@ -241,79 +298,44 @@ const getChildrenIds = (menu: any, idList: number[] = []) => {
   return idList;
 };
 
-// 自动更新路由路径
-const updateAutoPath = () => {
-  let basePath = "";
-
-  // 查找父级路径
-  if (menuForm.value.parent_id) {
-    const findParentPath = (menus: any[], parentId: number): string | null => {
-      for (const menu of menus) {
-        if (menu.menu_id === parentId) {
-          return menu.path;
-        }
-        if (menu.children) {
-          const found = findParentPath(menu.children, parentId);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    const parentPath = findParentPath(originalMenuData.value, menuForm.value.parent_id);
-    if (parentPath) {
-      basePath = parentPath.endsWith('/')
-        ? parentPath.slice(0, -1)
-        : parentPath;
-    }
-  }
-
-  // 组合路径
-  if (menuForm.value.name) {
-    menuForm.value.path = `${basePath ? basePath + '/' : '/'}${menuForm.value.name}`;
-  } else {
-    menuForm.value.path = basePath;
-  }
-};
-
-// 新增菜单处理
+// 新增菜单
 const handleAdd = () => {
   isEdit.value = false;
   currentMenuChildrenIds.value = [];
   menuForm.value = {
     menu_id: 0,
     parent_id: 0,
-    meta: {
-      title: "",
-      icon: ""
-    },
+    title: "",
+    icon: "",
     name: "",
-    path: "",
-    component: ""
+    component: "",
+    is_link: 2,
+    is_full: 2,
+    is_affix: 2,
+    is_keep_alive: 1
   };
   dialogVisible.value = true;
 };
 
-// 编辑菜单处理
+// 编辑菜单
 const handleEdit = async (row: any) => {
   try {
     isEdit.value = true;
     const res = await getReadApi(row.menu_id);
 
-    // 收集当前菜单的子菜单ID
     currentMenuChildrenIds.value = getChildrenIds(row);
 
-    // 填充表单数据
     menuForm.value = {
       menu_id: row.menu_id,
-      parent_id: Number(res.data.parent_id)||0,
-      meta: {
-        title: res.data.meta?.title || "",
-        icon: res.data.meta?.icon || ""
-      },
+      parent_id: Number(res.data.parent_id) || 0,
+      title: res.data.title || "",
+      icon: res.data.icon || "",
       name: res.data.name || "",
-      path: res.data.path || "",
-      component: res.data.component || "" // 确保是字符串
+      component: res.data.component || "",
+      is_link: res.data.is_link || 2,
+      is_full: res.data.is_full || 2,
+      is_affix: res.data.is_affix || 2,
+      is_keep_alive: res.data.is_keep_alive || 1
     };
 
     dialogVisible.value = true;
@@ -327,29 +349,19 @@ const handleEdit = async (row: any) => {
 const submitMenuForm = () => {
   if (!menuFormRef.value) return;
 
-  // 提交前确保路径正确生成
-  updateAutoPath();
-
-  // 其余提交逻辑保持不变
   menuFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        // 准备API参数
-        const payload: Menu.MenuOptions = {
-          title: menuForm.value.meta.title,
+        const payload: any = {
+          title: menuForm.value.title,
+          icon: menuForm.value.icon,
           name: menuForm.value.name,
-          icon: menuForm.value.meta.icon,
           parent_id: menuForm.value.parent_id || 0,
-          path: menuForm.value.path,
           component: menuForm.value.component,
-          meta: {
-            ...menuForm.value.meta,
-            isFull: false,
-            isLink: false,
-            isHide: false,
-            isAffix: false,
-            isKeepAlive: true
-          }
+          is_link: menuForm.value.is_link || 2,
+          is_full: menuForm.value.is_full || 2,
+          is_affix: menuForm.value.is_affix || 2,
+          is_keep_alive: menuForm.value.is_keep_alive || 1
         };
 
         if (isEdit.value && menuForm.value.menu_id) {
@@ -370,8 +382,6 @@ const submitMenuForm = () => {
   });
 };
 
-
-
 // 原始菜单数据
 const originalMenuData = ref<any[]>([]);
 
@@ -382,69 +392,53 @@ const searchParams = reactive({
   path: ""
 });
 
-// 修正后的筛选逻辑 - 只显示匹配项及其上级
+// 前端筛选实现
 const filteredMenuData = computed(() => {
-  if (!isFilterActive) return originalMenuData.value;
+  if (!isFilterActive.value) return originalMenuData.value;
 
-  // 1. 平铺所有菜单项
+  // 1. 平铺整个菜单树
   const allNodes = flattenTree(originalMenuData.value);
 
-  // 2. 找出所有匹配的节点
+  // 2. 筛选匹配的节点
   const matchedNodes = allNodes.filter(node => {
-    const matchTitle = searchParams.title ? (node.meta?.title || "").includes(searchParams.title) : true;
+    const matchTitle = searchParams.title ? (node.title || "").includes(searchParams.title) : true;
     const matchName = searchParams.name ? (node.name || "").includes(searchParams.name) : true;
     const matchPath = searchParams.path ? (node.path || "").includes(searchParams.path) : true;
     return matchTitle && matchName && matchPath;
   });
 
-  // 3. 为每个匹配节点回溯其祖先路径
-  const resultNodes = new Map();
+  // 3. 收集匹配节点的ID
+  const matchedIds = new Set(matchedNodes.map(node => node.menu_id));
 
-  matchedNodes.forEach(node => {
-    // 添加当前匹配节点
-    resultNodes.set(node.path, cloneNodeWithoutChildren(node));
+  // 4. 递归构建筛选后的树结构
+  const buildFilteredTree = (nodes: any[]): any[] => {
+    return nodes.reduce((result, node) => {
+      // 如果当前节点匹配或其子节点中有匹配的
+      const hasMatch = matchedIds.has(node.menu_id) || 
+                      (node.children && node.children.some(child => matchedIds.has(child.menu_id)));
+      
+      if (hasMatch) {
+        // 递归处理子节点
+        const children = node.children ? buildFilteredTree(node.children) : [];
+        
+        // 如果子节点有匹配，保留当前节点
+        if (children.length > 0) {
+          result.push({ ...node, children });
+        } 
+        // 如果当前节点匹配且没有子节点，直接添加
+        else if (matchedIds.has(node.menu_id)) {
+          result.push({ ...node, children: [] });
+        }
+      }
+      
+      return result;
+    }, [] as any[]);
+  };
 
-    // 回溯父节点路径
-    let currentPath = node.path;
-    while (currentPath) {
-      // 查找父节点
-      const parent = allNodes.find(n => {
-        if (!n.children) return false;
-        return n.children.some(c => c.path === currentPath);
-      });
-
-      if (!parent || resultNodes.has(parent.path)) break;
-
-      // 克隆父节点（不带子节点）
-      const parentClone = cloneNodeWithoutChildren(parent);
-      resultNodes.set(parent.path, parentClone);
-      currentPath = parent.path;
-    }
-  });
-
-  // 4. 构建结果树结构
-  const result = Array.from(resultNodes.values());
-
-  // 5. 重新组装树结构
-  result.forEach(node => {
-    const children = Array.from(resultNodes.values()).filter(n =>
-      n.path !== node.path && n.path.startsWith(node.path + '/')
-    );
-
-    if (children.length > 0) {
-      node.children = children;
-    }
-  });
-
-  // 6. 保留顶级节点
-  return result.filter(node => {
-    return !Array.from(resultNodes.values()).some(n =>
-      n !== node && node.path.startsWith(n.path + '/')
-    );
-  });
+  return buildFilteredTree(originalMenuData.value);
 });
 
-// 检查是否有活跃的筛选条件
+// 检查是否有搜索条件
 const isFilterActive = computed(() => {
   return searchParams.title || searchParams.name || searchParams.path;
 });
@@ -460,16 +454,9 @@ const flattenTree = (nodes: any[], result: any[] = []) => {
   return result;
 };
 
-// 辅助函数：克隆节点但不包含子元素
-const cloneNodeWithoutChildren = (node: any) => {
-  const clone = { ...node };
-  delete clone.children;
-  return clone;
-};
-
-// 搜索处理 - 实际上计算属性已经自动更新
+// 搜索处理（前端筛选）
 const handleSearch = () => {
-  // 计算属性会自动更新，这里不需要做任何事情
+  // 无需调用后端，直接触发筛选
 };
 
 // 重置搜索
@@ -479,16 +466,7 @@ const resetSearch = () => {
   searchParams.path = "";
 };
 
-// onMounted(() => {
-//   getTreeApi().then((res) => {
-//     // 保存原始数据
-//     originalMenuData.value = res.data;
-//   }).catch((err) => {
-//     console.error("获取菜单数据失败", err);
-//   });
-// });
-
-
+// 获取菜单数据
 const fetchMenuData = async () => {
   try {
     const res = await getTreeApi();
@@ -502,12 +480,12 @@ const fetchMenuData = async () => {
 onMounted(() => {
   fetchMenuData();
 });
-// 删除菜单处理
+
+// 删除菜单
 const handleDelete = async (row: any) => {
   try {
-    // 确认对话框
     await ElMessageBox.confirm(
-      `确定要删除菜单 "${row.meta?.title || row.path}" 吗?`,
+      `确定要删除菜单 "${row.title || row.path}" 吗?`,
       "提示",
       {
         confirmButtonText: "确定",
@@ -516,27 +494,20 @@ const handleDelete = async (row: any) => {
       }
     );
 
-    // 调用删除API
     await deleteDeleteApi(row.menu_id);
-
-    // 成功提示
     ElMessage.success("删除成功");
-
-    // 重新加载菜单数据
     await fetchMenuData();
   } catch (error) {
-    // 捕获取消操作和API错误
-
-      ElMessage.error("删除失败: " + (error || "未知错误"));
+    ElMessage.error("删除失败: " + (error || "未知错误"));
   }
 };
 
 const proTable = ref();
 
-// 表格配置项 - 保持与图片一致
+// 表格列配置
 const columns: ColumnProps[] = [
-  { prop: "meta.title", label: "菜单标题", align: "left", width: 200 },
-  { prop: "meta.icon", label: "菜单图标", width: 150 },
+  { prop: "title", label: "菜单标题", align: "left", width: 200 },
+  { prop: "icon", label: "菜单图标", width: 150 },
   { prop: "name", label: "前端标识", width: 200 },
   { prop: "path", label: "前端路由", width: 300 },
   { prop: "component", label: "实际位置", width: 300 },
@@ -547,5 +518,49 @@ const columns: ColumnProps[] = [
 <style scoped>
 .search-box {
   padding: 15px 0;
+}
+
+/* 图标选择器样式 */
+.icon-selector {
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.icon-search {
+  margin-bottom: 16px;
+}
+
+.icon-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  padding: 8px;
+  text-align: center;
+}
+
+.icon-item:hover {
+  background-color: #f0f0f0;
+}
+
+.icon-item el-icon {
+  margin-bottom: 8px;
+}
+
+.icon-input .el-input__suffix {
+  display: none;
 }
 </style>

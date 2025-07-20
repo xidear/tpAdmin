@@ -41,7 +41,7 @@ Route::group('adminapi', function () {
             Route::get('read/:id','read');
             Route::post('create', 'create');
             Route::put('update/:id', 'update');
-            Route::delete('delete/:id', 'delete');
+            Route::delete('delete', 'delete');
         })->prefix("admin/menu/");
         // 角色管理
         Route::get('role', 'admin/Role/index');

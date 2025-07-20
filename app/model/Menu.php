@@ -3,6 +3,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
+use app\common\enum\MenuPermissionDependencies;
 use app\Request;
 use app\service\PermissionService;
 use think\db\exception\DataNotFoundException;
@@ -105,25 +106,90 @@ class Menu extends BaseModel
      * @param Request|null $request
      * @return array
      */
-    public static function getUserMenuTree(?int $adminId,?Request $request): array
+    public static function getUserMenuTree(?int $adminId, ?Request $request): array
     {
-        $menus = self::getUserMenus($adminId, $request);
-        return self::buildTree($menus);
+        return self::buildTree(self::getUserMenus($adminId, $request));
     }
+
+    /**
+     * 将扁平的菜单数据转换为树形结构
+     * @param array $items 扁平的菜单数据数组
+     * @param int $parentId 父级 ID，默认为 0
+     * @param string|null $pk
+     * @param string $parentFieldName
+     * @param string $childrenName
+     * @return array 树形结构的菜单数据
+     */
+//    public static function buildTree(array $items, int $parentId = 0, string $pk = null, string $parentFieldName = "parent_id", string $childrenName = "children"): array
+//    {
+//        if (empty($pk)) {
+//            $pk = (new Menu)->getPk();
+//        }
+//        $tree = [];
+//        foreach ($items as $item) {
+//            if ($item[$parentFieldName] == $parentId) {
+//                $children = self::buildTree($items, $item[$pk], $pk, $parentFieldName, $childrenName);
+//                if ($children) {
+//                    $item[$childrenName] = $children;
+//                }
+//                $tree[] = $item;
+//            }
+//        }
+//        return $tree;
+//    }
 
 
     /**
-     * 获取用户可访问菜单树
-     * @param Request|null $request
-     * @return array
+     * 将扁平的菜单数据转换为树形结构并生成路径
+     * @param array $items 扁平的菜单数据数组
+     * @param int $parentId 父级 ID，默认为 0
+     * @param string|null $pk
+     * @param string $parentFieldName
+     * @param string $childrenName
+     * @param string $parentPath 当前父级路径，用于生成子菜单路径
+     * @return array 树形结构的菜单数据
      */
-    public static function getMenuTree(?Request $request): array
+    public static function buildTree(array $items, int $parentId = 0, string $pk = null, string $parentFieldName = "parent_id", string $childrenName = "children", string $parentPath = ''): array
     {
-        $superAdminId=(new Admin())->getSuperAdminId();
-        $menus = self::getUserMenus($superAdminId, $request);
-        return self::buildTree($menus);
-    }
+        if (empty($pk)) {
+            $pk = (new Menu)->getPk();
+        }
+        $tree = [];
 
+        foreach ($items as $item) {
+            if ($item[$parentFieldName] == $parentId) {
+                // 计算当前菜单的基础路径
+                $basePath = $parentPath
+                    ? "{$parentPath}/{$item['name']}"
+                    : "/{$item['name']}";
+
+                // 递归查找子菜单
+                $children = self::buildTree(
+                    $items,
+                    $item[$pk],
+                    $pk,
+                    $parentFieldName,
+                    $childrenName,
+                    $basePath // 传递当前路径作为子菜单的父路径
+                );
+
+                // 判断是否有子菜单
+                $hasChildren = !empty($children);
+
+                // 根据是否有子菜单决定路径是否添加/index
+                $item['path'] = $hasChildren ? $basePath : "{$basePath}/index";
+
+                // 如果有子菜单，添加到当前节点
+                if ($hasChildren) {
+                    $item[$childrenName] = $children;
+                }
+
+                $tree[] = $item;
+            }
+        }
+
+        return $tree;
+    }
 
 
     /**
@@ -132,19 +198,31 @@ class Menu extends BaseModel
      * @param Request|null $request
      * @return array
      */
-    public static function getUserMenus(?int $adminId,?Request $request =null): array
+    public static function getUserMenus(?int $adminId, ?Request $request = null): array
     {
         if (empty($adminId)) {
             return [];
         }
+
+        if ((new Admin)->isSuper($adminId)) {
+            $menuIds = Menu::where("1=1")->column('menu_id');
+        } else {
+            $roleIds = AdminRole::where("admin_id", $adminId)->column('role_id');
+            if (empty($roleIds)) {
+                return [];
+            }
+            $menuIds = RoleMenu::whereIn('role_id', $roleIds)->column('menu_id');
+
+            if (empty($menuIds)) {
+                return [];
+            }
+        }
         try {
-            $permissionIds = (new PermissionService)->getAdminPermissions($adminId);
-            return self::hasWhere('requiredPermission', function ($query) use ($permissionIds) {
-                $query->whereIn('permission_id', $permissionIds);
-            })->append(["meta"])
-                ->hidden(["order_num", "is_link", "visible", "link_url", "is_full", "is_affix", "is_keep_alive", "required_permission_id", "created_at", "updated_at"])
+            return (new Menu)
+                ->hidden(["order_num", "is_link", "visible", "link_url", "is_full", "is_affix", "is_keep_alive", "created_at", "updated_at"])
                 ->order("order_num asc")
-                ->selectOrFail()
+                ->append(["meta"])
+                ->selectOrFail($menuIds)
                 ->each(function ($item) {
                     if (!empty($item['redirect'])) {
                         unset($item['component']);
@@ -158,30 +236,100 @@ class Menu extends BaseModel
     }
 
     /**
-     * 将扁平的菜单数据转换为树形结构
-     * @param array $items 扁平的菜单数据数组
-     * @param int $parentId 父级 ID，默认为 0
-     * @param string|null $pk
-     * @param string $parentFieldName
-     * @param string $childrenName
-     * @return array 树形结构的菜单数据
+     * 获取用户可访问菜单树
+     * @param Request|null $request
+     * @return array
      */
-    public static function buildTree(array $items, int $parentId = 0,string $pk=null ,string $parentFieldName="parent_id",string $childrenName="children"): array
+    public static function getMenuTree(?Request $request): array
     {
-        if (empty($pk)){
-            $pk= (new Menu)->getPk();
+        return self::buildTree(self::getUserMenus((new Admin())->getSuperAdminId(), $request));
+    }
+
+    /**
+     * 所有菜单树,不是菜单结构
+     * @return array
+     */
+    public static function getAllMenuTree(): array
+    {
+        try {
+            return self::buildTree(self::where("1=1")->order("order_num asc")
+                ?->select()
+                ?->toArray() ?? []);
+        } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
+            return [];
         }
-        $tree = [];
-        foreach ($items as $item) {
-            if ($item[$parentFieldName] == $parentId) {
-                $children = self::buildTree($items, $item[$pk],$pk,$parentFieldName,$childrenName);
-                if ($children) {
-                    $item[$childrenName] = $children;
-                }
-                $tree[] = $item;
-            }
-        }
-        return $tree;
+    }
+
+    /**
+     * 父级菜单
+     * @return BelongsTo
+     */
+    public function parent_menu(): BelongsTo
+    {
+        return $this->belongsTo(Menu::class, 'menu_id', 'menu_id');
+    }
+
+    /**
+     * 父级菜单
+     * @return BelongsTo
+     */
+    public function parentMenu(): BelongsTo
+    {
+        return $this->belongsTo(Menu::class, 'menu_id', 'menu_id');
+    }
+
+    /**
+     * 子级菜单
+     * @return HasMany
+     */
+    public function childrenMenu(): HasMany
+    {
+        return $this->hasMany(Menu::class, 'menu_id', 'menu_id');
+    }
+
+    /**
+     * 子级菜单
+     * @return HasMany
+     */
+    public function children_menu(): HasMany
+    {
+        return $this->hasMany(Menu::class, 'menu_id', 'menu_id');
+    }
+
+    /**
+     * 必备权限
+     * @return HasMany
+     */
+    public function requiredPermission(): HasMany
+    {
+        return $this->requiredPermissionDependencies();
+    }
+
+    /**
+     * 必备权限中间表
+     * @return HasMany
+     */
+    public function requiredPermissionDependencies(): HasMany
+    {
+        return $this->dependencies()->where("type", MenuPermissionDependencies::Required->value);
+    }
+
+    /**
+     * 已有权限中间表
+     * @return HasMany
+     */
+    public function dependencies(): HasMany
+    {
+        return $this->hasMany(MenuPermissionDependency::class, 'menu_id');
+    }
+
+    /**
+     * 必备权限
+     * @return HasMany
+     */
+    public function required_permission(): HasMany
+    {
+        return $this->requiredPermissionDependencies();
     }
 
     /**
@@ -243,25 +391,44 @@ class Menu extends BaseModel
         }
     }
 
+    /**
+     * 必备权限中间表
+     * @return HasMany
+     */
+    public function required_permission_dependencies(): HasMany
+    {
+        return $this->dependencies()->where("type", MenuPermissionDependencies::Required->value);
+    }
+
+    /**
+     * 已有权限
+     * @return BelongsToMany
+     */
+    public function permissions(): BelongsToMany
+    {
+
+        return $this->belongsToMany(Permission::class, MenuPermissionDependency::class);
+    }
 
 
     /**
-     * 必备权限
-     * @return BelongsTo
+     * 已有权限中间表
+     * @return HasMany
      */
-    public function requiredPermission(): BelongsTo
+    public function notRequiredDependencies(): HasMany
     {
-        return $this->belongsTo(Permission::class, 'required_permission_id');
+        return $this->hasMany(MenuPermissionDependency::class, 'menu_id')->where("type", MenuPermissionDependencies::Optional->value);
     }
 
     /**
      * 已有权限中间表
      * @return HasMany
      */
-    public function dependencies(): HasMany
+    public function not_required_dependencies(): HasMany
     {
-        return $this->hasMany(MenuPermissionDependency::class, 'menu_id');
+        return $this->hasMany(MenuPermissionDependency::class, 'menu_id')->where("type", MenuPermissionDependencies::Optional->value);
     }
+
 
     /**
      * 获取菜单meta数据
@@ -282,6 +449,11 @@ class Menu extends BaseModel
             'isKeepAlive' => $data['is_keep_alive'] == 1,
         ];
 
+    }
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, RoleMenu::class, 'menu_id', 'role_id');
     }
 
     /**
@@ -320,9 +492,5 @@ class Menu extends BaseModel
         if (!RoleMenu::where('menu_id', $id)->delete()) {
             throw new Exception("删除 主键为[{$this->getKey()}]的角色关联中间表数据 时出错");
         }
-    }
-
-    public function roles(): BelongsToMany{
-        return $this->belongsToMany(Role::class, RoleMenu::class, 'menu_id', 'role_id');
     }
 }
