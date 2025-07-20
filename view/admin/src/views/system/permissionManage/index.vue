@@ -13,8 +13,9 @@
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader="scope">
-        <el-button type="primary" :icon="CirclePlus" @click="addPermission">新增权限</el-button>
+        <el-button type="primary"  v-auth="'create'" :icon="CirclePlus" @click="addPermission">新增权限</el-button>
         <el-button
+          v-auth="'delete'"
           type="danger"
           :icon="Delete"
           plain
@@ -27,8 +28,8 @@
 
       <!-- 操作列 -->
       <template #operation="scope">
-        <el-button type="primary" link :icon="EditPen" @click="editPermission(scope.row)">编辑</el-button>
-        <el-button type="primary" link :icon="Delete" @click="deletePermission(scope.row)">删除</el-button>
+        <el-button type="primary" v-auth="'update'" link :icon="EditPen" @click="editPermission(scope.row)">编辑</el-button>
+        <el-button type="primary" v-auth="'delete'" link :icon="Delete" @click="deletePermission(scope.row)">删除</el-button>
       </template>
 
       <!-- 是否公开列 -->
@@ -127,6 +128,11 @@
 </template>
 
 <script setup lang="ts">
+
+import { useAuthButtons } from "@/hooks/useAuthButtons";
+const { BUTTONS } = useAuthButtons();
+
+
 import { ref, reactive } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
