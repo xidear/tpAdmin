@@ -407,10 +407,9 @@ public function columnToString($columnName,$sep=","):string
     /**
      * 智能更新数据（主模型+一对多关联）
      * @param array $data 更新数据
-     * @param array|string|int|null $condition 查询条件（主键值或条件数组），null 时从 data 提取主键
      * @return bool 更新结果
      */
-    public function intelligentUpdate(array $data,array|string|int|null $condition = null): bool
+    public function intelligentUpdate(array $data): bool
     {
         // 开启事务
         $this->startTrans();
@@ -419,17 +418,26 @@ public function columnToString($columnName,$sep=","):string
 
             // 4. 分离主模型数据和关联数据
             [$mainData, $relationsData] = $this->separateData($this, $data);
-
-            // 5. 处理主模型更新（保留空值）
-            if (!empty($mainData) || array_key_exists($this->getPk(), $mainData)) {
-                // 保留所有有效字段（包括空值）
+            // 只有当主模型数据非空时才处理更新
+            if (!empty($mainData)) {
+                // 过滤有效字段（保留空值）
                 $mainData = $this->filterValidModelData($this, $mainData);
-                $this->save($mainData);
+
+                // 移除主键字段（防止意外更新主键）
+                $pk = $this->getPk();
+                unset($mainData[$pk]);
+
+                // 只有存在非主键字段的数据时才执行更新
+                if (!empty($mainData)) {
+                    $this->save($mainData);
+                }
             }
+
+
 
             // 6. 处理一对多关联（保留空值）
             foreach ($relationsData as $relationName => $relationItems) {
-                $this->saveHasManyRelation($this, $relationName, $relationItems);
+                $this->saveHasManyRelation($this, $relationName, $relationItems,true);
             }
 
             $this->commit();
@@ -482,10 +490,15 @@ public function columnToString($columnName,$sep=","):string
         return [$mainData, $relationsData];
     }
 
+
     /**
-     * 保存一对多关联（保留空值）
+     * 保存一对多关联（支持替换/增量更新，保留空值）
+     * @param Model $model 主模型实例
+     * @param string $relationName 关联方法名（如：'adminRoles'）
+     * @param array $relationItems 关联数据列表
+     * @param bool $deleteExisting 是否先删除已有的关联数据（true=完全替换，false=增量更新）
      */
-    protected function saveHasManyRelation(Model $model, string $relationName, array $items): void
+    protected function saveHasManyRelation(Model $model, string $relationName, array $relationItems, bool $deleteExisting = false): void
     {
         // 1. 验证关系类型
         if (!method_exists($model, $relationName)) {
@@ -494,38 +507,43 @@ public function columnToString($columnName,$sep=","):string
         }
 
         $relation = $model->$relationName();
-
         if (!$relation instanceof \think\model\relation\HasMany) {
-            Log::warning("尝试更新非HasMany关系: $relationName");
+            Log::warning("尝试更新非HasMany关系: {$relationName}（仅支持一对多关联）");
             return;
         }
 
-        // 2. 获取关联模型信息
+        // 2. 如需完全替换关联数据，先删除已有的关联
+        if ($deleteExisting) {
+            // 删除当前主模型下的所有关联数据（基于外键）
+            try {
+                $relation->delete();
+            } catch (DbException $e) {
+                Log::warning("删除关联发生异常".$e->getMessage());
+                return;
+            }
+        }
+
+        // 3. 准备有效数据（保留空值，过滤无效字段）
         $relatedModel = $relation->getModel();
-
-        // 3. 准备有效数据（保留空值）
-        $validItems = [];
         $relatedFields = $relatedModel->getTableFields();
+        $validItems = [];
 
-        foreach ($items as $item) {
-            // 过滤无效字段（但保留空值）
+        foreach ($relationItems as $item) {
             $validItem = [];
             foreach ($item as $key => $value) {
+                // 只保留关联模型的有效字段（包括空值）
                 if (in_array($key, $relatedFields)) {
                     $validItem[$key] = $value;
                 }
             }
-
-            // 保留空数组也是有效数据
             $validItems[] = $validItem;
         }
 
-        // 4. 使用TP关联方法批量保存
+        // 4. 批量保存关联数据（更新/新增）
         if (!empty($validItems)) {
             $model->$relationName()->saveAll($validItems);
         }
     }
-
     /**
      * 批量删除数据及其关联的HasMany关系数据（优化模型版）
      *
