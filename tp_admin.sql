@@ -11,7 +11,7 @@
  Target Server Version : 80012 (8.0.12)
  File Encoding         : 65001
 
- Date: 20/07/2025 13:13:30
+ Date: 21/07/2025 16:44:58
 */
 
 SET NAMES utf8mb4;
@@ -29,10 +29,9 @@ CREATE TABLE `admin`  (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `real_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '真实姓名',
   `nick_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '昵称',
-  `openid` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
-  `type` enum('admin','user') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'user' COMMENT '用户类型',
   `status` int(10) UNSIGNED NOT NULL DEFAULT 1 COMMENT '用户状态',
   `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '头像',
+  `deleted_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',
   PRIMARY KEY (`admin_id`) USING BTREE,
   UNIQUE INDEX `idx_name`(`username` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员表' ROW_FORMAT = Dynamic;
@@ -40,8 +39,8 @@ CREATE TABLE `admin`  (
 -- ----------------------------
 -- Records of admin
 -- ----------------------------
-INSERT INTO `admin` VALUES (1, 'admin', '$2y$10$foYvXsO.6vsNEQ9P0ltS4ur7sd0aTu2U.O5b0voPwNGAt4YZV8OIe', '2025-06-20 15:52:31', '2025-06-23 03:40:19', NULL, NULL, NULL, 'admin', 1, '');
-INSERT INTO `admin` VALUES (2, 'manager', '$2y$10$foYvXsO.6vsNEQ9P0ltS4ur7sd0aTu2U.O5b0voPwNGAt4YZV8OIe', '2025-06-20 15:53:52', '2025-06-23 03:40:20', NULL, NULL, NULL, 'admin', 1, '');
+INSERT INTO `admin` VALUES (1, 'admin', '$2y$10$foYvXsO.6vsNEQ9P0ltS4ur7sd0aTu2U.O5b0voPwNGAt4YZV8OIe', '2025-06-20 15:52:31', '2025-06-23 03:40:19', NULL, NULL, 1, '', NULL);
+INSERT INTO `admin` VALUES (2, 'manager', '$2y$10$foYvXsO.6vsNEQ9P0ltS4ur7sd0aTu2U.O5b0voPwNGAt4YZV8OIe', '2025-06-20 15:53:52', '2025-06-23 03:40:20', NULL, NULL, 1, '', NULL);
 
 -- ----------------------------
 -- Table structure for admin_role
@@ -60,7 +59,6 @@ CREATE TABLE `admin_role`  (
 -- ----------------------------
 -- Records of admin_role
 -- ----------------------------
-INSERT INTO `admin_role` VALUES (2, 1, '2025-07-01 23:54:15');
 
 -- ----------------------------
 -- Table structure for admin_token
@@ -121,6 +119,44 @@ INSERT INTO `admin_token` VALUES (38, 1, 'ceb019309689a5bcc1dc00a140472c6eaaa71b
 INSERT INTO `admin_token` VALUES (39, 1, '8c5c35e54f974e3dc3f43ea2dc5b8ab2f4122ba09cd25232e39363b93c241e43', 'admin', NULL, 1753535360, 1752930560, 'admin_687b99001dd188.16166039');
 
 -- ----------------------------
+-- Table structure for file
+-- ----------------------------
+DROP TABLE IF EXISTS `file`;
+CREATE TABLE `file`  (
+  `file_id` int(36) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '文件唯一标识',
+  `origin_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '原始文件名',
+  `file_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '存储文件名',
+  `size` bigint(20) NOT NULL COMMENT '文件大小（字节）',
+  `mime_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '文件MIME类型',
+  `storage_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '存储类型（local/aliyun_oss/qcloud_cos/aws_s3等）',
+  `storage_region` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '存储区域',
+  `storage_bucket` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '存储桶名称',
+  `storage_path` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '存储路径',
+  `access_domain` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '访问域名',
+  `url` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '访问URL',
+  `storage_permission` enum('private','public') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'public' COMMENT '存储权限（public/private）',
+  `file_version` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '1.0' COMMENT '文件版本',
+  `status` enum('1','2') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '1' COMMENT '文件状态（active/deleted/uploading/expired）',
+  `uploader_type` enum('system','admin','user') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'admin' COMMENT '上传者类型',
+  `uploader_id` int(36) NOT NULL COMMENT '上传者ID',
+  `local_server_id` int(50) NULL DEFAULT NULL COMMENT '本地存储服务器ID',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',
+  PRIMARY KEY (`file_id`) USING BTREE,
+  INDEX `idx_uploader`(`uploader_type` ASC, `uploader_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  INDEX `idx_storage_type`(`storage_type` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '文件存储表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of file
+-- ----------------------------
+INSERT INTO `file` VALUES (1, '07be39d2-b9d0-434b-98e9-d09f91d3eb4a.png', 'phpDC59.tmp', 37394, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\cae7058ab4c6cbb4bbe7deac5231538b.png', 'http://127.0.0.1:8000', 'http://127.0.0.1:8000/storage/uploads/20250721\\7ad390c9889fcf22616dc5ba96853f3d.png', 'public', '1.0', '1', 'admin', 1, NULL, '2025-07-21 16:31:33', '2025-07-21 16:42:00', NULL);
+INSERT INTO `file` VALUES (2, '07be39d2-b9d0-434b-98e9-d09f91d3eb4a.png', '7ad390c9889fcf22616dc5ba96853f3d.png', 37394, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\7ad390c9889fcf22616dc5ba96853f3d.png', 'http://127.0.0.1:8000', 'http://127.0.0.1:8000/storage/uploads/20250721\\7ad390c9889fcf22616dc5ba96853f3d.png', 'public', '1.0', '2', 'admin', 1, NULL, '2025-07-21 16:36:45', '2025-07-21 16:43:02', NULL);
+INSERT INTO `file` VALUES (3, '07be39d2-b9d0-434b-98e9-d09f91d3eb4a.png', '032ec4a021c2554ee0f9985cea004916.png', 37394, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\032ec4a021c2554ee0f9985cea004916.png', 'http://127.0.0.1:8000', 'http://127.0.0.1:8000/storage/uploads/20250721\\032ec4a021c2554ee0f9985cea004916.png', 'public', '1.0', '1', 'admin', 1, NULL, '2025-07-21 16:44:09', '2025-07-21 16:44:09', NULL);
+
+-- ----------------------------
 -- Table structure for menu
 -- ----------------------------
 DROP TABLE IF EXISTS `menu`;
@@ -178,7 +214,7 @@ CREATE TABLE `menu_permission_dependency`  (
   INDEX `fk_permission`(`permission_id` ASC) USING BTREE,
   CONSTRAINT `fk_mpd_menu` FOREIGN KEY (`menu_id`) REFERENCES `menu` (`menu_id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_mpd_permission` FOREIGN KEY (`permission_id`) REFERENCES `permission` (`permission_id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 20 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '菜单-权限依赖关系' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 34 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '菜单-权限依赖关系' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of menu_permission_dependency
@@ -193,15 +229,16 @@ INSERT INTO `menu_permission_dependency` VALUES (7, 58, 22, 'REQUIRED', '编辑�
 INSERT INTO `menu_permission_dependency` VALUES (8, 58, 23, 'REQUIRED', '删除管理员按钮', '2025-07-01 00:00:00', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (9, 59, 9, 'REQUIRED', '权限管理查看权限', '2025-07-01 00:00:00', 'data');
 INSERT INTO `menu_permission_dependency` VALUES (10, 59, 10, 'REQUIRED', '权限列表查询权限', '2025-07-01 00:00:00', 'data');
-INSERT INTO `menu_permission_dependency` VALUES (11, 60, 15, 'REQUIRED', '菜单列表查询权限', '2025-07-01 00:00:00', 'data');
-INSERT INTO `menu_permission_dependency` VALUES (12, 60, 16, 'REQUIRED', '创建菜单按钮', '2025-07-01 00:00:00', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (13, 60, 17, 'REQUIRED', '编辑菜单按钮', '2025-07-01 00:00:00', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (14, 60, 18, 'REQUIRED', '删除菜单按钮', '2025-07-01 00:00:00', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (15, 62, 6, 'REQUIRED', '系统配置提交权限', '2025-07-01 00:00:00', 'data');
 INSERT INTO `menu_permission_dependency` VALUES (16, 62, 7, 'REQUIRED', '基础配置访问权限', '2025-07-01 00:00:00', 'data');
 INSERT INTO `menu_permission_dependency` VALUES (17, 65, 11, 'REQUIRED', '新增', '2025-07-20 10:02:05', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (18, 65, 12, 'REQUIRED', '编辑', '2025-07-20 10:02:05', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (19, 65, 13, 'REQUIRED', '删除', '2025-07-20 10:02:33', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (29, 60, 15, 'REQUIRED', NULL, '2025-07-20 22:27:43', 'data');
+INSERT INTO `menu_permission_dependency` VALUES (30, 60, 16, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (31, 60, 17, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (32, 60, 18, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (33, 60, 14, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
 
 -- ----------------------------
 -- Table structure for permission
@@ -265,7 +302,6 @@ CREATE TABLE `role`  (
 -- ----------------------------
 -- Records of role
 -- ----------------------------
-INSERT INTO `role` VALUES (1, '普通管理员', NULL, '2025-06-20 15:52:05', '2025-06-20 15:52:05');
 
 -- ----------------------------
 -- Table structure for role_menu
@@ -279,10 +315,6 @@ CREATE TABLE `role_menu`  (
 -- ----------------------------
 -- Records of role_menu
 -- ----------------------------
-INSERT INTO `role_menu` VALUES (1, 1);
-INSERT INTO `role_menu` VALUES (1, 57);
-INSERT INTO `role_menu` VALUES (1, 58);
-INSERT INTO `role_menu` VALUES (1, 59);
 
 -- ----------------------------
 -- Table structure for role_permission
@@ -292,6 +324,7 @@ CREATE TABLE `role_permission`  (
   `role_id` int(10) UNSIGNED NOT NULL COMMENT '角色ID',
   `permission_id` int(10) UNSIGNED NOT NULL COMMENT '权限ID',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `menu_id` int(11) NOT NULL COMMENT '从哪里来',
   PRIMARY KEY (`role_id`, `permission_id`) USING BTREE,
   INDEX `fk_role_permission_permission`(`permission_id` ASC) USING BTREE,
   CONSTRAINT `fk_role_permission_permission` FOREIGN KEY (`permission_id`) REFERENCES `permission` (`permission_id`) ON DELETE CASCADE ON UPDATE RESTRICT,
@@ -301,11 +334,5 @@ CREATE TABLE `role_permission`  (
 -- ----------------------------
 -- Records of role_permission
 -- ----------------------------
-INSERT INTO `role_permission` VALUES (1, 1, '2025-06-20 15:54:48');
-INSERT INTO `role_permission` VALUES (1, 2, '2025-06-20 15:54:51');
-INSERT INTO `role_permission` VALUES (1, 3, '2025-06-20 15:54:54');
-INSERT INTO `role_permission` VALUES (1, 4, '2025-06-20 15:54:57');
-INSERT INTO `role_permission` VALUES (1, 5, '2025-07-01 23:59:28');
-INSERT INTO `role_permission` VALUES (1, 20, '2025-07-01 23:59:25');
 
 SET FOREIGN_KEY_CHECKS = 1;

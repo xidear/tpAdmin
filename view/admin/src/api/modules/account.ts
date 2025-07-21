@@ -1,7 +1,7 @@
 import { PORT1 } from "@/api/config/servicePort";
 import http from "@/api";
 
-// 获取权限列表
+// 获取列表
 export const getListApi = (params?: any) => {
   return http.get<Admin.AdminListResponse>(
     PORT1 + `/admin/index`,
@@ -11,16 +11,16 @@ export const getListApi = (params?: any) => {
 };
 
 /**
- * 新增权限
- * @param params 权限数据
+ * 新增
+ * @param params 数据
  */
 export const postCreateApi = (params: Admin.AdminOptions) => {
   return http.post("/admin/create", params, { loading: true });
 };
 
 /**
- * 获取权限详情
- * @param id 权限ID
+ * 获取详情
+ * @param id ID
  */
 export const getReadApi = (id: number) => {
   return http.get<Admin.AdminOptions>(
@@ -31,8 +31,8 @@ export const getReadApi = (id: number) => {
 };
 
 /**
- * 更新权限
- * @param id 权限ID
+ * 更新
+ * @param id ID
  * @param params 更新数据
  */
 export const putUpdateApi = (

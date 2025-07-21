@@ -10,6 +10,7 @@ use think\model\relation\BelongsToMany;
 /**
  * @property string $password
  * @property string $username
+ * @property string $avatar
  * @property string $type
  */
 class Admin extends BaseModel

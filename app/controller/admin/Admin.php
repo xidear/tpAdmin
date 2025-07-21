@@ -77,6 +77,9 @@ class Admin extends BaseController
     {
         $ids = $delete->delete("ids/a");
         $model = new AdminModel();
+        if (in_array($model->getSuperAdminId(), $ids)) {
+            return $this->error("超级管理员禁止删除");
+        }
         if ($model->batchDeleteWithRelation($ids, ["admin_role"])) {
             return $this->success("删除成功");
         } else {
