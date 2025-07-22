@@ -73,8 +73,10 @@ class RequestHttp {
           ElMessage.error(data.msg||data.message);
           return Promise.reject(data);
         }
-        // 全局错误信息拦截（防止下载文件的时候返回数据流，没有 code 直接报错）
-        if (data.code && data.code !== ResultEnum.SUCCESS) {
+
+        // 全局错误信息拦截
+        // 新增对code=0的判断，同时保留原有的非成功状态判断
+        if (data.code !== undefined && (data.code != ResultEnum.SUCCESS || data.code == 0)) {
           ElMessage.error(data.msg||data.message);
           return Promise.reject(data);
         }

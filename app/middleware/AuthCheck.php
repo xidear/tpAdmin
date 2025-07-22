@@ -50,7 +50,7 @@ class AuthCheck
             $admin=Admin::getInfoFromCache($adminId);
 
             if ($admin->status!=Status::Normal->value){
-                return $this->unauthorized("用户已禁用");
+                return $this->unauthorized("账号不可用");
             }
 
             // 将管理员信息存入请求上下文

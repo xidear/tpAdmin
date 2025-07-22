@@ -3,12 +3,22 @@
 
 namespace app\common;
 
-use think\{Collection, facade\Log, Model, Paginator, db\Query, db\Where};
-use think\db\exception\{DbException, DataNotFoundException, ModelNotFoundException};
-use Closure;
-use think\Paginator as ThinkPaginator;
 use app\common\trait\BaseTrait;
 use app\common\trait\LaravelTrait;
+use Closure;
+use ReflectionClass;
+use ReflectionMethod;
+use think\{Collection,
+    db\Query,
+    db\Where,
+    facade\Log,
+    helper\Str,
+    Model,
+    model\contract\Modelable,
+    model\relation\BelongsToMany,
+    model\relation\HasMany};
+use think\db\exception\{DataNotFoundException, DbException, ModelNotFoundException};
+use Throwable;
 
 
 class BaseModel extends Model
@@ -22,20 +32,24 @@ class BaseModel extends Model
     protected int $defaultPageSize = 15;
     protected int $maxResults = 1000;
 
-public function columnToString($columnName,$sep=","):string
-{
 
-    if ($this->isEmpty()){
-        return "";
-    }
-    if ($this instanceof Collection){
-        $array=array_column($this->toArray(),$columnName);
-        return implode($sep,$array);
-    } else {
-        return implode($this->column($columnName), $sep);
+    public function getByKey($id){
+
+        $pk=$this->getPk();
+        $string="getBy".Str::studly($pk);
+        return self::$string($id);
+
     }
 
-}
+    public function columnToString(Collection|HasMany|BelongsToMany|Query $collection, $columnName, $sep = ",")
+    {
+        if ($collection instanceof Collection) {
+            $array = array_column($collection->toArray(), $columnName);
+            return implode($sep, $array);
+        } else {
+            return implode($sep,$collection->column( $columnName));
+        }
+    }
 
 
     /**
@@ -56,7 +70,7 @@ public function columnToString($columnName,$sep=","):string
         // 构建查询
         $query = $this->buildBaseQuery($conditions, $config);
 
-        $total=$query->count();
+        $total = $query->count();
         try {
             $list = $query->page(
                 $page,
@@ -65,9 +79,9 @@ public function columnToString($columnName,$sep=","):string
         } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
 //            这里写入错误日志
 //            Log::error(文件名,方法,前端传参,方法传参,报错信息,用户(如果已登录)$e->getMessage());
-            $list=[];
+            $list = [];
         }
-        return ['total'=>$total,'list'=>$list];
+        return ['total' => $total, 'list' => $list];
     }
 
     /**
@@ -157,7 +171,9 @@ public function columnToString($columnName,$sep=","):string
     {
 
         // 1. 空条件返回
-        if (empty($conditions)) {return;}
+        if (empty($conditions)) {
+            return;
+        }
 
         // 2. 主键查询优先
         if ($this->isPrimaryKeyCondition($conditions)) {
@@ -371,7 +387,6 @@ public function columnToString($columnName,$sep=","):string
     }
 
 
-
     /**
      * 获取单条数据（优化版本）
      */
@@ -390,7 +405,7 @@ public function columnToString($columnName,$sep=","):string
     /**
      * 查询数据或创建（使用fetchOne优化）
      */
-    public function fetchOneOrCreate($data): Model|\think\model\contract\Modelable
+    public function fetchOneOrCreate($data): Model|Modelable
     {
         // 使用fetchOne替代直接查询
         $model = $this->fetchOne($data);
@@ -434,16 +449,15 @@ public function columnToString($columnName,$sep=","):string
             }
 
 
-
             // 6. 处理一对多关联（保留空值）
             foreach ($relationsData as $relationName => $relationItems) {
-                $this->saveHasManyRelation($this, $relationName, $relationItems,true);
+                $this->saveHasManyRelation($this, $relationName, $relationItems, true);
             }
 
             $this->commit();
             return true;
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->rollback();
             Log::error('智能更新失败: ' . $e->getMessage());
             return false;
@@ -456,7 +470,7 @@ public function columnToString($columnName,$sep=","):string
     protected function filterValidModelData(Model $model, array $data): array
     {
         // 获取所有有效字段（主表字段和JSON字段）
-        $validFields =  $model->getTableFields();
+        $validFields = $model->getTableFields();
 
         // 移除主键（防止意外更新）
         $pk = $model->getPk();
@@ -507,7 +521,7 @@ public function columnToString($columnName,$sep=","):string
         }
 
         $relation = $model->$relationName();
-        if (!$relation instanceof \think\model\relation\HasMany) {
+        if (!$relation instanceof HasMany) {
             Log::warning("尝试更新非HasMany关系: {$relationName}（仅支持一对多关联）");
             return;
         }
@@ -518,7 +532,7 @@ public function columnToString($columnName,$sep=","):string
             try {
                 $relation->delete();
             } catch (DbException $e) {
-                Log::warning("删除关联发生异常".$e->getMessage());
+                Log::warning("删除关联发生异常" . $e->getMessage());
                 return;
             }
         }
@@ -544,13 +558,14 @@ public function columnToString($columnName,$sep=","):string
             $model->$relationName()->saveAll($validItems);
         }
     }
+
     /**
      * 批量删除数据及其关联的HasMany关系数据（优化模型版）
      *
      * @param array $ids 要删除的主键ID数组
      * @return bool|string 成功返回true，失败返回错误信息
      */
-    public function batchDeleteWithRelation(array $ids,array $relationList=[]): bool|string
+    public function batchDeleteWithRelation(array $ids, array $relationList = []): bool|string
     {
         if (empty($ids)) {
             return $this->false('请提供要删除的数据ID');
@@ -562,7 +577,7 @@ public function columnToString($columnName,$sep=","):string
 
         $nonExistingIds = array_diff($ids, $existingIds);
         if (!empty($nonExistingIds)) {
-            return $this->false( '以下ID不存在: ' . implode(', ', $nonExistingIds));
+            return $this->false('以下ID不存在: ' . implode(', ', $nonExistingIds));
         }
 
         // 开启事务
@@ -587,17 +602,17 @@ public function columnToString($columnName,$sep=","):string
             $this->commit();
             return true;
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->rollback();
             Log::error('批量删除失败: ' . $e->getMessage());
-            return $this->false( '批量删除操作失败: ' . $e->getMessage());
+            return $this->false('批量删除操作失败: ' . $e->getMessage());
         }
     }
 
     /**
      * 获取模型的可删除关联关系配置（优化版）
      */
-    protected function getDeletableRelations(array $relationList=[]): array
+    protected function getDeletableRelations(array $relationList = []): array
     {
         static $cache = [];
         $className = static::class;
@@ -609,9 +624,9 @@ public function columnToString($columnName,$sep=","):string
 
         $relations = [];
 
-            // 使用反射获取所有公共方法
-            $reflection = new \ReflectionClass($this);
-            $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
+        // 使用反射获取所有公共方法
+        $reflection = new ReflectionClass($this);
+        $methods = $reflection->getMethods(ReflectionMethod::IS_PUBLIC);
 
         foreach ($methods as $method) {
             $methodName = $method->getName();
@@ -620,7 +635,7 @@ public function columnToString($columnName,$sep=","):string
             if (str_starts_with($methodName, '__') || $method->class === Model::class) {
                 continue;
             }
-            if (!empty($relationList)){
+            if (!empty($relationList)) {
                 if (!in_array($methodName, $relationList)) {
                     continue;
                 }
@@ -631,7 +646,7 @@ public function columnToString($columnName,$sep=","):string
                 $relation = $this->$methodName();
 
                 // 只处理HasMany关系
-                if ($relation instanceof \think\model\relation\HasMany) {
+                if ($relation instanceof HasMany) {
                     // 获取关联模型实例
                     $relationModel = $relation->getModel();
                     $foreignKey = $relation->getForeignKey();
@@ -642,7 +657,7 @@ public function columnToString($columnName,$sep=","):string
                         'foreign_key' => $foreignKey,
                     ];
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 // 忽略调用错误的关系
             }
         }

@@ -884,11 +884,7 @@ const submitMenuForm = () => {
   menuFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        // 检查是否至少有一个必选权限
-        if (menuPermissions.value.filter(p => p.type === 'REQUIRED').length === 0) {
-          ElMessage.warning("至少需要添加一个必选权限");
-          return;
-        }
+
         
         // 根据菜单类型设置相关字段
         const payload: any = {

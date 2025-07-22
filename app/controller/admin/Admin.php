@@ -61,6 +61,8 @@ class Admin extends BaseController
         }
 //        这里需要更新角色关联表
         if ($info->intelligentUpdate($params)) {
+            // 更新成功后清除缓存
+            AdminModel::clearCache($admin_id);
             return $this->success($info, "编辑成功");
         }
         return $this->error("编辑失败");

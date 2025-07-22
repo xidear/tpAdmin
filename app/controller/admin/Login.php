@@ -41,11 +41,14 @@ class Login extends BaseController{
         if ($admin->isEmpty()) {
             return $this->error('账号错误');
         }
-        if ( !password_verify($data['password'], $admin->password)){
+
+
+
+        if ( !password_verify($data['password'], $admin->getData("password"))){
             return $this->error('密码错误');
         }
-        if ($admin->type!=AdminType::Admin->value) {
-            return $this->error('账号类型错误');
+        if ($admin->status!=Status::Normal->value) {
+            return $this->error('账号不可用');
         }
 
 
@@ -74,8 +77,8 @@ class Login extends BaseController{
         $token = JwtService::getTokenFromHeader($this->request);
         $result = JwtService::logout($token);
         if ($result['success']) {
-            Cookie::set("admin_id",null);
-            Session::set("admin_id",null);
+            Cookie::delete("admin_id");
+            Session::delete("admin_id");
             return $this->success($result['message']);
         } else {
             return $this->error($result['message']);

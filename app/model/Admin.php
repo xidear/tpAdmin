@@ -22,13 +22,35 @@ class Admin extends BaseModel
     protected array $hidden = ['password'];
     protected string $deleteTime = 'deleted_at';
 
-    public static function getInfoFromCache($adminId)
+    /**
+     * 修改密码
+     * @param $oldPassword
+     * @param $newPassword
+     * @return bool
+     */
+    public function changePassword($oldPassword, $newPassword): bool
     {
+
+        $oldPassword=md5($oldPassword);
+
+        if (!password_verify($oldPassword,$this->getData("password"))) {
+            return $this->false("原密码错误");
+        }
+        $newPassword=md5($newPassword);
+        $this->clearCache($this->getKey());
+        return $this->save(["password" => password_hash($newPassword,PASSWORD_DEFAULT)]);
+    }
+    public static  function getInfoFromCache(int $adminId)
+    {
+        if (empty($adminId)){
+            return [];
+        }
         // 从缓存获取管理员信息
         $cacheKey = 'admin_info_' . $adminId;
         $admin = Cache::get($cacheKey);
 
         if (!$admin) {
+
             // 缓存未命中，从数据库获取
             $admin = (new Admin)->findOrEmpty($adminId);
             if ($admin->isEmpty()) {
@@ -38,6 +60,22 @@ class Admin extends BaseModel
             Cache::set($cacheKey, $admin, 86400);
         }
         return $admin;
+    }
+
+    /**
+     * 请空缓存
+     * @param int $adminId
+     * @return bool
+     */
+    public static  function clearCache(int $adminId): bool
+    {
+
+        if (empty($adminId)){
+            return false;
+        }
+        $cacheKey = 'admin_info_' . $adminId;
+        return  Cache::delete($cacheKey);
+
     }
 
     /**

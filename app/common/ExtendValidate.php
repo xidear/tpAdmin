@@ -7,31 +7,35 @@ use think\Validate;
 
 class ExtendValidate extends Validate
 {
-    // 密码强度验证规则
-    public function password($value): bool
-    {
 
+    // 密码强度验证规则（修复返回值）
+    public function password($value, $rule, $data = [], $field = ''): bool|string
+    {
         if (!is_string($value)) {
-            return false;
+            return '密码必须为字符串'; // 改为返回错误信息字符串
         }
 
         if (strlen($value) < 8 || strlen($value) > 32) {
-            return false;
+            return '密码长度必须在8-32位之间';
         }
 
         if (preg_match('/[^\x20-\x7E]/', $value)) {
-            return false;
+            return '密码只能包含可打印字符（不含特殊符号）';
         }
 
         $typeCount = 0;
-        $typeCount += preg_match('/[0-9]/', $value);         // 数字
-        $typeCount += preg_match('/[a-z]/', $value);         // 小写
-        $typeCount += preg_match('/[A-Z]/', $value);         // 大写
-        $typeCount += preg_match('/[!@#$%^&*()\[\]\-_=+{};:,.<>?\/]/', $value); // 符号
+        $typeCount += preg_match('/[0-9]/', $value) ? 1 : 0;         // 数字
+        $typeCount += preg_match('/[a-z]/', $value) ? 1 : 0;         // 小写
+        $typeCount += preg_match('/[A-Z]/', $value) ? 1 : 0;         // 大写
+        $typeCount += preg_match('/[!@#$%^&*()\[\]\-_=+{};:,.<>?\/]/', $value) ? 1 : 0; // 符号
 
-        return $typeCount > 2;
+        if ($typeCount <= 2) {
+            return '密码必须包含至少3种字符类型（数字、大小写字母、特殊符号）';
+        }
 
+        return true; // 验证成功返回true
     }
+
 
 
     // 自定义验证方法

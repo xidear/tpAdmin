@@ -21,7 +21,7 @@ class changePassword extends BaseRequest
         return [
             'old_password'=>"require",
             'password'=>"require|password",
-            'confirm_password'=>"require|confirm:password",
+            'password_confirm'=>"require",
         ];
     }
 

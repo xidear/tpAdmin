@@ -18,9 +18,11 @@ Route::group('adminapi', function () {
 //    需要登录不需要权限验证
     Route::group(function () {
         // 首页
+        Route::get('base', 'My/getBaseInfo');
+        // 首页
         Route::get('dashboard', 'Index/dashboard');
         //修改密码
-        Route::get('change_password', 'My/changePassword');
+        Route::post('change_password', 'My/changePassword');
 //        获取菜单
         Route::get('get_menu', 'My/getMenu');
         Route::get('get_buttons', 'My/getButtons');
