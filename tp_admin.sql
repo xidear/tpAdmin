@@ -11,7 +11,7 @@
  Target Server Version : 80012 (8.0.12)
  File Encoding         : 65001
 
- Date: 21/07/2025 16:44:58
+ Date: 22/07/2025 11:06:39
 */
 
 SET NAMES utf8mb4;
@@ -39,8 +39,8 @@ CREATE TABLE `admin`  (
 -- ----------------------------
 -- Records of admin
 -- ----------------------------
-INSERT INTO `admin` VALUES (1, 'admin', '$2y$10$foYvXsO.6vsNEQ9P0ltS4ur7sd0aTu2U.O5b0voPwNGAt4YZV8OIe', '2025-06-20 15:52:31', '2025-06-23 03:40:19', NULL, NULL, 1, '', NULL);
-INSERT INTO `admin` VALUES (2, 'manager', '$2y$10$foYvXsO.6vsNEQ9P0ltS4ur7sd0aTu2U.O5b0voPwNGAt4YZV8OIe', '2025-06-20 15:53:52', '2025-06-23 03:40:20', NULL, NULL, 1, '', NULL);
+INSERT INTO `admin` VALUES (1, 'admin', '$2y$10$RMfYvLtuFMURQ.5VesDdSOpUc/Lxs4KjZWBDrRSP/iYwrS4E5eeUW', '2025-06-20 15:52:31', '2025-07-22 11:05:20', '李四', '张三', 1, 'http://localhost:8000/storage/uploads/20250721/5ff0656cfff7bb416c9d44dd34a5fce7.png', NULL);
+INSERT INTO `admin` VALUES (2, 'manager', '$2y$10$foYvXsO.6vsNEQ9P0ltS4ur7sd0aTu2U.O5b0voPwNGAt4YZV8OIe', '2025-06-20 15:53:52', '2025-07-21 18:21:18', '张三', '李四', 1, 'http://localhost:8000/storage/uploads/20250721\\2051a22f230ea58e96163bc29926ecd0.png', NULL);
 
 -- ----------------------------
 -- Table structure for admin_role
@@ -76,7 +76,7 @@ CREATE TABLE `admin_token`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uniq_token`(`token` ASC) USING BTREE,
   INDEX `idx_admin`(`admin_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 40 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员令牌表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 45 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员令牌表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of admin_token
@@ -116,7 +116,9 @@ INSERT INTO `admin_token` VALUES (35, 1, '60e1041bc025fb7df0361f1e0189393bd96fad
 INSERT INTO `admin_token` VALUES (36, 1, '7912d562c287b4b509dc3067c7aefd36eec3303d8dd77d717b548d2df0ccc5dc', 'admin', NULL, 1753534290, 1752929490, 'admin_687b94d2441af0.87373447');
 INSERT INTO `admin_token` VALUES (37, 1, '72fc9e43ec7d072a7109050941de3c78a2600e9897cbe747ffb8526c35e0cd02', 'admin', NULL, 1753534310, 1752929510, 'admin_687b94e6d68d47.01016560');
 INSERT INTO `admin_token` VALUES (38, 1, 'ceb019309689a5bcc1dc00a140472c6eaaa71be03c003a43746131a96953db35', 'admin', NULL, 1753534354, 1752929554, 'admin_687b95124d0288.38042105');
-INSERT INTO `admin_token` VALUES (39, 1, '8c5c35e54f974e3dc3f43ea2dc5b8ab2f4122ba09cd25232e39363b93c241e43', 'admin', NULL, 1753535360, 1752930560, 'admin_687b99001dd188.16166039');
+INSERT INTO `admin_token` VALUES (40, 1, 'a900064d9069a29b8c8310a89c381a919c283b427c8ccc85894175913fe3fe58', 'admin', NULL, 1753756178, 1753151378, 'admin_687ef79255fb88.92565485');
+INSERT INTO `admin_token` VALUES (42, 1, '1cc64b5e13a6039846da23413f4a75af795c2e7f700be4c2e05a3789e1afaf7e', 'admin', NULL, 1753758242, 1753153442, 'admin_687effa289c902.11257864');
+INSERT INTO `admin_token` VALUES (44, 1, '6de31e441ab7a0c655ebdf024ad7af561666d84598feb45fc22792982dc8693e', 'admin', NULL, 1753758334, 1753153534, 'admin_687efffe49c546.10390999');
 
 -- ----------------------------
 -- Table structure for file
@@ -147,14 +149,18 @@ CREATE TABLE `file`  (
   INDEX `idx_uploader`(`uploader_type` ASC, `uploader_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_storage_type`(`storage_type` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '文件存储表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '文件存储表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of file
 -- ----------------------------
-INSERT INTO `file` VALUES (1, '07be39d2-b9d0-434b-98e9-d09f91d3eb4a.png', 'phpDC59.tmp', 37394, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\cae7058ab4c6cbb4bbe7deac5231538b.png', 'http://127.0.0.1:8000', 'http://127.0.0.1:8000/storage/uploads/20250721\\7ad390c9889fcf22616dc5ba96853f3d.png', 'public', '1.0', '1', 'admin', 1, NULL, '2025-07-21 16:31:33', '2025-07-21 16:42:00', NULL);
+INSERT INTO `file` VALUES (1, '07be39d2-b9d0-434b-98e9-d09f91d3eb4a.png', 'cae7058ab4c6cbb4bbe7deac5231538b.png', 37394, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\cae7058ab4c6cbb4bbe7deac5231538b.png', 'http://127.0.0.1:8000', 'http://127.0.0.1:8000/storage/uploads/20250721\\7ad390c9889fcf22616dc5ba96853f3d.png', 'public', '1.0', '1', 'admin', 1, NULL, '2025-07-21 16:31:33', '2025-07-21 18:22:35', NULL);
 INSERT INTO `file` VALUES (2, '07be39d2-b9d0-434b-98e9-d09f91d3eb4a.png', '7ad390c9889fcf22616dc5ba96853f3d.png', 37394, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\7ad390c9889fcf22616dc5ba96853f3d.png', 'http://127.0.0.1:8000', 'http://127.0.0.1:8000/storage/uploads/20250721\\7ad390c9889fcf22616dc5ba96853f3d.png', 'public', '1.0', '2', 'admin', 1, NULL, '2025-07-21 16:36:45', '2025-07-21 16:43:02', NULL);
 INSERT INTO `file` VALUES (3, '07be39d2-b9d0-434b-98e9-d09f91d3eb4a.png', '032ec4a021c2554ee0f9985cea004916.png', 37394, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\032ec4a021c2554ee0f9985cea004916.png', 'http://127.0.0.1:8000', 'http://127.0.0.1:8000/storage/uploads/20250721\\032ec4a021c2554ee0f9985cea004916.png', 'public', '1.0', '1', 'admin', 1, NULL, '2025-07-21 16:44:09', '2025-07-21 16:44:09', NULL);
+INSERT INTO `file` VALUES (4, '3.png', '52b6cd3dafad3963c761344c55ffd590.png', 104045, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\52b6cd3dafad3963c761344c55ffd590.png', 'http://localhost:8000', 'http://localhost:8000/storage/uploads/20250721\\52b6cd3dafad3963c761344c55ffd590.png', 'public', '1.0', '1', 'admin', 1, NULL, '2025-07-21 18:11:29', '2025-07-21 18:11:29', NULL);
+INSERT INTO `file` VALUES (5, '2.png', '73b04d07327f5024363901f13338fa9d.png', 99997, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\73b04d07327f5024363901f13338fa9d.png', 'http://localhost:8000', 'http://localhost:8000/storage/uploads/20250721\\73b04d07327f5024363901f13338fa9d.png', 'public', '1.0', '1', 'admin', 1, NULL, '2025-07-21 18:20:31', '2025-07-21 18:20:31', NULL);
+INSERT INTO `file` VALUES (6, '3.png', '2051a22f230ea58e96163bc29926ecd0.png', 104045, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\2051a22f230ea58e96163bc29926ecd0.png', 'http://localhost:8000', 'http://localhost:8000/storage/uploads/20250721\\2051a22f230ea58e96163bc29926ecd0.png', 'public', '1.0', '1', 'admin', 1, NULL, '2025-07-21 18:21:17', '2025-07-21 18:21:17', NULL);
+INSERT INTO `file` VALUES (7, 'bg-combination.png', '5ff0656cfff7bb416c9d44dd34a5fce7.png', 3700, 'image/png', 'local', NULL, NULL, 'uploads/20250721\\5ff0656cfff7bb416c9d44dd34a5fce7.png', 'http://localhost:8000', 'http://localhost:8000/storage/uploads/20250721\\5ff0656cfff7bb416c9d44dd34a5fce7.png', 'public', '1.0', '1', 'admin', 1, NULL, '2025-07-21 21:09:41', '2025-07-21 21:09:41', NULL);
 
 -- ----------------------------
 -- Table structure for menu
@@ -186,8 +192,8 @@ CREATE TABLE `menu`  (
 -- ----------------------------
 INSERT INTO `menu` VALUES (1, 'home', 'HomeFilled', 0, 0, 1, '2025-06-23 00:00:00', '2025-07-01 23:56:27', 2, 2, 1, 1, '首页', '/home/index', '', '');
 INSERT INTO `menu` VALUES (57, 'system', 'Tools', 0, 10, 1, '2025-06-23 00:00:00', '2025-07-01 23:56:42', 2, 2, 2, 1, '系统管理', '', '', '/system/accountManage');
-INSERT INTO `menu` VALUES (58, 'accountManage', 'Menu', 57, 0, 1, '2025-06-23 00:00:00', '2025-07-01 23:57:14', 2, 2, 2, 1, '账号管理', '/system/accountManage/index', '', '');
-INSERT INTO `menu` VALUES (59, 'roleManage', 'Menu', 57, 1, 1, '2025-06-23 00:00:00', '2025-06-23 00:00:00', 2, 2, 2, 1, '角色管理', '/system/roleManage/index', '', '');
+INSERT INTO `menu` VALUES (58, 'accountManage', 'UserFilled', 57, 0, 1, '2025-06-23 00:00:00', '2025-07-21 23:17:51', 2, 2, 2, 1, '账号管理', '/system/accountManage/index', '', '');
+INSERT INTO `menu` VALUES (59, 'roleManage', 'WarningFilled', 57, 1, 1, '2025-06-23 00:00:00', '2025-07-21 23:19:45', 2, 2, 2, 1, '角色管理', '/system/roleManage/index', '', '');
 INSERT INTO `menu` VALUES (60, 'menuMange', 'Menu', 57, 2, 1, '2025-06-23 00:00:00', '2025-07-01 23:57:32', 2, 2, 2, 1, '菜单管理', '/system/menuMange/index', '', '');
 INSERT INTO `menu` VALUES (61, 'departmentManage', 'Menu', 57, 3, 1, '2025-06-23 00:00:00', '2025-07-18 09:13:57', 2, 2, 2, 1, '部门管理', '/system/departmentManage/index', '', '');
 INSERT INTO `menu` VALUES (62, 'dictManage', 'Menu', 57, 4, 1, '2025-06-23 00:00:00', '2025-07-18 09:13:59', 2, 2, 2, 1, '字典管理', '/system/dictManage/index', '', '');
@@ -214,7 +220,7 @@ CREATE TABLE `menu_permission_dependency`  (
   INDEX `fk_permission`(`permission_id` ASC) USING BTREE,
   CONSTRAINT `fk_mpd_menu` FOREIGN KEY (`menu_id`) REFERENCES `menu` (`menu_id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_mpd_permission` FOREIGN KEY (`permission_id`) REFERENCES `permission` (`permission_id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 34 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '菜单-权限依赖关系' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 42 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '菜单-权限依赖关系' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of menu_permission_dependency
@@ -223,12 +229,6 @@ INSERT INTO `menu_permission_dependency` VALUES (1, 57, 5, 'REQUIRED', '系统�
 INSERT INTO `menu_permission_dependency` VALUES (2, 57, 9, 'REQUIRED', '权限管理查看权限', '2025-07-01 00:00:00', 'data');
 INSERT INTO `menu_permission_dependency` VALUES (3, 57, 14, 'REQUIRED', '菜单管理查看权限', '2025-07-01 00:00:00', 'data');
 INSERT INTO `menu_permission_dependency` VALUES (4, 57, 19, 'REQUIRED', '管理员查看权限', '2025-07-01 00:00:00', 'data');
-INSERT INTO `menu_permission_dependency` VALUES (5, 58, 20, 'REQUIRED', '管理员列表权限', '2025-07-01 00:00:00', 'data');
-INSERT INTO `menu_permission_dependency` VALUES (6, 58, 21, 'REQUIRED', '创建管理员按钮', '2025-07-01 00:00:00', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (7, 58, 22, 'REQUIRED', '编辑管理员按钮', '2025-07-01 00:00:00', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (8, 58, 23, 'REQUIRED', '删除管理员按钮', '2025-07-01 00:00:00', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (9, 59, 9, 'REQUIRED', '权限管理查看权限', '2025-07-01 00:00:00', 'data');
-INSERT INTO `menu_permission_dependency` VALUES (10, 59, 10, 'REQUIRED', '权限列表查询权限', '2025-07-01 00:00:00', 'data');
 INSERT INTO `menu_permission_dependency` VALUES (15, 62, 6, 'REQUIRED', '系统配置提交权限', '2025-07-01 00:00:00', 'data');
 INSERT INTO `menu_permission_dependency` VALUES (16, 62, 7, 'REQUIRED', '基础配置访问权限', '2025-07-01 00:00:00', 'data');
 INSERT INTO `menu_permission_dependency` VALUES (17, 65, 11, 'REQUIRED', '新增', '2025-07-20 10:02:05', 'button');
@@ -239,6 +239,13 @@ INSERT INTO `menu_permission_dependency` VALUES (30, 60, 16, 'OPTIONAL', NULL, '
 INSERT INTO `menu_permission_dependency` VALUES (31, 60, 17, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (32, 60, 18, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (33, 60, 14, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (35, 58, 19, 'OPTIONAL', NULL, '2025-07-21 23:17:51', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (36, 58, 20, 'REQUIRED', NULL, '2025-07-21 23:17:51', 'data');
+INSERT INTO `menu_permission_dependency` VALUES (37, 58, 21, 'REQUIRED', NULL, '2025-07-21 23:17:51', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (38, 58, 22, 'REQUIRED', NULL, '2025-07-21 23:17:51', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (39, 58, 23, 'REQUIRED', NULL, '2025-07-21 23:17:51', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (40, 59, 9, 'REQUIRED', NULL, '2025-07-21 23:19:45', 'data');
+INSERT INTO `menu_permission_dependency` VALUES (41, 59, 10, 'REQUIRED', NULL, '2025-07-21 23:19:45', 'data');
 
 -- ----------------------------
 -- Table structure for permission
