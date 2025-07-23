@@ -25,7 +25,10 @@
         "topthink/think-orm": "^3.0|^4.0",
         "topthink/think-filesystem": "^2.0",
         "firebase/php-jwt": "^6.11",
-        "phpoffice/phpspreadsheet": "^4.3"
+        "phpoffice/phpspreadsheet": "^4.3",
+        "topthink/think-migration": "^3.1",
+        "topthink/think-worker": "^5.0",
+        "ext-redis": "*"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",

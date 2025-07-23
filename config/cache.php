@@ -24,6 +24,14 @@ return [
             // 序列化机制 例如 ['serialize', 'unserialize']
             'serialize'  => [],
         ],
+        'redis' => [
+            'type' => 'redis',
+            'host' => env('redis.host', '127.0.0.1'),
+            'port' => env('redis.port', 6379),
+            'password' => env('redis.password', ''),
+            'select' => 0, // 数据库编号
+            'timeout' => 0,
+        ],
         // 更多的缓存连接
     ],
 ];
