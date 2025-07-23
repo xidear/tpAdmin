@@ -21,7 +21,7 @@ class Admin extends BaseController
      */
     public function index(): Response
     {
-        $list = (new AdminModel())->fetchPaginated();
+        $list = (new AdminModel())->fetchData();
         return $this->success($list);
     }
 

@@ -8,6 +8,7 @@ use think\facade\Route;
 Route::group('adminapi', function () {
     //    不需要登录
     Route::group(function () {
+        Route::get('test', 'Index/index');
         // 获取登录所需数据 比如 是否需要验证码
         Route::get('login', 'Login/index');
         //登录表单

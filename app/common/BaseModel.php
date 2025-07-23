@@ -51,6 +51,16 @@ class BaseModel extends Model
         }
     }
 
+    public function fetchData(): \think\Collection|array
+    {
+        if (request()->has("page","get")&&request()->has("list_rows","get")) {
+            return $this->fetchPaginated();
+        }
+        return $this->fetchAll(force: true);
+
+
+
+    }
 
     /**
      * 获取分页数据
@@ -81,7 +91,7 @@ class BaseModel extends Model
 //            Log::error(文件名,方法,前端传参,方法传参,报错信息,用户(如果已登录)$e->getMessage());
             $list = [];
         }
-        return ['total' => $total, 'list' => $list];
+        return ['total' => $total, 'list' => $list,'current_page' => $page,'per_page' => $pageSize];
     }
 
     /**
@@ -124,8 +134,8 @@ class BaseModel extends Model
     {
 
         return array_merge([
-            'page' => 1,
-            'pageSize' => $this->defaultPageSize,
+            'page' => null,
+            'pageSize' => null,
             'fields' => null,
             'append' => [],
             'hidden' => [],
@@ -310,7 +320,7 @@ class BaseModel extends Model
      */
     protected function getPageParam(array $config): int
     {
-        $page = $config['page'] ?? request()->param('page', 1);
+        $page = $config['pageNum'] ?? request()->param('page', 1);
         return is_numeric($page) ? (int)$page : 1;
     }
 

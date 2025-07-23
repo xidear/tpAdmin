@@ -16,7 +16,7 @@ class File extends BaseController
      */
     public function index(): Response
     {
-        $list = (new FileModel())->fetchPaginated();
+        $list = (new FileModel())->fetchData();
         return $this->success($list);
     }
 

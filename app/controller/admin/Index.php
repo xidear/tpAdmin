@@ -10,6 +10,14 @@ class Index extends BaseController
 {
 
 
+    public function index(){
+
+        $model=new \app\model\Permission();
+
+        $list=$model->paginate();
+        return $this->success($list);
+    }
+
     /**
      *
      * @return Response

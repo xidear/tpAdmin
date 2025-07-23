@@ -18,8 +18,8 @@ class Role extends BaseController
     // 角色列表
     public function index(): Response
     {
-        $roles = (new RoleModel)->fetchPaginated();
-        return $this->success(["list" => $roles]);
+        $roles = (new RoleModel)->fetchData();
+        return $this->success($roles);
     }
 
 

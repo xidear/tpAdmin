@@ -11,16 +11,16 @@ export interface ResultData<T = any> extends Result {
 
 // 分页响应参数
 export interface ResPage<T> {
-  list: T[];
-  pageNum: number;
-  pageSize: number;
+  data: T[];
+  current_page: number;
+  per_page: number;
   total: number;
 }
 
 // 分页请求参数
 export interface ReqPage {
-  pageNum: number;
-  pageSize: number;
+  page: number;
+  list_rows: number;
 }
 
 // 文件上传模块

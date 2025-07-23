@@ -21,7 +21,7 @@ class Permission extends BaseController
      */
     public function index(): Response
     {
-        $list = (new PermissionModel())->fetchPaginated();
+        $list = (new PermissionModel())->fetchData();
         return $this->success($list);
     }
 

@@ -7,6 +7,7 @@
       :indent="20"
       :columns="columns"
       :data="filteredMenuData"
+      :tree-props="{ children: 'children' }"
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader>
@@ -1004,6 +1005,7 @@ const resetSearch = () => {
 const fetchMenuData = async () => {
   try {
     const res = await getTreeApi();
+    console.log("返回数据",res);
     originalMenuData.value = res.data;
   } catch (err) {
     console.error("获取菜单数据失败", err);
