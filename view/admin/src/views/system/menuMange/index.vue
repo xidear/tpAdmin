@@ -1032,7 +1032,6 @@ const handleDelete = async (row: any) => {
     ElMessage.success("删除成功");
     await fetchMenuData();
   } catch (error) {
-    ElMessage.error("删除失败: " + (error || "未知错误"));
   }
 };
 

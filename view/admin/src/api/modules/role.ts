@@ -4,7 +4,7 @@ import http from "@/api";
 // 获取列表
 export const getListApi = (params?: any) => {
   return http.get<Admin.AdminListResponse>(
-    PORT1 + `/admin/index`,
+    PORT1 + `/role/index`,
     params,
     { loading: true }
   );
@@ -15,7 +15,7 @@ export const getListApi = (params?: any) => {
  * @param params 数据
  */
 export const postCreateApi = (params: Admin.AdminOptions) => {
-  return http.post("/admin/create", params, { loading: true });
+  return http.post("/role/create", params, { loading: true });
 };
 
 /**
@@ -24,7 +24,7 @@ export const postCreateApi = (params: Admin.AdminOptions) => {
  */
 export const getReadApi = (id: number) => {
   return http.get<Admin.AdminOptions>(
-    `/admin/read/${id}`,
+    `/role/read/${id}`,
     {},
     { loading: true }
   );
@@ -39,23 +39,28 @@ export const putUpdateApi = (
   id: number,
   params: Admin.AdminOptions
 ) => {
-  return http.put(`/admin/update/${id}`, params, { loading: true });
+  return http.put(`/role/update/${id}`, params, { loading: true });
 };
+
+
+
+
+export const deleteDeleteApi = (
+  id: number,
+) => {
+  return http.delete(`/role/delete/${id}`, { loading: true });
+};
+
+
+
+
 
 /**
- * 删除
- * @param id
+ * 批量删除
+ * @param params 删除参数
  */
-
-
-export const deleteDeleteApi = ( id: number                                ) => {
-  return http.delete(`/admin/delete/${id}`, { loading: true });
-};
-
-
-export const batchDeleteApi = (params: { ids: number[] }) => {
-  return http.batchDelete("/admin/batch_delete", {
+export const batchDeleteDeleteApi = (params: { ids: number[] }) => {
+  return http.batchDelete("/role/batch_delete", {
     data: params,       // 请求体数据
   });
 };
-

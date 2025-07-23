@@ -5,6 +5,7 @@ namespace app\controller\admin;
 
 use app\common\BaseController;
 use app\model\Admin as AdminModel;
+use app\request\admin\admin\BatchDelete;
 use app\request\admin\admin\Create;
 use app\request\admin\admin\Delete;
 use app\request\admin\admin\Edit;
@@ -72,12 +73,32 @@ class Admin extends BaseController
 
 
     /**
+     * @param BatchDelete $delete
+     * @return Response
+     */
+    public function batchDelete(BatchDelete $delete): Response
+    {
+        $ids = $delete->delete("ids/a");
+        $model = new AdminModel();
+        if (in_array($model->getSuperAdminId(), $ids)) {
+            return $this->error("超级管理员禁止删除");
+        }
+        if ($model->batchDeleteWithRelation($ids, ["admin_role"])) {
+            return $this->success("删除成功");
+        } else {
+            return $this->error($model->getMessage());
+        }
+    }
+
+
+    /**
+     * @param $admin_id
      * @param Delete $delete
      * @return Response
      */
-    public function delete(Delete $delete): Response
+    public function delete($admin_id,Delete $delete): Response
     {
-        $ids = $delete->delete("ids/a");
+        $ids=[$admin_id];
         $model = new AdminModel();
         if (in_array($model->getSuperAdminId(), $ids)) {
             return $this->error("超级管理员禁止删除");

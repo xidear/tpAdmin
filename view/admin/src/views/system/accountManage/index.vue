@@ -224,7 +224,8 @@ import {
   postCreateApi,
   getReadApi,
   putUpdateApi,
-  deleteDeleteApi
+  deleteDeleteApi,
+  batchDeleteApi
 } from "@/api/modules/account";
 
 // 状态变量
@@ -394,7 +395,7 @@ const deleteAdmin = async (row: any) => {
       }
     );
 
-    await deleteDeleteApi({ ids: [row.admin_id] });
+    await deleteDeleteApi(row.admin_id);
     ElMessage.success("删除成功");
     proTable.value?.getTableList();
   } catch (error) {
@@ -420,7 +421,7 @@ const batchDelete = async (ids: number[]) => {
       }
     );
 
-    await deleteDeleteApi({ ids });
+    await batchDeleteApi({ ids });
     ElMessage.success(`成功删除 ${ids.length} 个账号`);
     proTable.value?.clearSelection();
     proTable.value?.getTableList();

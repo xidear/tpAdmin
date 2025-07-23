@@ -36,6 +36,6 @@ export const putUpdateApi = (id: number, params: Menu.MenuOptions) => {
  * @param id 菜单ID
  */
 export const deleteDeleteApi = (id: number) => {
-  return http.delete(`/menu/delete/${id}`,{}, { loading: true });
+  return http.delete(`/menu/delete/${id}`, { loading: true });
 };
 

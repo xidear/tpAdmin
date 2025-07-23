@@ -110,20 +110,30 @@ class RequestHttp {
   put<T>(url: string, params?: object, _object = {}): Promise<ResultData<T>> {
     return this.service.put(url, params, _object);
   }
-  // delete<T>(url: string, params?: any, _object = {}): Promise<ResultData<T>> {
-  //   return this.service.delete(url, { params, ..._object });
-  // }
+
+
+  /**
+   * 删除
+   * @param url 请求URL
+   * @param _object
+   */
+  delete<T>(url: string,  _object = {}): Promise<ResultData<T>> {
+    return this.service.delete(url, { ..._object });
+  }
 
 
 
   /**
-   * DELETE 请求方法
+   * 批量删除
    * @param url 请求URL
    * @param config 请求配置（可包含data作为请求体）
    */
-  delete<T>(url: string, config: AxiosRequestConfig = {}): Promise<ResultData<T>> {
+  batchDelete<T>(url: string, config: AxiosRequestConfig = {}): Promise<ResultData<T>> {
     return this.service.delete(url, config);
   }
+
+
+
 
 
 

@@ -1,10 +1,10 @@
 <?php
 
-namespace app\request\admin\admin;
+namespace app\request\admin\role;
 
 use app\common\BaseRequest;
 
-class Delete extends BaseRequest
+class Read extends BaseRequest
 {
 
     public function __construct()

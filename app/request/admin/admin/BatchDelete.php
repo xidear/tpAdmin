@@ -4,7 +4,7 @@ namespace app\request\admin\admin;
 
 use app\common\BaseRequest;
 
-class Delete extends BaseRequest
+class BatchDelete extends BaseRequest
 {
 
     public function __construct()
@@ -14,7 +14,9 @@ class Delete extends BaseRequest
 
     public function rules(): array
     {
-        return [        ];
+        return [
+            'ids' => "require|array",
+        ];
     }
 
     public function message(): array

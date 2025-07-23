@@ -4,6 +4,7 @@ namespace app\controller\admin;
 
 use app\common\BaseController;
 use app\model\Permission as PermissionModel;
+use app\request\admin\permission\BatchDelete;
 use app\request\admin\permission\Create;
 use app\request\admin\permission\Delete;
 use app\request\admin\permission\Edit;
@@ -69,12 +70,30 @@ class Permission extends BaseController
 
 
     /**
+     * @param $permission_id
      * @param Delete $delete
      * @return Response
      */
-    public function delete(Delete $delete): Response
+    public function delete($permission_id,Delete $delete): Response
     {
-       $ids=$delete->delete("ids/a");
+        $model=new PermissionModel();
+
+        $ids=[$permission_id];
+        if ($model->batchDeleteWithRelation($ids,["menu_dependencies"])){
+            return $this->success("删除成功");
+        }else{
+            return $this->error($model->getMessage());
+        }
+    }
+
+
+    /**
+     * @param BatchDelete $delete
+     * @return Response
+     */
+    public function batchDelete(BatchDelete $delete): Response
+    {
+        $ids=$delete->delete("ids/a");
         $model=new PermissionModel();
         if ($model->batchDeleteWithRelation($ids,["menu_dependencies"])){
             return $this->success("删除成功");
@@ -82,6 +101,8 @@ class Permission extends BaseController
             return $this->error($model->getMessage());
         }
     }
+
+
 
 
 

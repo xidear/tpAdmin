@@ -18,11 +18,11 @@ class Message
         // 每30秒推送随机消息（包含三种类别）
         Timer::add(30, function () use ($worker) {
             // 随机生成三种类别之一的消息
-            $categoryTypes = ['message', 'chat', 'todo'];
-            $category = $categoryTypes[array_rand($categoryTypes)];
-
-            $msg = self::generateRandomMsg($category);
-            self::broadcast($worker, $msg);
+//            $categoryTypes = ['message', 'chat', 'todo'];
+//            $category = $categoryTypes[array_rand($categoryTypes)];
+//                不再发送随机数据
+//            $msg = self::generateRandomMsg($category);
+//            self::broadcast($worker, $msg);
         });
     }
 

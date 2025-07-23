@@ -1,6 +1,6 @@
 <?php
 
-namespace app\request\admin\admin;
+namespace app\request\admin\role;
 
 use app\common\BaseRequest;
 
@@ -14,7 +14,9 @@ class Delete extends BaseRequest
 
     public function rules(): array
     {
-        return [        ];
+        return [
+//            'id' => "require|array",
+        ];
     }
 
     public function message(): array

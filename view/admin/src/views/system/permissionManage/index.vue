@@ -144,7 +144,8 @@ import {
   postCreateApi,
   getReadApi,
   putUpdateApi,
-  deleteDeleteApi
+  deleteDeleteApi,
+  batchDeleteDeleteApi
 } from "@/api/modules/permission";
 
 const proTable = ref<InstanceType<typeof ProTable>>();
@@ -251,8 +252,7 @@ const deletePermission = async (row: any) => {
         type: "warning"
       }
     );
-
-    await deleteDeleteApi({ ids: [row.permission_id] });
+    await deleteDeleteApi(row.permission_id);
     ElMessage.success("删除成功");
     proTable.value?.getTableList();
   } catch (error) {
@@ -277,7 +277,7 @@ const batchDelete = async (ids: number[]) => {
       }
     );
 
-    await deleteDeleteApi({ ids });
+    await batchDeleteDeleteApi({ ids });
     ElMessage.success(`成功删除 ${ids.length} 个权限`);
 
     proTable.value?.clearSelection();

@@ -58,12 +58,22 @@ Route::group('adminapi', function () {
 
 
 //        管理员
+        Route::group('role', function () {
+            Route::get('index', 'index');
+            Route::get('read/:role_id', 'read');
+            Route::post('create', 'create');
+            Route::put('update/:role_id', 'update');
+            Route::delete('delete/:role_id', 'delete');
+        })->prefix("admin/role/");
+
+//        管理员
         Route::group('admin', function () {
             Route::get('index', 'index');
             Route::get('read/:admin_id', 'read');
             Route::post('create', 'create');
             Route::put('update/:admin_id', 'update');
-            Route::delete('delete', 'delete');
+            Route::delete('delete/:admin_id', 'delete');
+            Route::delete('batch_delete', 'batchDelete');
         })->prefix("admin/admin/");
 
 //        权限
@@ -72,7 +82,8 @@ Route::group('adminapi', function () {
             Route::get('read/:permission_id', 'read');
             Route::post('create', 'create');
             Route::put('update/:permission_id', 'update');
-            Route::delete('delete', 'delete');
+            Route::delete('delete/:permission_id', 'delete');
+            Route::delete('batch_delete', 'batchDelete');
         })->prefix("admin/permission/");
 
 //        菜单
@@ -82,7 +93,7 @@ Route::group('adminapi', function () {
             Route::get('read/:menu_id', 'read');
             Route::post('create', 'create');
             Route::put('update/:menu_id', 'update');
-            Route::delete('delete', 'delete');
+            Route::delete('delete/:menu_id', 'delete');
         })->prefix("admin/menu/");
         // 角色管理
         Route::get('role', 'admin/Role/index');

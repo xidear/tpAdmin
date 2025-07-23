@@ -42,17 +42,28 @@ export const putUpdateApi = (
   return http.put(`/permission/update/${id}`, params, { loading: true });
 };
 
+
 /**
- * 删除权限（支持单个和批量删除）
+ * 删除权限
+ * @param id
+ */
+
+export const deleteDeleteApi = (
+  id: number,
+) => {
+  return http.delete(`/permission/delete/${id}`, { loading: true });
+};
+
+
+
+
+
+/**
+ * 批量删除权限
  * @param params 删除参数
  */
-// export const deleteDeleteApi = (params: { ids: number[] }) => {
-//   return http.delete("/permission/delete", params, { loading: true });
-// };
-
-
-export const deleteDeleteApi = (params: { ids: number[] }) => {
-  return http.delete("/permission/delete", {
+export const batchDeleteDeleteApi = (params: { ids: number[] }) => {
+  return http.batchDelete("/permission/batch_delete", {
     data: params,       // 请求体数据
   });
 };

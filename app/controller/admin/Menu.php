@@ -93,19 +93,20 @@ class Menu extends BaseController
 
     /**
      * 删除
+     * @param $menu_id
      * @param Delete $request
      * @return Response
      */
-    public function delete(Delete $request): Response
+    public function delete($menu_id,Delete $request): Response
     {
 
 //        这里仅支持单个删除
-        $id = request()->param('ids')[0];
-        $menu = (new \app\model\Menu)->findOrEmpty($id);
+
+        $menu = (new \app\model\Menu)->findOrEmpty($menu_id,);
         if ($menu->isEmpty()) {
             return $this->error("找不到指定的数据");
         }
-        if (!$menu->deleteRecursive($menu->getKey())) {
+        if (!$menu->deleteRecursive()) {
             return $this->error($menu->getError());
         }
         return $this->success([]);
