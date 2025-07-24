@@ -345,20 +345,54 @@
         label-width="120px"
       >
         <el-form-item label="选择权限" prop="permission_id">
+
           <el-select
             v-model="addPermissionForm.permission_id"
             placeholder="选择权限"
             filterable
             clearable
+            @visible-change="handlePermissionSelectOpen"
+            style="width: 100%"
           >
-            <el-option
-              v-for="perm in filteredPermissions"
-              :key="perm.permission_id"
-              :label="perm.name + '(' + perm.node + ')'"
-              :value="perm.permission_id"
-              :disabled="isPermissionAdded(perm.permission_id)"
-            />
+            <el-scrollbar style="max-height: 250px; overflow-y: auto">
+              <div @scroll.passive="onPermissionScroll" style="overflow-y: auto; height: 100%">
+                <el-option
+                  v-for="perm in filteredPermissions"
+                  :key="perm.permission_id"
+                  :label="perm.name + '(' + perm.node + ')'"
+                  :value="perm.permission_id"
+                  :disabled="isPermissionAdded(perm.permission_id)"
+                />
+
+                <div v-if="loadingPermissions" class="loading-text">加载中...</div>
+
+                <div
+                  v-else-if="!loadingPermissions && hasMorePermissions"
+                  class="loading-text clickable"
+                  @click="loadMorePermissions"
+                >
+                  滚动或点击加载更多
+                </div>
+              </div>
+            </el-scrollbar>
           </el-select>
+          
+
+
+<!--          <el-select-->
+<!--            v-model="addPermissionForm.permission_id"-->
+<!--            placeholder="选择权限"-->
+<!--            filterable-->
+<!--            clearable-->
+<!--          >-->
+<!--            <el-option-->
+<!--              v-for="perm in filteredPermissions"-->
+<!--              :key="perm.permission_id"-->
+<!--              :label="perm.name + '(' + perm.node + ')'"-->
+<!--              :value="perm.permission_id"-->
+<!--              :disabled="isPermissionAdded(perm.permission_id)"-->
+<!--            />-->
+<!--          </el-select>-->
         </el-form-item>
         <el-form-item label="权限类型" prop="permission_type">
           <el-select v-model="addPermissionForm.permission_type" placeholder="选择权限类型">
@@ -423,6 +457,60 @@ Object.keys(Icons).forEach(key => {
     allIcons.value.push(key);
   }
 });
+
+// 权限分页数据
+const permissionPage = ref(1);
+const permissionPageSize = ref(10);
+const hasMorePermissions = ref(true);
+const loadingPermissions = ref(false);
+
+// 获取权限列表（分页）
+const fetchPermissionsByPage = async (page = 1, append = false) => {
+  if (loadingPermissions.value || !hasMorePermissions.value) return;
+
+  loadingPermissions.value = true;
+
+  try {
+    const res = await getListApi({ list_rows: permissionPageSize.value, page });
+
+    const newPermissions = res.data.list || [];
+
+    if (append) {
+      allPermissions.value = [...allPermissions.value, ...newPermissions];
+    } else {
+      allPermissions.value = newPermissions;
+    }
+
+    hasMorePermissions.value = newPermissions.length >= permissionPageSize.value;
+    permissionPage.value = page;
+  } catch (error) {
+    console.error("获取权限列表失败", error);
+    ElMessage.error("获取权限列表失败");
+  } finally {
+    loadingPermissions.value = false;
+  }
+};
+
+// 权限选择器打开时加载第一页
+const handlePermissionSelectOpen = (visible: boolean) => {
+  if (visible && allPermissions.value.length === 0) {
+    fetchPermissionsByPage(1);
+  }
+};
+
+
+
+// 手动加载更多
+const loadMorePermissions = () => {
+  fetchPermissionsByPage(permissionPage.value + 1, true);
+};
+
+const onPermissionScroll = (event: Event) => {
+  const target = event.target as HTMLElement;
+  if (target.scrollTop + target.clientHeight >= target.scrollHeight - 10) {
+    loadMorePermissions();
+  }
+};
 
 // 过滤图标
 const filteredIcons = computed(() => {
@@ -646,7 +734,8 @@ const isPermissionAdded = (permissionId: number) => {
 // 获取权限列表
 const fetchAllPermissions = async () => {
   try {
-    const res = await getListApi({ pageSize: 100 });
+    const res = await getListApi({ list_rows: permissionPageSize.value });
+    console.log("列表返回数据",res);
     allPermissions.value = res.data.list || [];
   } catch (error) {
     console.error("获取权限列表失败", error);
@@ -1111,4 +1200,22 @@ const columns: ColumnProps[] = [
   background-color: #f5f7fa;
   cursor: not-allowed;
 }
+
+.loading-text {
+  text-align: center;
+  padding: 10px;
+  color: #999;
+  font-size: 12px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+/* 强制 el-scrollbar 高度生效 */
+.el-scrollbar__wrap {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
 </style>

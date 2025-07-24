@@ -53,8 +53,15 @@ class BaseModel extends Model
 
     public function fetchData(): \think\Collection|array
     {
-        if (request()->has("page","get")&&request()->has("list_rows","get")) {
-            return $this->fetchPaginated();
+        if (request()->has("page","get")||request()->has("list_rows","get")) {
+            $config=[];
+            if (request()->has("page","get")){
+                $config['pageNum']=request()->get("page",1);
+            }
+            if (request()->has("list_rows","get")){
+                $config['pageSize']=request()->get("list_rows",15);
+            }
+            return $this->fetchPaginated([],$config);
         }
         return $this->fetchAll(force: true);
 

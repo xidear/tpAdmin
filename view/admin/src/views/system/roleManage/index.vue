@@ -1,7 +1,5 @@
 <template>
   <div class="card content-box">
-    <span class="text">角色管理 🍓🍇🍈🍉</span>
-
     <div class="table-box mt-4">
       <ProTable
         ref="proTable"

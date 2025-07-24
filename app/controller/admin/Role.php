@@ -31,8 +31,7 @@ class Role extends BaseController
     public function read($role_id, Read $read): Response
     {
         return $this->success((new RoleModel())
-            ->append(["menus_tree_with_permission", "admin_name_list"])
-            ->fetchOne($role_id));
+            ->fetchOne($role_id,['append'=>["menu_tree_with_permission","admin_name_list"]]));
     }
 
 
