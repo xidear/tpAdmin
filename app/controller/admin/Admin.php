@@ -21,7 +21,18 @@ class Admin extends BaseController
      */
     public function index(): Response
     {
-        $list = (new AdminModel())->fetchData();
+
+        $conditions=[];
+        // 新增：处理 keyword 参数，转换为 name 字段的模糊查询条件
+
+        if (request()->has('keyword', 'get',true)) {
+            $conditions[] =  ['username|real_name|nick_name', 'like', "%".request()->get('keyword')."%"];
+        }
+
+        $list = (new AdminModel())->fetchData($conditions);
+
+
+
         return $this->success($list);
     }
 

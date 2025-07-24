@@ -25,7 +25,7 @@
         </template>
       </ProTable>
 
-      <RoleDrawer ref="drawerRef" />
+      <RoleDrawer ref="drawerRef"  id="role-drawer"  :drawer-width="1200"/>
     </div>
   </div>
 </template>
@@ -45,7 +45,7 @@ import {
   deleteDeleteApi,
   putUpdateApi,
   postCreateApi,
-  getReadApi,
+  getReadApi,  // 引入详情API
   batchDeleteDeleteApi, Role
 } from "@/api/modules/role";
 import RoleDrawer from "@/views/system/roleManage/components/RoleDrawer.vue";
@@ -58,9 +58,6 @@ const proTable = ref<ProTableInstance>();
 // 初始化请求参数
 const initParam = reactive({});
 
-
-
-
 const dataCallback = (res: any) => {
   const safeData = res || {};
   console.log(res)
@@ -69,9 +66,6 @@ const dataCallback = (res: any) => {
     total: safeData.total || 0
   };
 };
-
-
-
 
 // 请求表格数据
 const getTableList = (params: any) => {
@@ -159,8 +153,15 @@ const openDrawer = (title: string, row: Partial<Role.RoleOptions> = {}) => {
     row: { ...row },
     // 根据操作类型选择对应的API
     api: title === "新增" ? postCreateApi : title === "编辑" ? putUpdateApi : undefined,
+    detailApi: getReadApi,  // 传递详情API给抽屉组件
     getTableList: () => proTable.value?.getTableList()
   };
   drawerRef.value?.acceptParams(params);
 };
 </script>
+<style>
+#role-drawer{
+  max-width: none !important;
+  min-width: 800px !important;
+}
+</style>

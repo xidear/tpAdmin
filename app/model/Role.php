@@ -3,6 +3,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
+use app\common\enum\YesOrNo;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
@@ -15,6 +16,8 @@ use think\model\relation\HasMany;
 class Role extends BaseModel
 {
     protected $pk = 'role_id';
+    
+    
 
     public function getMenuTreeWithPermissionAttr($value){
         return $this->menu_tree_with_permission();
@@ -29,6 +32,26 @@ class Role extends BaseModel
         if (empty($roleId)) {
             return []; // 若角色ID不存在，返回空数组
         }
+
+
+//        已关联的菜单
+        $menuIds=$this->role_menus()->column('menu_id');
+//        已拥有的权限
+        $permissionList=$this->permissions()->column("*","permission_id");
+
+//        return $permissionList;
+        $menuList = Menu::whereIn('menu_id',$menuIds)->order("order_num")->with(["dependencies"])->select()->each(function($item,$key) use($permissionList)   {
+            $menuHasPermissionIds=$item->dependencies()->column('menu_id');
+            foreach ($permissionList as $permissionId => $permission) {
+                if (in_array($permissionId,$menuHasPermissionIds)) {
+                    $item['role_has_permissions'][$permissionId]=$permission;
+                }
+            }
+        });
+
+
+
+        return $this->buildMenuTree($menuList->toArray());
 
         // 1. 获取当前角色拥有的所有菜单（从role_menu关联表）
         try {
@@ -73,38 +96,29 @@ class Role extends BaseModel
      * 辅助函数：构建菜单树形结构（递归）
      * @param array $menus 平级菜单数组
      * @param int $parentId 父级ID（初始为0）
-     * @param array $menuPermissionMap 菜单-权限ID映射
-     * @param array $rolePermissionIds 角色拥有的权限ID
-     * @param array $permissionMap 权限ID-详情映射
+     * @param string $childrenKey
      * @return array 树形菜单数组
      */
-    private function buildMenuTree(array $menus, int $parentId, array $menuPermissionMap, array $rolePermissionIds, array $permissionMap): array
+    private function buildMenuTree(array $menus, int $parentId=0,string $parentKey="parent_id",string $childrenKey="children"): array
     {
         $tree = [];
         foreach ($menus as $menu) {
-            if ($menu['parent_id'] != $parentId) {
+            if ($menu[$parentKey] != $parentId) {
                 continue;
             }
 
-            // 6. 获取当前菜单下，角色已拥有的权限
-            $menuPermissionIds = $menuPermissionMap[$menu['menu_id']] ?? [];
-            $assignedPermissionIds = array_intersect($menuPermissionIds, $rolePermissionIds);
-            $menu['permissions'] = array_values(array_filter(
-                $permissionMap,
-                fn($perm) => in_array($perm['permission_id'], $assignedPermissionIds)
-            ));
 
             // 递归处理子菜单
-            $children = $this->buildMenuTree($menus, $menu['menu_id'], $menuPermissionMap, $rolePermissionIds, $permissionMap);
+            $children = $this->buildMenuTree($menus, $menu['menu_id'],$parentKey,$childrenKey);
             if (!empty($children)) {
-                $menu['children'] = $children;
+                $menu[$childrenKey] = $children;
             }
 
             $tree[] = $menu;
         }
 
         // 按排序号排序
-        usort($tree, fn($a, $b) => $a['order_num'] - $b['order_num']);
+//        usort($tree, fn($a, $b) => $a['order_num'] - $b['order_num']);
         return $tree;
     }
 
@@ -182,19 +196,20 @@ class Role extends BaseModel
 //
 //    }
 
-    public function getAdminNameListAttr($value,$data){
-        return $this->admin_name_list();
-    }
-
-    public function admin_name_list(){
-        return $this->admins()
-            ->fieldRaw("CONCAT(real_name, '(', username, ')') as full_name")
-            ->select()->toArray();
-    }
 
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany('permission', RolePermission::class, 'permission_id', 'role_id');
+    }
+
+    public function admin_roles(): HasMany
+    {
+        return $this->hasMany(AdminRole::class, 'role_id', 'role_id');
+    }
+
+    public function adminRoles(): HasMany
+    {
+        return $this->hasMany(AdminRole::class, 'role_id', 'role_id');
     }
 
     public function admins(): BelongsToMany

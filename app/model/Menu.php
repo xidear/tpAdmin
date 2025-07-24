@@ -108,35 +108,10 @@ class Menu extends BaseModel
      */
     public static function getUserMenuTree(?int $adminId, ?Request $request): array
     {
-        return self::buildTree(self::getUserMenus($adminId, $request));
+        return self::buildMenuTree(self::getUserMenus($adminId, $request));
     }
 
-    /**
-     * 将扁平的菜单数据转换为树形结构
-     * @param array $items 扁平的菜单数据数组
-     * @param int $parentId 父级 ID，默认为 0
-     * @param string|null $pk
-     * @param string $parentFieldName
-     * @param string $childrenName
-     * @return array 树形结构的菜单数据
-     */
-//    public static function buildTree(array $items, int $parentId = 0, string $pk = null, string $parentFieldName = "parent_id", string $childrenName = "children"): array
-//    {
-//        if (empty($pk)) {
-//            $pk = (new Menu)->getPk();
-//        }
-//        $tree = [];
-//        foreach ($items as $item) {
-//            if ($item[$parentFieldName] == $parentId) {
-//                $children = self::buildTree($items, $item[$pk], $pk, $parentFieldName, $childrenName);
-//                if ($children) {
-//                    $item[$childrenName] = $children;
-//                }
-//                $tree[] = $item;
-//            }
-//        }
-//        return $tree;
-//    }
+
 
 
     /**
@@ -149,7 +124,7 @@ class Menu extends BaseModel
      * @param string $parentPath 当前父级路径，用于生成子菜单路径
      * @return array 树形结构的菜单数据
      */
-    public static function buildTree(array $items, int $parentId = 0, string $pk = null, string $parentFieldName = "parent_id", string $childrenName = "children", string $parentPath = ''): array
+    public static function buildMenuTree(array $items, int $parentId = 0, string $pk = null, string $parentFieldName = "parent_id", string $childrenName = "children", string $parentPath = ''): array
     {
         if (empty($pk)) {
             $pk = (new Menu)->getPk();
@@ -164,7 +139,7 @@ class Menu extends BaseModel
                     : "/{$item['name']}";
 
                 // 递归查找子菜单
-                $children = self::buildTree(
+                $children = self::buildMenuTree(
                     $items,
                     $item[$pk],
                     $pk,
@@ -242,7 +217,7 @@ class Menu extends BaseModel
      */
     public static function getMenuTree(?Request $request): array
     {
-        return self::buildTree(self::getUserMenus((new Admin())->getSuperAdminId(), $request));
+        return self::buildMenuTree(self::getUserMenus((new Admin())->getSuperAdminId(), $request));
     }
 
     /**
@@ -252,7 +227,7 @@ class Menu extends BaseModel
     public static function getAllMenuTree(): array
     {
         try {
-            return self::buildTree(self::where("1=1")->order("order_num asc")
+            return self::buildMenuTree(self::where("1=1")->order("order_num asc")
                 ?->select()
                 ?->toArray() ?? []);
         } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
@@ -455,6 +430,8 @@ class Menu extends BaseModel
     {
         return $this->belongsToMany(Role::class, RoleMenu::class, 'menu_id', 'role_id');
     }
+
+
 
     /**
      * 删除依赖关系

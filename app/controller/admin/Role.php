@@ -5,10 +5,10 @@ namespace app\controller\admin;
 use app\common\BaseController;
 use app\model\Role as RoleModel;
 use app\request\admin\admin\Create;
-use app\request\admin\admin\Delete;
 use app\request\admin\admin\Edit;
 use app\request\admin\admin\Read;
 use app\request\admin\role\assignMenu;
+use app\request\admin\role\Delete;
 use app\service\PermissionService;
 use think\Response;
 use Throwable;
@@ -30,8 +30,13 @@ class Role extends BaseController
      */
     public function read($role_id, Read $read): Response
     {
+        $menuTree=(new \app\model\Menu())->with("permissions")->select()->toTree();
+        return $this->success($menuTree);
         return $this->success((new RoleModel())
-            ->fetchOne($role_id,['append'=>["menu_tree_with_permission","admin_name_list"]]));
+            ->fetchOne($role_id, ['append' => ["menu_tree_with_permission"],
+                'with' => ['admins' => function ($query) {
+                    $query->field('admin_id,real_name,username')->hidden(['pivot']);
+                }, 'admin_roles', 'role_permissions', 'role_menus']]));
     }
 
 
@@ -61,37 +66,40 @@ class Role extends BaseController
         if ($info->isEmpty()) {
             return $this->error("未找到指定数据");
         }
+
+
+        if (!empty($params['role_menus'])) {
+            $menuIds = array_column($params['role_menus'], 'id');
+        }
+        halt($params);
+
 //        这里需要更新角色关联表
-        if ($info->update($params)) {
+        if ($info->intelligentUpdate($params)) {
             return $this->success();
         }
-        return $this->error("编辑失败");
+        return $this->error($info->getMessage());
 
 
     }
 
 
     /**
+     * 删除
      * @param $role_id
-     * @param \app\request\admin\role\Delete $delete
+     * @param Delete $delete
      * @return Response
      */
-    public function delete($role_id, \app\request\admin\role\Delete $delete): Response
+    public function delete($role_id, Delete $delete): Response
     {
 
-
         $model = (new  RoleModel())->findOrEmpty($role_id);
-
         if ($model->isEmpty()) {
             return $this->error("指定数据不存在");
-
         }
         if ($model->admins()->count()) {
             return $this->error("有管理员关联这个角色,请先取消关联");
-
         }
-
-        if ($model->together(["role_permissions"])->delete()) {
+        if ($model->together(["role_permissions", "role_menus", "role_admins"])->delete()) {
             return $this->success("删除成功");
         } else {
             return $this->error($model->getMessage());

@@ -91,6 +91,7 @@ Route::group('adminapi', function () {
         Route::group('menu', function () {
             // 菜单管理
             Route::get('tree', 'tree');
+            Route::get('index', 'index');
             Route::get('read/:menu_id', 'read');
             Route::post('create', 'create');
             Route::put('update/:menu_id', 'update');

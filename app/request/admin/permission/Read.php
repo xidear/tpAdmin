@@ -15,7 +15,7 @@ class Read extends BaseRequest
     public function rules(): array
     {
         if (request()->isGet()) {
-            return [ 'id'=>"require"];
+            return [];
         }
         return [        ];
     }

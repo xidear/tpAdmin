@@ -4,6 +4,7 @@ namespace app\controller\admin;
 
 use app\common\BaseController;
 use app\common\BaseRequest;
+use app\model\Role as RoleModel;
 use app\model\RolePermission;
 use app\request\admin\menu\Create;
 use app\request\admin\menu\Delete;
@@ -14,6 +15,32 @@ use think\Response;
 
 class Menu extends BaseController
 {
+
+
+
+    /**
+     * 菜单列表
+     * @param BaseRequest $request
+     * @return Response
+     */
+    public function index(BaseRequest $request): Response
+    {
+        $conditions=$config=[];
+        if (request()->has('keyword', 'get',true)) {
+            $conditions[] =  ['name|title', 'like', "%".request()->get('keyword')."%"];
+        }
+
+        $config['with']=[
+            'permissions'=>function($query){
+                $query->field("*");
+            }
+        ];
+
+
+        return $this->success((new \app\model\Menu())->fetchData($conditions,$config));
+    }
+
+
 
 
     /**

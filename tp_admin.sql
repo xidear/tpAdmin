@@ -11,7 +11,7 @@
  Target Server Version : 80012 (8.0.12)
  File Encoding         : 65001
 
- Date: 22/07/2025 11:06:39
+ Date: 24/07/2025 22:56:56
 */
 
 SET NAMES utf8mb4;
@@ -59,6 +59,7 @@ CREATE TABLE `admin_role`  (
 -- ----------------------------
 -- Records of admin_role
 -- ----------------------------
+INSERT INTO `admin_role` VALUES (2, 1, '2025-07-24 15:58:38');
 
 -- ----------------------------
 -- Table structure for admin_token
@@ -76,7 +77,7 @@ CREATE TABLE `admin_token`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uniq_token`(`token` ASC) USING BTREE,
   INDEX `idx_admin`(`admin_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 45 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员令牌表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 46 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员令牌表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of admin_token
@@ -119,6 +120,7 @@ INSERT INTO `admin_token` VALUES (38, 1, 'ceb019309689a5bcc1dc00a140472c6eaaa71b
 INSERT INTO `admin_token` VALUES (40, 1, 'a900064d9069a29b8c8310a89c381a919c283b427c8ccc85894175913fe3fe58', 'admin', NULL, 1753756178, 1753151378, 'admin_687ef79255fb88.92565485');
 INSERT INTO `admin_token` VALUES (42, 1, '1cc64b5e13a6039846da23413f4a75af795c2e7f700be4c2e05a3789e1afaf7e', 'admin', NULL, 1753758242, 1753153442, 'admin_687effa289c902.11257864');
 INSERT INTO `admin_token` VALUES (44, 1, '6de31e441ab7a0c655ebdf024ad7af561666d84598feb45fc22792982dc8693e', 'admin', NULL, 1753758334, 1753153534, 'admin_687efffe49c546.10390999');
+INSERT INTO `admin_token` VALUES (45, 1, '23e773ae6b7520ee5e24444c8c5ce7de2de05b5ec904819814011b420b61a4c2', 'admin', NULL, 1753863490, 1753258690, 'admin_68809ac26cefe8.12705501');
 
 -- ----------------------------
 -- Table structure for file
@@ -220,7 +222,7 @@ CREATE TABLE `menu_permission_dependency`  (
   INDEX `fk_permission`(`permission_id` ASC) USING BTREE,
   CONSTRAINT `fk_mpd_menu` FOREIGN KEY (`menu_id`) REFERENCES `menu` (`menu_id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_mpd_permission` FOREIGN KEY (`permission_id`) REFERENCES `permission` (`permission_id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 42 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '菜单-权限依赖关系' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 53 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '菜单-权限依赖关系' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of menu_permission_dependency
@@ -234,18 +236,58 @@ INSERT INTO `menu_permission_dependency` VALUES (16, 62, 7, 'REQUIRED', '基础�
 INSERT INTO `menu_permission_dependency` VALUES (17, 65, 11, 'REQUIRED', '新增', '2025-07-20 10:02:05', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (18, 65, 12, 'REQUIRED', '编辑', '2025-07-20 10:02:05', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (19, 65, 13, 'REQUIRED', '删除', '2025-07-20 10:02:33', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (29, 60, 15, 'REQUIRED', NULL, '2025-07-20 22:27:43', 'data');
-INSERT INTO `menu_permission_dependency` VALUES (30, 60, 16, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (31, 60, 17, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (32, 60, 18, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (33, 60, 14, 'OPTIONAL', NULL, '2025-07-20 22:27:43', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (35, 58, 19, 'OPTIONAL', NULL, '2025-07-21 23:17:51', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (36, 58, 20, 'REQUIRED', NULL, '2025-07-21 23:17:51', 'data');
 INSERT INTO `menu_permission_dependency` VALUES (37, 58, 21, 'REQUIRED', NULL, '2025-07-21 23:17:51', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (38, 58, 22, 'REQUIRED', NULL, '2025-07-21 23:17:51', 'button');
 INSERT INTO `menu_permission_dependency` VALUES (39, 58, 23, 'REQUIRED', NULL, '2025-07-21 23:17:51', 'button');
-INSERT INTO `menu_permission_dependency` VALUES (40, 59, 9, 'REQUIRED', NULL, '2025-07-21 23:19:45', 'data');
-INSERT INTO `menu_permission_dependency` VALUES (41, 59, 10, 'REQUIRED', NULL, '2025-07-21 23:19:45', 'data');
+INSERT INTO `menu_permission_dependency` VALUES (42, 59, 28, 'OPTIONAL', NULL, '2025-07-23 20:46:45', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (43, 59, 27, 'OPTIONAL', NULL, '2025-07-23 20:46:45', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (44, 59, 26, 'OPTIONAL', NULL, '2025-07-23 20:46:45', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (45, 59, 25, 'REQUIRED', NULL, '2025-07-23 20:46:45', 'data');
+INSERT INTO `menu_permission_dependency` VALUES (46, 59, 24, 'OPTIONAL', NULL, '2025-07-23 20:46:45', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (47, 60, 14, 'OPTIONAL', NULL, '2025-07-24 10:42:22', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (48, 60, 15, 'REQUIRED', NULL, '2025-07-24 10:42:22', 'data');
+INSERT INTO `menu_permission_dependency` VALUES (49, 60, 16, 'OPTIONAL', NULL, '2025-07-24 10:42:22', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (50, 60, 17, 'OPTIONAL', NULL, '2025-07-24 10:42:22', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (51, 60, 18, 'OPTIONAL', NULL, '2025-07-24 10:42:22', 'button');
+INSERT INTO `menu_permission_dependency` VALUES (52, 60, 10, 'OPTIONAL', NULL, '2025-07-24 10:42:22', 'button');
+
+-- ----------------------------
+-- Table structure for message
+-- ----------------------------
+DROP TABLE IF EXISTS `message`;
+CREATE TABLE `message`  (
+  `id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '消息唯一ID',
+  `category` enum('notification','message','todo') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '消息分类：通知/消息/待办',
+  `type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '消息子类型（如system、private等）',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '消息内容',
+  `send_time` datetime NOT NULL COMMENT '发送时间',
+  `is_read` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否已读：0-未读，1-已读',
+  `read_time` datetime NULL DEFAULT NULL COMMENT '已读时间',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '消息记录表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of message
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for migrations
+-- ----------------------------
+DROP TABLE IF EXISTS `migrations`;
+CREATE TABLE `migrations`  (
+  `version` bigint(20) NOT NULL,
+  `migration_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `start_time` timestamp NULL DEFAULT NULL,
+  `end_time` timestamp NULL DEFAULT NULL,
+  `breakpoint` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`version`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of migrations
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for permission
@@ -263,7 +305,7 @@ CREATE TABLE `permission`  (
   PRIMARY KEY (`permission_id`) USING BTREE,
   UNIQUE INDEX `idx_name`(`name` ASC) USING BTREE,
   UNIQUE INDEX `idx_identifier`(`node` ASC, `method` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 27 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '权限节点表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 30 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '权限节点表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of permission
@@ -291,6 +333,12 @@ INSERT INTO `permission` VALUES (20, 'admin/index', '管理员列表', '查询�
 INSERT INTO `permission` VALUES (21, 'admin/create', '创建管理员', '新增管理员账号', '2025-07-01 00:00:00', '2025-07-01 00:00:00', 'post', 2);
 INSERT INTO `permission` VALUES (22, 'admin/update', '修改管理员', '编辑管理员信息', '2025-07-01 00:00:00', '2025-07-01 00:00:00', 'put', 2);
 INSERT INTO `permission` VALUES (23, 'admin/delete', '删除管理员', '删除管理员账号', '2025-07-01 00:00:00', '2025-07-01 00:00:00', 'delete', 2);
+INSERT INTO `permission` VALUES (24, 'role/read', '查看角色详情', '查看角色详情', '2025-07-01 00:00:00', '2025-07-16 18:21:31', 'get', 2);
+INSERT INTO `permission` VALUES (25, 'role/index', '查看角色列表', '查看角色列表', '2025-07-01 00:00:00', '2025-07-16 18:21:31', 'get', 2);
+INSERT INTO `permission` VALUES (26, 'role/create', '创建角色', '新增角色', '2025-07-01 00:00:00', '2025-07-01 00:00:00', 'post', 2);
+INSERT INTO `permission` VALUES (27, 'role/update', '更新角色', '', '2025-07-23 20:45:35', '2025-07-23 20:45:35', 'put', 2);
+INSERT INTO `permission` VALUES (28, 'role/delete', '删除角色', '', '2025-07-23 20:45:46', '2025-07-23 20:45:46', 'delete', 2);
+INSERT INTO `permission` VALUES (29, 'menu/index', '菜单列表', '', '2025-07-24 16:47:44', '2025-07-24 16:47:44', 'get', 2);
 
 -- ----------------------------
 -- Table structure for role
@@ -309,6 +357,7 @@ CREATE TABLE `role`  (
 -- ----------------------------
 -- Records of role
 -- ----------------------------
+INSERT INTO `role` VALUES (1, '测试', '测试备注', '2025-07-23 16:27:05', '2025-07-23 16:27:05');
 
 -- ----------------------------
 -- Table structure for role_menu
@@ -322,6 +371,9 @@ CREATE TABLE `role_menu`  (
 -- ----------------------------
 -- Records of role_menu
 -- ----------------------------
+INSERT INTO `role_menu` VALUES (1, 58);
+INSERT INTO `role_menu` VALUES (1, 59);
+INSERT INTO `role_menu` VALUES (1, 57);
 
 -- ----------------------------
 -- Table structure for role_permission
@@ -341,5 +393,11 @@ CREATE TABLE `role_permission`  (
 -- ----------------------------
 -- Records of role_permission
 -- ----------------------------
+INSERT INTO `role_permission` VALUES (1, 19, '2025-07-24 08:04:09', 58);
+INSERT INTO `role_permission` VALUES (1, 20, '2025-07-24 08:04:09', 58);
+INSERT INTO `role_permission` VALUES (1, 21, '2025-07-24 08:04:09', 58);
+INSERT INTO `role_permission` VALUES (1, 22, '2025-07-24 08:04:09', 58);
+INSERT INTO `role_permission` VALUES (1, 27, '2025-07-24 20:56:14', 59);
+INSERT INTO `role_permission` VALUES (1, 28, '2025-07-24 20:56:08', 59);
 
 SET FOREIGN_KEY_CHECKS = 1;

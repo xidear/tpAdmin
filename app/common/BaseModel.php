@@ -19,12 +19,13 @@ use think\{Collection,
     model\relation\HasMany};
 use think\db\exception\{DataNotFoundException, DbException, ModelNotFoundException};
 use Throwable;
-
+use app\common\trait\RewriteCollectionTrait;
 
 class BaseModel extends Model
 {
     use BaseTrait;
     use LaravelTrait;
+    use RewriteCollectionTrait;
 
     protected bool $autoWriteTimestamp = true;
 
@@ -51,19 +52,18 @@ class BaseModel extends Model
         }
     }
 
-    public function fetchData(): \think\Collection|array
+    public function fetchData(array $conditions=[],array $config=[]): \think\Collection|array
     {
         if (request()->has("page","get")||request()->has("list_rows","get")) {
-            $config=[];
             if (request()->has("page","get")){
                 $config['pageNum']=request()->get("page",1);
             }
             if (request()->has("list_rows","get")){
                 $config['pageSize']=request()->get("list_rows",15);
             }
-            return $this->fetchPaginated([],$config);
+            return $this->fetchPaginated($conditions,$config);
         }
-        return $this->fetchAll(force: true);
+        return $this->fetchAll($conditions,$config,true);
 
 
 
