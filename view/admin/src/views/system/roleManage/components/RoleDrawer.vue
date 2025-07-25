@@ -7,7 +7,6 @@
   >
     <!-- 加载状态显示 -->
     <div v-if="loading" class="loading-container">
-      <el-loading loading="true" />
     </div>
 
     <el-form
@@ -18,7 +17,7 @@
       label-width="100px"
       class="mt-4"
     >
-      <!-- 通用字段（新增/编辑/查看都显示） -->
+      <!-- 通用字段 -->
       <el-form-item label="角色名称" prop="name">
         <el-input
           v-model="form.name"
@@ -39,76 +38,96 @@
 
       <!-- 管理员关联部分 -->
       <el-form-item label="关联管理员">
-        <!-- 查看模式 -->
-        <template v-if="isView">
-          <div v-if="form.admins && form.admins.length">
-            <el-tag
-              v-for="admin in form.admins"
-              :key="admin.admin_id"
-              class="mr-2 mb-2"
+        <div class="mb-4">
+          <el-table
+            :data="form.admins"
+            border
+            style="width: 100%; margin-bottom: 10px;"
+            max-height="200"
+          >
+            <el-table-column prop="admin_id" label="ID" width="80" />
+            <el-table-column prop="real_name" label="姓名" width="120" />
+            <el-table-column prop="username" label="用户名" width="150" />
+            <!-- 操作列仅在非查看模式显示 -->
+            <el-table-column 
+              label="操作" 
+              width="80"
+              v-if="!isView"
             >
-              {{ admin.real_name }}({{ admin.username }})
-            </el-tag>
-          </div>
-          <div v-else class="text-gray-500">无关联管理员</div>
-        </template>
+              <template #default="scope">
+                <el-button
+                  type="primary"
+                  size="small"
+                  text-color="#ff4d4f"
+                  @click="removeAdmin(scope.row.admin_id)"
+                >
+                  移除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
 
-        <!-- 编辑/新增模式 -->
-        <template v-if="!isView">
-          <!-- 已关联管理员表格 -->
-          <div class="mb-4">
-            <el-table
-              :data="form.admins"
-              border
-              style="width: 100%; margin-bottom: 10px;"
-              max-height="200"
-            >
-              <el-table-column prop="real_name" label="姓名" width="120" />
-              <el-table-column prop="username" label="用户名" width="150" />
-              <el-table-column label="操作" width="80">
-                <template #default="scope">
-                  <el-button
-                    type="text"
-                    size="small"
-                    text-color="#ff4d4f"
-                    @click="removeAdmin(scope.row.admin_id)"
-                  >
-                    移除
-                  </el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+          <!-- 添加管理员按钮仅在非查看模式显示 -->
+          <el-button
+            v-if="!isView"
+            type="primary"
+            size="small"
+            @click="showAdminSelector = true"
+            icon="CirclePlus"
+          >
+            添加管理员
+          </el-button>
 
-            <!-- 添加管理员按钮 -->
-            <el-button
-              type="primary"
-              size="small"
-              @click="showAdminSelector = true"
-              icon="CirclePlus"
-            >
-              添加管理员
-            </el-button>
+          <!-- 无数据提示 -->
+          <div v-if="form.admins.length === 0" class="text-gray-500 text-sm">
+            暂无关联管理员
           </div>
-        </template>
+        </div>
       </el-form-item>
 
       <!-- 菜单权限树 -->
       <el-form-item label="菜单权限" class="menu-tree-item">
         <el-tree
-          :data="form.menu_tree_with_permission"
+          ref="menuTreeRef"
+          :data="menuTreeData"
           :props="treeProps"
           :expand-on-click-node="false"
           :default-expand-all="true"
-          node-key="id"
-          :disabled="!isView"
+          node-key="menu_id"
+          :show-checkbox="!isView"
+          :check-strictly="true"
+          :default-checked-keys="defaultCheckedMenuIds"
+          @check="handleMenuCheck"
+          @check-change="handleCheckChange"
+          :disabled="isView"
+          :key="treeUpdateKey"
         >
           <template #default="{ node, data }">
-            <span class="flex items-center">
-              <span>{{ node.label }}</span>
-              <span v-if="data.permissions && data.permissions.length" class="ml-2 text-xs text-blue-500">
-                ({{ data.permissions.join(', ') }})
-              </span>
-            </span>
+            <div class="menu-item-container">
+              <span class="menu-title">{{ data.title }}</span>
+              
+              <!-- 查看模式下显示权限按钮 -->
+              <el-button
+                v-if="isView && hasPermissions(data)"
+                type="info"
+                size="small"
+                class="permission-btn"
+                @click.stop="openPermissionModal(data)"
+              >
+                显示权限
+              </el-button>
+              
+              <!-- 编辑/新增模式下显示权限按钮（仅当菜单被勾选） -->
+              <el-button
+                v-if="!isView && hasPermissions(data) && isMenuChecked(data.menu_id)"
+                type="primary"
+                size="small"
+                class="permission-btn"
+                @click.stop="openPermissionModal(data)"
+              >
+                勾选权限
+              </el-button>
+            </div>
           </template>
         </el-tree>
       </el-form-item>
@@ -172,7 +191,7 @@
         </el-table-column>
       </el-table>
 
-      <!-- 分页控件 - 支持自定义每页数据量 -->
+      <!-- 分页控件 -->
       <div class="pagination-container">
         <el-select
           v-model="adminPageSize"
@@ -200,38 +219,109 @@
         <el-button type="primary" @click="confirmAddAdmins">确认添加</el-button>
       </template>
     </el-dialog>
+
+    <!-- 权限选择弹窗 -->
+    <el-dialog
+      v-model="showPermissionModal"
+      :title="`${currentMenu?.title || ''} - 权限设置`"
+      width="500px"
+      @close="handlePermissionModalClose"
+    >
+      <!-- 全选按钮 -->
+      <div class="mb-4" v-if="!isView && currentMenu?.permissions && currentMenu.permissions.length > 0">
+        <el-button 
+          type="primary" 
+          size="small"
+          @click="selectAllPermissions"
+        >
+          全选权限
+        </el-button>
+        <el-button 
+          type="default" 
+          size="small"
+          class="ml-2"
+          @click="deselectAllOptionalPermissions"
+        >
+          取消可选权限
+        </el-button>
+      </div>
+      
+      <el-checkbox-group
+        v-model="checkedPermissions[currentMenu?.menu_id || 0]"
+        :disabled="isView"
+        class="permission-group"
+      >
+        <el-checkbox
+          v-for="perm in currentMenu?.permissions || []"
+          :key="perm.permission_id"
+          :value="perm.permission_id"
+          :disabled="isRequiredPermission(perm)"
+          class="permission-item"
+        >
+          <div class="permission-info">
+            <div class="permission-name">
+              {{ perm.name }}
+              <span v-if="isRequiredPermission(perm)" class="required-tag">必备</span>
+            </div>
+            <div class="permission-desc text-sm text-gray-500">{{ perm.description }}</div>
+          </div>
+        </el-checkbox>
+      </el-checkbox-group>
+      
+      <div v-if="currentMenu?.permissions && currentMenu.permissions.length === 0" class="no-permission">
+        该菜单暂无可用权限
+      </div>
+
+      <template #footer>
+        <el-button @click="showPermissionModal = false" v-if="!isView">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="showPermissionModal = false" 
+          v-if="!isView"
+        >
+          确认
+        </el-button>
+        <el-button 
+          type="primary" 
+          @click="showPermissionModal = false" 
+          v-if="isView"
+        >
+          关闭
+        </el-button>
+      </template>
+    </el-dialog>
   </el-drawer>
 </template>
 
 <script setup lang="ts" name="RoleDrawer">
-import { ref, reactive, watch, computed } from "vue";
-import { ElMessage, ElLoading } from "element-plus";
+import { ref, reactive, watch, computed, nextTick } from "vue";
+import { ElMessage } from "element-plus";
 import { useHandleData } from "@/hooks/useHandleData";
-import { Role } from "@/api/modules/role";
 import { getListApi as getAdminListApi } from "@/api/modules/account";
+import { getTreeApi } from "@/api/modules/menu";
 
-// 抽屉是否可见
+// 抽屉状态
 const visible = ref(false);
-// 标题
 const title = ref("");
-// 是否为查看模式
 const isView = ref(false);
-// 加载状态
 const loading = ref(false);
+
 // 树形结构配置
 const treeProps = {
-  label: 'name',
+  label: 'title',
   children: 'children'
 };
 
-// 表单数据 - 匹配后端返回结构
-const form = reactive<Partial<Role.RoleOptions & {
-  menu_tree_with_permission: Array<{
-    id: number;
-    name: string;
-    children?: any[];
-    permissions?: string[];
-  }>;
+// 用于强制更新树组件的key
+const treeUpdateKey = ref(0);
+
+// 表单数据
+const form = reactive<Partial<{
+  role_id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
   admins: Array<{
     admin_id: number;
     real_name: string;
@@ -242,13 +332,13 @@ const form = reactive<Partial<Role.RoleOptions & {
     role_id: number;
     created_at: string;
   }>;
-  role_permissions?: Array<{
+  role_permissions: Array<{
     role_id: number;
     permission_id: number;
     created_at: string;
     menu_id: number;
   }>;
-  role_menus?: Array<{
+  role_menus: Array<{
     role_id: number;
     menu_id: number;
   }>;
@@ -258,19 +348,22 @@ const form = reactive<Partial<Role.RoleOptions & {
   description: "",
   created_at: "",
   updated_at: "",
-  menu_tree_with_permission: [],
   admins: [],
-  admin_roles: []
+  admin_roles: [],
+  role_permissions: [],
+  role_menus: []
 });
 
 // 管理员选择器相关
 const showAdminSelector = ref(false);
 const adminPage = ref(1);
-const adminPageSize = ref(15); // 页面显示的每页条数
+const adminPageSize = ref(15);
 const allAdmins = ref<any[]>([]);
-const adminTotal = ref(0); // 管理员总条数（来自接口）
+const adminTotal = ref(0);
+const adminSearchKeyword = ref("");
+const selectedAdmins = ref<any[]>([]);
 
-// 计算属性：根据分页和搜索条件过滤管理员列表
+// 计算属性：过滤管理员列表
 const filteredAdmins = computed<any[]>(() => {
   let result = [...allAdmins.value];
 
@@ -286,8 +379,15 @@ const filteredAdmins = computed<any[]>(() => {
   return result.slice(startIndex, startIndex + adminPageSize.value);
 });
 
-const adminSearchKeyword = ref("");
-const selectedAdmins = ref<any[]>([]);
+// 菜单权限核心数据
+const menuTreeData = ref<any[]>([]);
+const defaultCheckedMenuIds = ref<number[]>([]);
+const checkedPermissions = ref<Record<number, number[]>>({});
+const menuTreeRef = ref<any>(null);
+
+// 权限弹窗相关
+const showPermissionModal = ref(false);
+const currentMenu = ref<any>(null);
 
 // 表单验证规则
 const rules = reactive({
@@ -297,8 +397,7 @@ const rules = reactive({
   ],
   description: [
     { max: 200, message: "角色描述不能超过 200 个字符", trigger: "blur" }
-  ]
-});
+  ]});
 
 // 表单引用
 const formRef = ref<any>(null);
@@ -310,7 +409,7 @@ let detailApi: any = null;
 const acceptParams = async (params: {
   title: string;
   isView: boolean;
-  row: Partial<Role.RoleOptions>;
+  row: Partial<any>;
   api?: any;
   detailApi?: any;
   getTableList: () => void;
@@ -321,28 +420,41 @@ const acceptParams = async (params: {
   detailApi = params.detailApi;
   getTableList = params.getTableList;
 
+  // 重置表单数据
   Object.assign(form, {
     role_id: undefined,
     name: "",
     description: "",
     created_at: "",
     updated_at: "",
-    menu_tree_with_permission: [],
     admins: [],
-    admin_roles: []
+    admin_roles: [],
+    role_permissions: [],
+    role_menus: []
   });
+
+  // 重置菜单权限数据
+  menuTreeData.value = [];
+  defaultCheckedMenuIds.value = [];
+  checkedPermissions.value = {};
+  showPermissionModal.value = false;
+  currentMenu.value = null;
+  treeUpdateKey.value = 0;
 
   visible.value = true;
 
-  if (params.title === "编辑" && params.row?.role_id && detailApi) {
+  // 加载角色数据（查看/编辑）
+  if ((params.title === "查看" || params.title === "编辑") && params.row?.role_id && detailApi) {
     try {
       loading.value = true;
-      const response = await detailApi(params.row.role_id);
-
-      if (response?.code === 200 && response.data) {
-        Object.assign(form, response.data);
+      const roleResponse = await detailApi(params.row.role_id);
+      
+      if (roleResponse?.code === 200 && roleResponse.data) {
+        Object.assign(form, roleResponse.data);
+        await loadMenuTree();
+        setCheckedStatusFromRoleData();
       } else {
-        ElMessage.error(response?.msg || "获取角色详情失败");
+        ElMessage.error(roleResponse?.msg || "获取角色详情失败");
       }
     } catch (error) {
       console.error("获取角色详情出错:", error);
@@ -350,19 +462,332 @@ const acceptParams = async (params: {
     } finally {
       loading.value = false;
     }
-  } else if (params.row && params.row.role_id) {
+  } else if (params.row && params.row.role_id && !isView.value) {
     Object.assign(form, params.row);
+  }
+  
+  // 新增模式加载菜单树
+  if (params.title === "新增") {
+    await loadMenuTree();
   }
 };
 
-// 加载管理员数据（已与分页参数绑定）
+// 加载菜单树数据
+const loadMenuTree = async () => {
+  try {
+    loading.value = true;
+    const response = await getTreeApi();
+    
+    if (response?.code === 200 && response.data) {
+      menuTreeData.value = response.data;
+      // 加载完成后更新key，确保树正确渲染
+      treeUpdateKey.value++;
+    }
+  } catch (error) {
+    console.error("获取菜单树失败:", error);
+    ElMessage.error("获取菜单权限失败");
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 判断菜单是否有权限
+const hasPermissions = (data: any) => {
+  return data.permissions && data.permissions.length > 0;
+};
+
+// 判断菜单是否被勾选
+const isMenuChecked = (menuId: number) => {
+  // 从tree组件获取实时的勾选状态，确保准确性
+  const checkedKeys = menuTreeRef.value?.getCheckedKeys() || [];
+  return checkedKeys.includes(menuId);
+};
+
+// 判断是否为必备权限
+const isRequiredPermission = (permission: any) => {
+  return permission.pivot && permission.pivot.type === "REQUIRED";
+};
+
+// 获取菜单的所有必备权限
+const getRequiredPermissions = (menuId: number) => {
+  const menu = findMenuById(menuTreeData.value, menuId);
+  if (!menu || !menu.permissions) return [];
+  
+  return menu.permissions
+    .filter((perm: any) => isRequiredPermission(perm))
+    .map((perm: any) => perm.permission_id);
+};
+
+// 根据ID查找菜单
+const findMenuById = (menuList: any[], menuId: number): any => {
+  for (const menu of menuList) {
+    if (menu.menu_id === menuId) {
+      return menu;
+    }
+    if (menu.children && menu.children.length > 0) {
+      const found = findMenuById(menu.children, menuId);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+// 递归获取所有子菜单ID
+const getAllChildMenuIds = (menu: any): number[] => {
+  let childIds: number[] = [];
+  if (menu.children && menu.children.length > 0) {
+    menu.children.forEach((child: any) => {
+      childIds.push(child.menu_id);
+      childIds = [...childIds, ...getAllChildMenuIds(child)];
+    });
+  }
+  return childIds;
+};
+
+// 递归清理指定菜单及其子菜单的权限数据
+const cleanMenuPermissions = (menuId: number) => {
+  // 1. 清理当前菜单的权限
+  if (checkedPermissions.value[menuId]) {
+    delete checkedPermissions.value[menuId];
+  }
+
+  // 2. 查找当前菜单
+  const menu = findMenuById(menuTreeData.value, menuId);
+  if (!menu || !menu.children || menu.children.length === 0) {
+    return;
+  }
+
+  // 3. 递归清理所有子菜单的权限
+  menu.children.forEach((child: any) => {
+    cleanMenuPermissions(child.menu_id);
+  });
+};
+
+// 根据role_menus和role_permissions设置勾选状态
+const setCheckedStatusFromRoleData = () => {
+  // 设置选中的菜单
+  if (form.role_menus?.length) {
+    defaultCheckedMenuIds.value = form.role_menus.map(item => item.menu_id);
+  }
+
+  // 确保所有已选菜单（包括子菜单）都有必备权限
+  const allCheckedIds = [...defaultCheckedMenuIds.value];
+  allCheckedIds.forEach(menuId => {
+    const menu = findMenuById(menuTreeData.value, menuId);
+    if (menu) {
+      const childIds = getAllChildMenuIds(menu);
+      childIds.forEach(childId => {
+        if (!allCheckedIds.includes(childId)) {
+          allCheckedIds.push(childId);
+        }
+      });
+    }
+  });
+
+  // 为所有已勾选的菜单（包括父级和子级）初始化必备权限
+  allCheckedIds.forEach(menuId => {
+    const requiredPerms = getRequiredPermissions(menuId);
+    const savedPerms = form.role_permissions
+      ?.filter(item => item.menu_id === menuId)
+      .map(item => item.permission_id) || [];
+
+    const mergedPerms = [...new Set([...requiredPerms, ...savedPerms])];
+    checkedPermissions.value[menuId] = mergedPerms;
+  });
+
+  // 强制更新树组件
+  treeUpdateKey.value++;
+};
+
+
+// 处理单个节点的勾选状态变化
+const handleCheckChange = (data: any, checked: boolean, indeterminate: boolean) => {
+  if (isView.value) return;
+
+  if (checked) {
+    // 勾选时添加当前菜单及子菜单的必备权限
+    const requiredPerms = getRequiredPermissions(data.menu_id);
+    if (!checkedPermissions.value[data.menu_id]) {
+      checkedPermissions.value[data.menu_id] = [...requiredPerms];
+    } else {
+      requiredPerms.forEach(permId => {
+        if (!checkedPermissions.value[data.menu_id].includes(permId)) {
+          checkedPermissions.value[data.menu_id].push(permId);
+        }
+      });
+    }
+
+    // 处理子节点 - 父节点勾选时自动添加子节点必备权限
+    if (data.children && data.children.length > 0) {
+      data.children.forEach((child: any) => {
+        const childRequiredPerms = getRequiredPermissions(child.menu_id);
+        if (!checkedPermissions.value[child.menu_id]) {
+          checkedPermissions.value[child.menu_id] = [...childRequiredPerms];
+        } else {
+          childRequiredPerms.forEach((permId: number) => {
+            if (!checkedPermissions.value[child.menu_id].includes(permId)) {
+              checkedPermissions.value[child.menu_id].push(permId);
+            }
+          });
+        }
+      });
+    }
+  } else {
+    // 取消勾选时清理当前菜单及所有子菜单的权限
+    cleanMenuPermissions(data.menu_id);
+  }
+};
+
+// 创建菜单ID到菜单对象的映射，便于查找父节点
+const createMenuMap = (menuList: any[]): Record<number, any> => {
+  const map: Record<number, any> = {};
+
+  const traverse = (menus: any[], parent: any = null) => {
+    menus.forEach(menu => {
+      map[menu.menu_id] = { ...menu, parent };
+      if (menu.children && menu.children.length > 0) {
+        traverse(menu.children, menu);
+      }
+    });
+  };
+
+  traverse(menuList);
+  return map;
+};
+
+// 获取某个菜单的所有父级菜单ID
+const getParentMenuIds = (menuMap: Record<number, any>, menuId: number): number[] => {
+  const parentIds: number[] = [];
+  let current = menuMap[menuId];
+
+  // 向上遍历所有父节点
+  while (current && current.parent) {
+    parentIds.push(current.parent.menu_id);
+    current = menuMap[current.parent.menu_id];
+  }
+
+  return parentIds;
+};
+
+// 处理菜单勾选事件（批量处理）
+const handleMenuCheck = () => {
+  if (isView.value) return;
+
+  // 获取当前所有选中的菜单节点（包括父子级联动勾选的）
+  const checkedNodes = menuTreeRef.value?.getCheckedNodes(false, false) || [];
+  let checkedMenuIds = checkedNodes.map((node: any) => node.menu_id);
+
+  // 创建菜单ID到菜单对象的映射，便于查找父节点
+  const allNodesMap = createMenuMap(menuTreeData.value);
+
+  // 临时存储所有需要勾选的节点ID（包括原勾选和父节点）
+  const allNeedCheckIds = new Set<number>(checkedMenuIds);
+
+  // 为每个已勾选的节点，添加其所有父节点
+  checkedMenuIds.forEach(menuId => {
+    const parentIds = getParentMenuIds(allNodesMap, menuId);
+    parentIds.forEach(id => allNeedCheckIds.add(id));
+  });
+
+  // 更新勾选状态，包括所有必要的父节点
+  checkedMenuIds = Array.from(allNeedCheckIds);
+  menuTreeRef.value?.setCheckedKeys(checkedMenuIds);
+
+  // 更新默认勾选的菜单ID
+  defaultCheckedMenuIds.value = checkedMenuIds;
+
+  // 获取所有应该被清理的菜单ID（当前未勾选的）
+  const allMenuIds = getAllMenuIds(menuTreeData.value);
+  const menusToClean = allMenuIds.filter(id => !checkedMenuIds.includes(id));
+
+  // 清理未勾选菜单的权限数据
+  menusToClean.forEach(menuId => {
+    if (checkedPermissions.value[menuId]) {
+      delete checkedPermissions.value[menuId];
+    }
+  });
+
+  // 确保所有勾选的菜单都包含必备权限
+  checkedMenuIds.forEach(menuId => {
+    const requiredPerms = getRequiredPermissions(menuId);
+    if (!checkedPermissions.value[menuId]) {
+      checkedPermissions.value[menuId] = [...requiredPerms];
+    } else {
+      requiredPerms.forEach(permId => {
+        if (!checkedPermissions.value[menuId].includes(permId)) {
+          checkedPermissions.value[menuId].push(permId);
+        }
+      });
+    }
+  });
+
+  // 强制更新树组件
+  treeUpdateKey.value++;
+};
+
+// 获取所有菜单ID（用于批量清理）
+const getAllMenuIds = (menuList: any[]): number[] => {
+  let allIds: number[] = [];
+  menuList.forEach(menu => {
+    allIds.push(menu.menu_id);
+    if (menu.children && menu.children.length > 0) {
+      allIds = [...allIds, ...getAllMenuIds(menu.children)];
+    }
+  });
+  return allIds;
+};
+
+// 打开权限弹窗
+const openPermissionModal = (menuData: any) => {
+  currentMenu.value = menuData;
+
+  // 确保权限数据已初始化，并且必备权限已勾选
+  const requiredPerms = getRequiredPermissions(menuData.menu_id);
+  if (!checkedPermissions.value[menuData.menu_id]) {
+    checkedPermissions.value[menuData.menu_id] = [...requiredPerms];
+  } else {
+    requiredPerms.forEach(permId => {
+      if (!checkedPermissions.value[menuData.menu_id].includes(permId)) {
+        checkedPermissions.value[menuData.menu_id].push(permId);
+      }
+    });
+  }
+
+  nextTick(() => {
+    showPermissionModal.value = true;
+  });
+};
+
+// 全选权限
+const selectAllPermissions = () => {
+  if (!currentMenu.value || !currentMenu.value.permissions) return;
+
+  const allPermIds = currentMenu.value.permissions.map((perm: any) => perm.permission_id);
+  checkedPermissions.value[currentMenu.value.menu_id] = [...new Set(allPermIds)];
+};
+
+// 取消所有可选权限（保留必备权限）
+const deselectAllOptionalPermissions = () => {
+  if (!currentMenu.value || !currentMenu.value.permissions) return;
+
+  const requiredPerms = getRequiredPermissions(currentMenu.value.menu_id);
+  checkedPermissions.value[currentMenu.value.menu_id] = [...requiredPerms];
+};
+
+// 关闭权限弹窗
+const handlePermissionModalClose = () => {
+  showPermissionModal.value = false;
+  currentMenu.value = null;
+};
+
+// 加载管理员数据
 const loadAllAdmins = async () => {
   try {
-    // 使用页面的分页参数作为请求参数
     const params = {
       page: adminPage.value,
-      list_rows: adminPageSize.value, // 关键修复：请求条数与页面选择的条数绑定
-      keyword: adminSearchKeyword.value
+      list_rows: adminPageSize.value,
+      keyword: adminSearchKeyword.value,
+      not_super: 1
     };
 
     const response = await getAdminListApi(params);
@@ -372,7 +797,7 @@ const loadAllAdmins = async () => {
       allAdmins.value = response.data.list.filter((admin: any) => {
         return !form.admins.some(item => item.admin_id === admin.admin_id);
       });
-      adminTotal.value = response.data.total; // 同步总条数
+      adminTotal.value = response.data.total;
     }
   } catch (error) {
     console.error("获取管理员列表失败:", error);
@@ -380,30 +805,27 @@ const loadAllAdmins = async () => {
   }
 };
 
-// 本地搜索处理（重新请求数据）
+// 管理员选择器相关方法
 const handleAdminLocalSearch = () => {
   adminPage.value = 1;
+  loadAllAdmins();
 };
 
-// 处理每页条数变化（重新请求数据）
 const handlePageSizeChange = (size: number) => {
   adminPageSize.value = size;
-  adminPage.value = 1; // 页数变化时重置页码
-  loadAllAdmins(); // 重新请求数据
+  adminPage.value = 1;
+  loadAllAdmins();
 };
 
-// 处理分页变化（重新请求数据）
 const handleAdminPageChange = (page: number) => {
   adminPage.value = page;
-  loadAllAdmins(); // 重新请求数据
+  loadAllAdmins();
 };
 
-// 处理选择变化
 const handleAdminSelectionChange = (selection: any[]) => {
   selectedAdmins.value = selection;
 };
 
-// 确认添加管理员
 const confirmAddAdmins = () => {
   if (selectedAdmins.value.length === 0) {
     ElMessage.warning("请选择要添加的管理员");
@@ -421,26 +843,22 @@ const confirmAddAdmins = () => {
     }
   });
 
-  loadAllAdmins(); // 刷新可选管理员列表
+  loadAllAdmins();
   showAdminSelector.value = false;
   selectedAdmins.value = [];
 };
 
-// 移除管理员
 const removeAdmin = (adminId: number) => {
   form.admins = form.admins.filter(item => item.admin_id !== adminId);
-  loadAllAdmins(); // 刷新可选管理员列表
+  loadAllAdmins();
 };
 
-// 关闭管理员选择器
 const handleAdminSelectorClose = () => {
   selectedAdmins.value = [];
 };
 
-// 打开管理员选择器时加载数据
 watch(showAdminSelector, (newVal) => {
   if (newVal) {
-    // 重置分页状态
     adminPage.value = 1;
     adminSearchKeyword.value = '';
     loadAllAdmins();
@@ -451,32 +869,68 @@ watch(showAdminSelector, (newVal) => {
 const handleClose = () => {
   visible.value = false;
   showAdminSelector.value = false;
+  showPermissionModal.value = false;
   formRef.value?.resetFields();
 };
 
 // 提交表单
 const handleSubmit = async () => {
+  // 验证表单
   const valid = await formRef.value.validate();
   if (!valid) return;
 
   try {
+    // 获取所有选中的菜单（包括父子级联动的）
+    const checkedNodes = menuTreeRef.value?.getCheckedNodes(false, false) || [];
+    const checkedMenuIds = checkedNodes.map((node: any) => node.menu_id);
+
+    // 组装 role_menus
+    const roleMenus = checkedMenuIds.map(menuId => ({
+      role_id: form.role_id,
+      menu_id: menuId
+    }));
+
+    // 组装 role_permissions - 只包含当前勾选菜单的权限
+    const rolePermissions: any[] = [];
+    checkedMenuIds.forEach(menuId => {
+      const requiredPerms = getRequiredPermissions(menuId);
+      const selectedPerms = checkedPermissions.value[menuId] || [];
+      const finalPerms = [...new Set([...requiredPerms, ...selectedPerms])];
+
+      finalPerms.forEach(permissionId => {
+        rolePermissions.push({
+          role_id: form.role_id,
+          permission_id: permissionId,
+          menu_id: menuId
+        });
+      });
+    });
+
     const submitData = {
       name: form.name,
       description: form.description,
       admin_roles: form.admins.map(admin => ({
         admin_id: admin.admin_id,
         role_id: form.role_id
-      }))
+      })),
+      role_menus: roleMenus,
+      role_permissions: rolePermissions
     };
 
     if (title.value === "新增") {
-      await useHandleData(api, submitData, "新增角色成功");
+      await useHandleData(
+        (params) => api(params),
+        submitData,
+        "新增角色"
+      );
     } else if (title.value === "编辑") {
       if (!form.role_id) return;
-      await useHandleData(api, {
-        id: form.role_id,
-        ...submitData
-      }, "编辑角色成功");
+
+      await useHandleData(
+        (params) => api(params.id, params.data),
+        { id: form.role_id, data: submitData },
+        "编辑角色"
+      );
     }
 
     handleClose();
@@ -501,10 +955,36 @@ defineExpose({
 
 .menu-tree-item {
   .el-form-item__content {
-    max-height: 300px;
+    max-height: 500px;
     overflow-y: auto;
     padding-right: 10px;
   }
+  
+  .el-tree-node__content {
+    min-height: 30px;
+    padding-bottom: 10px !important;
+  }
+}
+
+/* 菜单项容器样式 - 分离标题和按钮 */
+.menu-item-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.menu-title {
+  flex: 1;
+}
+
+.permission-btn {
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+:deep(.is-disabled) {
+  opacity: 0.8;
 }
 
 .pagination-container {
@@ -520,5 +1000,45 @@ defineExpose({
 
 .pagination {
   margin: 0;
+}
+
+.permission-group {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.permission-item {
+  margin-bottom: 12px;
+}
+
+.permission-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.permission-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.required-tag {
+  font-size: 12px;
+  color: #fff;
+  background-color: #ff4d4f;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+.permission-desc {
+  margin-left: 24px;
+}
+
+.no-permission {
+  text-align: center;
+  padding: 20px;
+  color: #666;
 }
 </style>

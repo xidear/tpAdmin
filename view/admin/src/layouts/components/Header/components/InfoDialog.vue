@@ -21,7 +21,7 @@
       </div>
       
       <!-- 信息表格 -->
-      <el-descriptions column="1" border class="info-table">
+      <el-descriptions :column="1" border class="info-table">
         <el-descriptions-item label="账号">
           {{ userInfo.username }}
         </el-descriptions-item>
@@ -95,8 +95,11 @@
         class="large-avatar"
         @load="handleImageLoad"
       />
+
       <div v-if="imageLoading" class="image-loading">
-        <el-spinner size="40" />
+        <!-- 静态图标 + 文本 -->
+        <el-icon class="loading-icon"><Loading /></el-icon>
+        <span class="loading-text">加载中</span>
       </div>
     </div>
   </el-dialog>
@@ -105,7 +108,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from "vue";
 import { useUserStore } from "@/stores/modules/user";
-import { ZoomIn } from "@element-plus/icons-vue";
+import {Loading, ZoomIn} from "@element-plus/icons-vue";
 
 // 状态管理
 const dialogVisible = ref(false);

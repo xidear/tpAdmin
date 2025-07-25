@@ -14,7 +14,7 @@ class Edit extends Create
     public function rules(): array
     {
         $rules = parent::rules();
-        $rules['admin_id'] = 'require|integer|exists:admin,admin_id';
+        $rules['role_id'] = 'require|integer|exists:role,role_id';
         return $rules;
     }
 

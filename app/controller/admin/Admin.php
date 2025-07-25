@@ -4,6 +4,7 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
+use app\common\enum\YesOrNo;
 use app\model\Admin as AdminModel;
 use app\request\admin\admin\BatchDelete;
 use app\request\admin\admin\Create;
@@ -27,6 +28,10 @@ class Admin extends BaseController
 
         if (request()->has('keyword', 'get',true)) {
             $conditions[] =  ['username|real_name|nick_name', 'like', "%".request()->get('keyword')."%"];
+        }
+
+        if (request()->has('not_super', 'get',true)&& request()->get('not_super')==1) {
+            $conditions[] =  ['admin_id', '<>', (new  AdminModel())->getSuperAdminId()];
         }
 
         $list = (new AdminModel())->fetchData($conditions);
