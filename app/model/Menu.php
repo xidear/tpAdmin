@@ -227,7 +227,7 @@ class Menu extends BaseModel
     public static function getAllMenuTree(): array
     {
         try {
-            return self::buildMenuTree(self::where("1=1")->order("order_num asc")
+            return self::buildMenuTree(self::where("1=1")->with(["permissions"])->order("order_num asc")
                 ?->select()
                 ?->toArray() ?? []);
         } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {

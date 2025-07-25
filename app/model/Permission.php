@@ -15,6 +15,7 @@ class Permission extends BaseModel
 {
     protected $pk = 'permission_id';
 
+
     /**
      * 批量删除
      * @param $ids

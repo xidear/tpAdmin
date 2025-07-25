@@ -1,35 +1,40 @@
 <?php
+
 namespace app\middleware;
 
+use app\common\BaseRequest;
+use app\common\enum\Code;
 use app\service\PermissionService;
+use Closure;
+use think\response\Json;
 
 class AutoPermissionCheck
 {
-    public function handle(\app\common\BaseRequest $request, \Closure $next)
+
+
+    public function handle(BaseRequest $request, Closure $next)
     {
+        // 超级管理员直接放行
         if ($request?->admin?->isSuper()) {
             return $next($request);
         }
-        // 1. 获取当前路由信息
-        $controller = $request->controller();
+
+        $controller = $request->controller(false, true);
         $action = $request->action();
-        $method = $request->method();
         $nodeName = $controller . "/" . $action;
-        // 4. 验证权限
-        if (!(new PermissionService)->check($request?->adminId, $nodeName, $method)) {
-            return $this->denyResponse($request);
+        $method = strtoupper($request->method());
+        $permissionService = new PermissionService();
+        if (!$permissionService->check($request?->adminId, $nodeName, $method)) {
+            return $this->denyResponse($permissionService->getMessage());
         }
 
         return $next($request);
-
     }
 
 
-
-
-    protected function denyResponse($request): \think\response\Json
+    protected function denyResponse(string|array $msg = '无权操作'): Json
     {
-            return json(['code' => \app\common\enum\Code::FORBIDDEN, 'msg' => '无权操作']);
+        return json(['code' => Code::FORBIDDEN, 'msg' => $msg]);
 
     }
 }

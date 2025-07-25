@@ -3,6 +3,8 @@
 namespace app\service;
 
 use app\common\trait\BaseTrait;
+use app\middleware\AuthCheck;
+use app\middleware\AutoPermissionCheck;
 use app\model\Admin;
 use app\model\AdminRole;
 use app\model\Menu;
@@ -10,61 +12,253 @@ use app\model\MenuPermissionDependency;
 use app\model\Permission;
 use app\model\RoleMenu;
 use app\model\RolePermission;
+use think\db\exception\DataNotFoundException;
+use think\db\exception\DbException;
+use think\db\exception\ModelNotFoundException;
 use think\Exception;
 use think\facade\Db;
+use think\facade\Route;
 
 class PermissionService
 {
     use BaseTrait;
 
-    /**获取用户所有权限ID
+    /**
+     * 同步指定前缀的路由到权限表（适配TP框架）
+     * @param string $prefix
+     * @param bool $deleteInvalid
+     * @return array|bool
+     * @throws DataNotFoundException
+     * @throws ModelNotFoundException
+     * @throws DbException
+     */
+    public function sync(string $prefix, bool $deleteInvalid = false): array|bool
+    {
+        $formattedRoutes = $this->getFormattedRoutes($prefix);
+        if (empty($formattedRoutes)) {
+            return $this->true("未匹配到指定前缀的路由");
+        }
+
+        $routeMap = [];
+        foreach ($formattedRoutes as $route) {
+            $key = $route['node'] . '|' . $route['method'];
+            if (!isset($routeMap[$key])) {
+                $routeMap[$key] = $route;
+            }
+        }
+        $formattedRoutes = array_values($routeMap);
+
+        $existingPermissions = Permission::field('permission_id, node, method')->select()->toArray();
+        $existingMap = [];
+        $existingKeys = [];
+        foreach ($existingPermissions as $item) {
+            $key = $item['node'] . '|' . $item['method'];
+            $existingMap[$key] = $item['permission_id'];
+            $existingKeys[] = $key;
+        }
+
+        $saveData = [];
+        foreach ($formattedRoutes as $route) {
+            $key = $route['node'] . '|' . $route['method'];
+            if (isset($existingMap[$key])) {
+                $route['permission_id'] = $existingMap[$key];
+            }
+            $saveData[] = $route;
+        }
+
+        $routeKeys = array_keys($routeMap);
+        $deleteKeys = array_diff($existingKeys, $routeKeys);
+        if (!empty($deleteKeys)) {
+            $deleteWhere = [];
+            foreach ($deleteKeys as $key) {
+                list($node, $method) = explode('|', $key);
+                $deleteWhere[] = [
+                    ['node', '=', $node],
+                    ['method', '=', $method],
+                ];
+            }
+
+        }
+        $model = new Permission();
+        $model->startTrans();
+        try {
+            $msg=["处理完成"];
+            if (!empty($saveData)){
+                $result = $model->saveAll($saveData);
+                $msg[] = "同步成功，处理 " . $result->count() . " 条数据";
+            }
+            if (!empty($deleteWhere)) {
+                $deleteCount = Permission::whereOr($deleteWhere)->delete();
+                if ($deleteInvalid) {
+                    $msg[] = "，删除无效记录 " . $deleteCount . " 条";
+                }
+            }
+            $model->commit();
+        } catch (\Exception $e) {
+            $model->rollback();
+            $this->reportError($e->getMessage(), (array)$e, $e->getCode());
+            return $this->false($e->getMessage());
+        }
+        return $this->true(implode(";",$msg));
+
+    }
+
+    /**
+     * 格式化路由（TP专用逻辑）
+     * @param string $prefix
+     * @return array
+     */
+    private function getFormattedRoutes(string $prefix): array
+    {
+        $ruleList = Route::getRuleList();
+        if (empty($ruleList)) {
+            return [];
+        }
+
+        $formatted = [];
+        foreach ($ruleList as $rule) {
+            if ($rule['rule'] === '<MISS>') {
+                continue;
+            }
+
+            if (!str_starts_with($rule['rule'], $prefix) || empty($rule['route'])) {
+                continue;
+            }
+
+            $methods = $this->resolveHttpMethods($rule['method']);
+            $routePrefix = $rule['option']['prefix'] ?? '';
+            $fullHandler = $this->getFullHandler($routePrefix, $rule['route']);
+            $node = $this->generateNode($fullHandler);
+            if (empty($node)) {
+                continue;
+            }
+
+            $middleware = $rule['option']['middleware'] ?? [];
+            $middlewareClasses = $this->resolveMiddleware($middleware);
+
+            foreach ($methods as $method) {
+                $formatted[] = [
+                    'node' => $node,
+                    'name' => $rule['name'] ?: ucfirst(str_replace('/', ' ', $node)) . "({$method})",
+                    'description' => $rule['option']['description'] ?? "路由地址：{$rule['rule']}",
+                    'method' => $method,
+                    'need_login' => in_array(AuthCheck::class, $middlewareClasses) ? 1 : 2,
+                    'rule' => $rule['rule'],
+                    'need_permission' => in_array(AutoPermissionCheck::class, $middlewareClasses) ? 1 : 2
+                ];
+            }
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * 解析HTTP方法（TP兼容）
+     * @param string $method
+     * @return array
+     */
+    private function resolveHttpMethods(string $method): array
+    {
+        $method = strtolower(trim($method));
+        if ($method === 'any' || $method === '*') {
+            return ['*'];
+        }
+        $methods = explode(',', $method);
+        return array_map('strtoupper', $methods);
+    }
+
+    /**
+     * @param string $prefix
+     * @param string $handler
+     * @return string
+     */
+    private function getFullHandler(string $prefix, string $handler): string
+    {
+        if (empty($prefix)) {
+            return $handler;
+        }
+        $prefix = rtrim($prefix, '/');
+        return $prefix . '/' . ltrim($handler, '/');
+    }
+
+    /**
+     * @param string $fullHandler
+     * @return string
+     */
+    private function generateNode(string $fullHandler): string
+    {
+        $parts = array_filter(explode('/', $fullHandler));
+        $parts = array_values($parts);
+
+        if (count($parts) >= 2) {
+            $controller = $parts[count($parts) - 2];
+            $action = $parts[count($parts) - 1];
+            return "{$controller}/{$action}";
+        }
+        return '';
+    }
+
+    /**
+     * 解析中间件（TP格式）
+     * @param array $middleware
+     * @return array
+     */
+    private function resolveMiddleware(array $middleware): array
+    {
+        $classes = [];
+        foreach ($middleware as $m) {
+            if (is_array($m)) {
+                $class = $m[0] ?? '';
+                if (is_string($class) && class_exists($class)) {
+                    $classes[] = $class;
+                }
+            } elseif (is_string($m) && class_exists($m)) {
+                $classes[] = $m;
+            }
+        }
+        return $classes;
+    }
+
+    /**
+     * 获取用户权限（TP查询）
      * @param $adminId
      * @return array
      */
     public function getAdminPermissions($adminId): array
     {
-        $where=[];
-        if ((new Admin())->isSuper($adminId)){
-            $permissionIds=(new Permission())->column("permission_id");
-        }else{
-            // 1. 获取用户所有角色
-            $roleIds = (new AdminRole)->where('admin_id', $adminId)->column('role_id');
-            $where[]=["role_id", "in", $roleIds];
-
-            // 2. 获取角色直接分配的权限
-            $permissionIds = (new \app\model\RolePermission)->where($where)
-                ->column('permission_id');
+        if ((new Admin())->isSuper($adminId)) {
+            return Permission::column("permission_id");
         }
 
+        $roleIds = AdminRole::where('admin_id', $adminId)->column('role_id');
+        if (empty($roleIds)) {
+            return [];
+        }
 
-        return array_unique($permissionIds);
+        return RolePermission::where('role_id', 'in', $roleIds)
+            ->column('permission_id');
     }
 
-
     /**
-     * 为角色分配菜单
+     * 分配菜单给角色（TP事务）
      * @param int $roleId
      * @param array $menuIds
      * @param array $options
      * @return true
-     * @throws \Exception
+     * @throws DataNotFoundException
+     * @throws ModelNotFoundException
      */
     public function assignMenuToRole(int $roleId, array $menuIds, array $options = []): true
     {
-        // 1. 移除旧菜单关联权限
         $this->clearRoleMenuPermissions($roleId, $menuIds);
-
-
-        // 2. 添加新菜单相关权限
         foreach ($menuIds as $menuId) {
             $this->addMenuPermissionsToRole($roleId, $menuId, $options[$menuId] ?? []);
         }
-
         return true;
     }
 
     /**
-     * 清除旧的角色菜单和角色权限关联
+     * 清除角色菜单权限（TP语法）
      * @param int $roleId
      * @param array $newMenuIds
      * @return bool
@@ -72,115 +266,118 @@ class PermissionService
      */
     private function clearRoleMenuPermissions(int $roleId, array $newMenuIds): bool
     {
-        // 1. 获取角色当前的菜单ID (正确方法)
-        $currentMenuIds = (new RoleMenu())
-            ->where('role_id', $roleId)
-            ->column('menu_id');
-
-        // 2. 找出需要移除的菜单ID
+        $currentMenuIds = RoleMenu::where('role_id', $roleId)->column('menu_id');
         $removeMenuIds = array_diff($currentMenuIds, $newMenuIds);
-
         if (empty($removeMenuIds)) {
             return true;
         }
 
-        // 3. 获取这些菜单关联的权限ID
-        $removePermissionIds = (new MenuPermissionDependency())
-            ->whereIn('menu_id', $removeMenuIds)
+        $removePermissionIds = MenuPermissionDependency::whereIn('menu_id', $removeMenuIds)
             ->column('permission_id');
 
         Db::startTrans();
         try {
             if (!empty($removePermissionIds)) {
-                // 4. 从角色权限中移除这些权限
-                if (!(new  RolePermission())
-                    ->where('role_id', $roleId)
+                RolePermission::where('role_id', $roleId)
                     ->whereIn('permission_id', $removePermissionIds)
-                    ->delete()) {
-                    throw new Exception("删除角色权限关联失败");
-                }
+                    ->delete();
             }
 
-            if (!empty((new RoleMenu())
-                ->where('role_id', $roleId)
-                ->whereIn('menu_id', $removeMenuIds)
-                ->delete())) {
-                throw new \Exception("删除角色菜单关联失败");
-            }
+            RoleMenu::where('role_id', $roleId)->whereIn('menu_id', $removeMenuIds)->delete();
+            Db::commit();
             return true;
         } catch (\Exception $e) {
-
             Db::rollback();
             $this->reportError($e->getMessage(), (array)$e, $e->getCode());
-
-
             throw new Exception($e->getMessage());
         }
-
-
     }
 
     /**
+     * 添加菜单权限到角色（TP模型）
      * @param int $roleId
      * @param int $menuId
      * @param array $options
      * @return bool
-     * @throws \Exception
+     * @throws DataNotFoundException
+     * @throws ModelNotFoundException
      */
     private function addMenuPermissionsToRole(int $roleId, int $menuId, array $options): bool
     {
         $menu = Menu::with('dependencies')->findOrFail($menuId);
-
-        // 添加基础权限
         $this->addPermissionToRole($roleId, $menu->required_permission_id);
 
-        // 添加依赖权限
         foreach ($menu->dependencies as $dependency) {
-            // 只添加必需权限和选中的可选权限
             if ($dependency->type === 'REQUIRED' ||
                 ($dependency->type === 'OPTIONAL_BUTTON' && in_array($dependency->permission_id, $options))) {
                 $this->addPermissionToRole($roleId, $dependency->permission_id);
             }
         }
-
         return true;
     }
 
     /**
+     * 添加角色权限（TP原生判断）
      * @param $roleId
      * @param $permissionId
-     * @return void
      * @throws \Exception
      */
     private function addPermissionToRole($roleId, $permissionId): void
     {
-        $result = (new RolePermission)->firstOrCreate([
+        if (empty($permissionId)) {
+            return;
+        }
+
+        // TP判断记录是否存在的正确方式
+        $exists = RolePermission::where([
             'role_id' => $roleId,
             'permission_id' => $permissionId
-        ]);
-        if (!$result || $result->isEmpty()) {
-            throw new Exception("创建失败");
+        ])->findOrEmpty();
+
+        if (!$exists->isEmpty()) {
+            $result = RolePermission::create([
+                'role_id' => $roleId,
+                'permission_id' => $permissionId
+            ]);
+
+            if ($result->isEmpty()) {
+                $this->reportError("角色权限关联创建失败", ['role_id' => $roleId, 'permission_id' => $permissionId], 500);
+                throw new Exception("角色权限关联创建失败");
+            }
         }
     }
 
     /**
-     * 是否拥有某个权限
-     * @param int|null $adminId
-     * @param string $nodeName
-     * @param string $methodName
-     * @return bool
+     * 权限检查（TP查询语法）
      */
-    public function check(?int $adminId, string $nodeName, string $methodName = "get"): bool
+    public function check(?int $adminId, string $nodeName, string $methodName = "GET"): bool
     {
-        if (empty($adminId)||empty($nodeName)||empty($methodName)) {
-            return false;
+        if (empty($adminId) || empty($nodeName) || empty($methodName)) {
+            return $this->false("缺失用户|节点|请求方法");
         }
-        return (new RolePermission())->alias('rp')
-                ->join("Permission p", "p.permission_id = rp.permission_id")
-                ->join("AdminRole ar", "ar.role_id = rp.role_id")
-                ->where("ar.admin_id", $adminId)
-                ->where("p.node", $nodeName)
-                ->where("p.method", $methodName)
-                ->count() > 0;
+
+        // 超级管理员直接通过
+        if ((new Admin())->isSuper($adminId)) {
+            return $this->true("超级管理员");
+        }
+
+        $upperMethod = strtoupper($methodName);
+        // TP判断是否存在的正确方式：使用find()或count()
+        $count = RolePermission::alias('rp')
+            ->join("permission p", "p.permission_id = rp.permission_id")
+            ->join("admin_role ar", "ar.role_id = rp.role_id")
+            ->where("ar.admin_id", $adminId)
+            ->where("p.node", $nodeName)
+            ->where(function ($query) use ($upperMethod) {
+                $query->where("p.method", $upperMethod)
+                    ->whereOr("p.method", "*");
+            })
+            ->count();
+
+        if ($count<=0){
+            return $this->false("用户[{$adminId}]没有指定权限[{$nodeName}@{$methodName}]");
+        }
+        return true;
     }
 }
+    

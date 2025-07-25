@@ -3,13 +3,22 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
+use app\middleware\AuthCheck;
+use app\middleware\AutoPermissionCheck;
 use app\model\Permission as PermissionModel;
 use app\request\admin\permission\BatchDelete;
 use app\request\admin\permission\Create;
 use app\request\admin\permission\Delete;
 use app\request\admin\permission\Edit;
 use app\request\admin\permission\Read;
+use app\service\PermissionService;
+use think\db\exception\DataNotFoundException;
+use think\db\exception\DbException;
+use think\db\exception\ModelNotFoundException;
+use think\facade\Route;
 use think\Response;
+use think\route\RuleGroup;
+use think\route\RuleItem;
 
 
 class Permission extends BaseController
@@ -21,9 +30,33 @@ class Permission extends BaseController
      */
     public function index(): Response
     {
+
         $list = (new PermissionModel())->fetchData();
         return $this->success($list);
     }
+
+    /**
+     * 同步
+     * @return Response
+     */
+    public function sync(): Response
+    {
+        $service=new PermissionService();
+        try {
+            $result = $service->sync("adminapi", true);
+            if (!$result){
+                return $this->error($service->getMessage());
+            }
+        } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
+            return $this->error($e->getMessage());
+
+
+        }
+
+        return $this->success();
+    }
+
+
 
 
     /**

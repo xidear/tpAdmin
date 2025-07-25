@@ -30,13 +30,13 @@ class Role extends BaseController
      */
     public function read($role_id, Read $read): Response
     {
-        $menuTree=(new \app\model\Menu())->with("permissions")->select()->toTree();
-        return $this->success($menuTree);
-        return $this->success((new RoleModel())
+
+        $info=(new RoleModel())
             ->fetchOne($role_id, ['append' => ["menu_tree_with_permission"],
                 'with' => ['admins' => function ($query) {
                     $query->field('admin_id,real_name,username')->hidden(['pivot']);
-                }, 'admin_roles', 'role_permissions', 'role_menus']]));
+                }, 'admin_roles', 'role_permissions', 'role_menus']]);
+        return $this->success($info);
     }
 
 

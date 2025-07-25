@@ -19,6 +19,12 @@ export const postCreateApi = (params: Permission.PermissionOptions) => {
 };
 
 /**
+ * 同步权限
+ */
+export const postSyncApi = () => {
+  return http.post("/permission/sync", {}, { loading: true });
+};
+/**
  * 获取权限详情
  * @param id 权限ID
  */

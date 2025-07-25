@@ -58,7 +58,7 @@ class My extends BaseController
      * @return Response
      */
     public function getButtons(BaseRequest $request): \think\Response{
-        $buttons= \app\model\menu::getuserbuttons($request->adminId);
+        $buttons= \app\model\menu::getUserButtons($request->adminId);
         return $this->success($buttons);
     }
 }

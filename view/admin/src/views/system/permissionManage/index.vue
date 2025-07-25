@@ -11,34 +11,29 @@
       :data-callback="dataCallback"
       :pagination="true"
     >
-      <!-- 表格 header 按钮 -->
-      <template #tableHeader="scope">
-        <el-button type="primary"  v-auth="'create'" :icon="CirclePlus" @click="addPermission">新增权限</el-button>
-        <el-button
-          v-auth="'delete'"
-          type="danger"
-          :icon="Delete"
-          plain
-          :disabled="!scope.isSelected"
-          @click="batchDelete(scope.selectedListIds)"
-        >
-          批量删除
-        </el-button>
+      <!-- 表格头部按钮 - 新增同步按钮 -->
+      <template #tableHeader>
+        <el-button type="primary" :icon="Refresh" @click="syncPermission">同步数据</el-button>
       </template>
 
-      <!-- 操作列 -->
+      <!-- 操作列 - 详情按钮 -->
       <template #operation="scope">
-        <el-button type="primary" v-auth="'update'" link :icon="EditPen" @click="editPermission(scope.row)">编辑</el-button>
-        <el-button type="primary" v-auth="'delete'" link :icon="Delete" @click="deletePermission(scope.row)">删除</el-button>
+        <el-button type="primary" link :icon="View" @click="viewDetail(scope.row.permission_id)">详情</el-button>
       </template>
 
-      <!-- 是否公开列 -->
-      <template #is_public="scope">
-        <el-tag v-if="scope.row.is_public === 1" type="success">公开</el-tag>
-        <el-tag v-else type="info">私有</el-tag>
+      <!-- 是否需要登录列 -->
+      <template #need_login="scope">
+        <el-tag v-if="scope.row.need_login === 1" type="info">需登录</el-tag>
+        <el-tag v-else type="success">无需登录</el-tag>
       </template>
 
-      <!-- 请求方法列 - 已完全修复undefined错误 -->
+      <!-- 是否需要权限验证列 -->
+      <template #need_permission="scope">
+        <el-tag v-if="scope.row.need_permission === 1" type="warning">需验证</el-tag>
+        <el-tag v-else type="success">无需验证</el-tag>
+      </template>
+
+      <!-- 请求方法列 -->
       <template #method="scope">
         <el-tag
           v-if="scope.row.method"
@@ -58,288 +53,155 @@
       </template>
     </ProTable>
 
-    <!-- 权限编辑弹窗 -->
+    <!-- 权限详情弹窗 -->
     <el-dialog
-      v-model="dialogVisible"
-      :title="isEdit ? '编辑权限' : '新增权限'"
+      v-model="detailVisible"
+      title="权限详情"
       width="500px"
       :close-on-click-modal="false"
     >
-      <el-form
-        :model="permissionForm"
-        :rules="formRules"
-        ref="formRef"
-        label-width="120px"
-      >
-        <el-form-item label="权限节点" prop="node">
-          <el-input
-            v-model="permissionForm.node"
-            placeholder="例如: permission/create"
-            maxlength="50"
-          />
-          <div class="form-tip">格式: 模块/操作 (如: user/list)</div>
-        </el-form-item>
-
-        <el-form-item label="权限名称" prop="name">
-          <el-input
-            v-model="permissionForm.name"
-            placeholder="例如: 创建权限"
-            maxlength="20"
-          />
-        </el-form-item>
-
-        <el-form-item label="权限描述" prop="description">
-          <el-input
-            v-model="permissionForm.description"
-            type="textarea"
-            :rows="3"
-            maxlength="100"
-          />
-        </el-form-item>
-
-        <el-form-item label="请求方法" prop="method">
-          <el-select v-model="permissionForm.method" placeholder="请选择">
-            <el-option label="GET" value="get" />
-            <el-option label="POST" value="post" />
-            <el-option label="PUT" value="put" />
-            <el-option label="DELETE" value="delete" />
-            <el-option label="PATCH" value="patch" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="是否公开" prop="is_public">
-          <el-switch
-            v-model="permissionForm.is_public"
-            :active-value="1"
-            :inactive-value="2"
-            active-text="公开"
-            inactive-text="私有"
-          />
-          <div class="form-tip">公开权限无需登录即可访问</div>
-        </el-form-item>
-      </el-form>
+      <el-descriptions column="1" border v-if="Object.keys(detailData).length">
+        <el-descriptions-item label="权限ID">{{ detailData.permission_id }}</el-descriptions-item>
+        <el-descriptions-item label="权限节点">{{ detailData.node }}</el-descriptions-item>
+        <el-descriptions-item label="权限名称">{{ detailData.name }}</el-descriptions-item>
+        <el-descriptions-item label="路由规则">{{ detailData.rule }}</el-descriptions-item>
+        <el-descriptions-item label="请求方法">
+          <el-tag
+            :type="{
+              'get': 'primary',
+              'post': 'success',
+              'put': 'warning',
+              'delete': 'danger',
+              'patch': 'info'
+            }[detailData.method?.toLowerCase()]"
+            effect="light"
+            size="small"
+          >
+            {{ detailData.method?.toUpperCase() || '-' }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="是否需要登录">
+          <el-tag v-if="detailData.need_login === 1" type="info">需登录</el-tag>
+          <el-tag v-else type="success">无需登录</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="是否需要权限验证">
+          <el-tag v-if="detailData.need_permission === 1" type="warning">需验证</el-tag>
+          <el-tag v-else type="success">无需验证</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="权限描述">{{ detailData.description || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDate(detailData.created_at) }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ formatDate(detailData.updated_at) }}</el-descriptions-item>
+      </el-descriptions>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitForm">确认</el-button>
+        <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-
 import { useAuthButtons } from "@/hooks/useAuthButtons";
 const { BUTTONS } = useAuthButtons();
 
-
 import { ref, reactive } from "vue";
-import { ElMessageBox, ElMessage } from "element-plus";
-import type { FormInstance, FormRules } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import ProTable from "@/components/ProTable/index.vue";
 import { ColumnProps } from "@/components/ProTable/interface";
-import { CirclePlus, Delete, EditPen } from "@element-plus/icons-vue";
+import { View, Refresh } from "@element-plus/icons-vue";
 import {
   getListApi as getPermissionListApi,
-  postCreateApi,
   getReadApi,
-  putUpdateApi,
-  deleteDeleteApi,
-  batchDeleteDeleteApi
+  postSyncApi  // 导入同步接口
 } from "@/api/modules/permission";
 
+// 表格实例引用
 const proTable = ref<InstanceType<typeof ProTable>>();
-const formRef = ref<FormInstance>();
 
-const dialogVisible = ref(false);
-const isEdit = ref(false);
-
+// 初始请求参数
 const initParam = reactive({});
 
-// 安全数据处理函数
+// 详情相关状态
+const detailVisible = ref(false);
+const detailData = ref({});
+
+// 数据处理回调函数
 const dataCallback = (res: any) => {
   const safeData = res || {};
-  console.log(res)
   return {
     list: safeData.list || [],
     total: safeData.total || 0
   };
 };
 
+// 获取权限列表的请求方法
 const getPermissionList = (params: any) => {
   return getPermissionListApi(params);
 };
 
-const permissionForm = ref({
-  permission_id: 0,
-  node: "",
-  name: "",
-  description: "",
-  method: "get",
-  is_public: 2
-});
-
-// 表单验证规则
-const formRules = reactive<FormRules>({
-  node: [
-    { required: true, message: "权限节点不能为空", trigger: "blur" },
-    {
-      pattern: /^[a-z0-9_-]+\/[a-z0-9_-]+$/i,
-      message: "格式应为: 控制器/方法 (允许字母、数字、下划线和连字符)",
-      trigger: "blur"
-    },
-    { min: 3, max: 50, message: "长度需在3-50个字符", trigger: "blur" }
-  ],
-  name: [
-    { required: true, message: "权限名称不能为空", trigger: "blur" },
-    { min: 2, max: 20, message: "长度需在2-20个字符", trigger: "blur" }
-  ],
-  description: [
-    { max: 100, message: "描述不超过100字符", trigger: "blur" }
-  ],
-  method: [
-    { required: true, message: "请选择请求方法", trigger: "change" }
-  ]
-});
-
-// 初始化表单
-const initForm = () => {
-  permissionForm.value = {
-    permission_id: 0,
-    node: "",
-    name: "",
-    description: "",
-    method: "get",
-    is_public: 2
-  };
-};
-
-const addPermission = () => {
-  isEdit.value = false;
-  initForm();
-  dialogVisible.value = true;
-};
-
-const editPermission = async (row: any) => {
-  isEdit.value = true;
+// 同步数据方法
+const syncPermission = async () => {
   try {
-    const res = await getReadApi(row.permission_id);
-
-    // 安全赋值，确保所有字段存在
-    const formData = res.data || {};
-    permissionForm.value = {
-      permission_id: formData.permission_id || 0,
-      node: formData.node || "",
-      name: formData.name || "",
-      description: formData.description || "",
-      method: formData.method ? formData.method.toLowerCase() : "get",
-      is_public: formData.is_public || 2
-    };
-
-    dialogVisible.value = true;
-  } catch (error) {
-  }
-};
-
-const deletePermission = async (row: any) => {
-  try {
+    // 显示确认弹窗
     await ElMessageBox.confirm(
-      `确定要删除权限 "${row.name}" (${row.node}) 吗?`,
-      "提示",
+      "确定要同步权限数据吗？这将更新系统中的权限节点信息。",
+      "同步确认",
       {
-        confirmButtonText: "确定",
+        confirmButtonText: "确认同步",
         cancelButtonText: "取消",
-        type: "warning"
-      }
-    );
-    await deleteDeleteApi(row.permission_id);
-    ElMessage.success("删除成功");
-    proTable.value?.getTableList();
-  } catch (error) {
-    // 用户取消删除，无需处理
-  }
-};
-
-const batchDelete = async (ids: number[]) => {
-  if (ids.length === 0) {
-    ElMessage.warning("请选择需要删除的权限");
-    return;
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${ids.length} 个权限吗?`,
-      "提示",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning"
+        type: "info"
       }
     );
 
-    await batchDeleteDeleteApi({ ids });
-    ElMessage.success(`成功删除 ${ids.length} 个权限`);
-
-    proTable.value?.clearSelection();
-    proTable.value?.getTableList();
+    // 调用同步接口
+    await postSyncApi();
+    
+    // 同步成功后显示提示并刷新表格数据
+    ElMessage.success("数据同步成功");
+    proTable.value?.getTableList();  // 重新获取数据
   } catch (error) {
-    // 用户取消删除，无需处理
+    // 捕获取消操作或错误
   }
 };
 
-const submitForm = async () => {
-  if (!formRef.value) return;
-
+// 查看详情
+const viewDetail = async (permissionId: number) => {
   try {
-    // 验证表单
-    const valid = await formRef.value.validate();
-    if (!valid) return;
-
-    // 确保方法值为小写
-    const payload = {
-      ...permissionForm.value,
-      method: permissionForm.value.method.toLowerCase()
-    };
-
-    if (isEdit.value) {
-      await putUpdateApi(payload.permission_id, payload);
-      ElMessage.success("更新成功");
-    } else {
-      await postCreateApi(payload);
-      ElMessage.success("创建成功");
-    }
-
-    // 关闭弹窗并刷新表格
-    dialogVisible.value = false;
-    proTable.value?.getTableList();
-  } catch (error: any) {
+    const res = await getReadApi(permissionId);
+    detailData.value = res.data || {};
+    detailVisible.value = true;
+  } catch (error) {
+    ElMessage.error("获取权限详情失败，请重试");
+    console.error("详情获取失败:", error);
   }
 };
 
-// 安全日期格式化
+// 安全的日期格式化函数
 const formatDate = (dateString: string | undefined) => {
   if (!dateString) return "-";
   try {
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleString();
   } catch (e) {
-    return dateString.split(" ")[0] || dateString;
+    return dateString || "-";
   }
 };
 
+// 表格列配置
 const columns = reactive<ColumnProps[]>([
-  { type: "selection", fixed: "left", width: 70 },
   { type: "sort", label: "排序", width: 80 },
   { prop: "node", label: "权限节点", search: { el: "input" }, width: 200 },
   { prop: "name", label: "权限名称", search: { el: "input" }, width: 150 },
-  { prop: "description", label: "权限描述", width: 250 },
+  { prop: "rule", label: "路由规则", search: { el: "input" }, width: 250 },
+  { prop: "description", label: "权限描述", width: 200 },
   {
     prop: "method",
     label: "请求方法",
     width: 100,
     custom: true,
-    formatter: (row) => row.method?.toUpperCase() || "N/A"  // 安全格式化
+    formatter: (row) => row.method?.toUpperCase() || "N/A"
   },
-  { prop: "is_public", label: "是否公开", width: 100, custom: true },
+  { prop: "need_login", label: "是否需要登录", width: 120, custom: true },
+  { prop: "need_permission", label: "是否需要权限验证", width: 150, custom: true },
   {
     prop: "created_at",
     label: "创建时间",
@@ -352,15 +214,22 @@ const columns = reactive<ColumnProps[]>([
     width: 130,
     formatter: (row) => formatDate(row.updated_at)
   },
-  { prop: "operation", label: "操作", fixed: "right", width: 180 }
+  { prop: "operation", label: "操作", fixed: "right", width: 100, custom: true }
 ]);
 </script>
 
 <style scoped>
-.form-tip {
-  font-size: 12px;
-  color: #999;
-  margin-top: 4px;
-  line-height: 1.4;
+:deep(.el-descriptions-item__label) {
+  font-weight: 500;
+  background-color: #f5f7fa;
+}
+
+:deep(.el-descriptions) {
+  margin-top: 10px;
+}
+
+/* 同步按钮样式 */
+:deep(.el-table__header-wrapper .el-button) {
+  margin-bottom: 10px;
 }
 </style>
