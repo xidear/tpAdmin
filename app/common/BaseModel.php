@@ -436,6 +436,42 @@ class BaseModel extends Model
         return $this->create($data);
     }
 
+
+    /**
+     * 智能创建数据（主模型+一对多关联）
+     * @param array $data 创建数据
+     * @return BaseModel|false 创建成功返回模型实例，失败返回false
+     */
+    public function intelligentCreate(array $data): BaseModel|false
+    {
+        // 开启事务（与更新方法保持一致的事务处理）
+        $this->startTrans();
+        try {
+            // 1. 复用数据分离逻辑：分离主模型数据和关联数据
+            [$mainData, $relationsData] = $this->separateData($this, $data);
+
+            // 2. 复用字段过滤逻辑：只保留主模型有效字段（保留空值）
+            $mainData = $this->filterValidModelData($this, $mainData);
+
+            // 3. 创建主模型记录（获取自动生成的主键）
+            $this->save($mainData);
+            $mainModel = $this; // 保存创建后的模型实例（含主键）
+
+            // 4. 复用关联保存逻辑：处理一对多关联（创建时无需删除现有关联，$deleteExisting设为false）
+            foreach ($relationsData as $relationName => $relationItems) {
+                $this->saveHasManyRelation($mainModel, $relationName, $relationItems, false);
+            }
+
+            $this->commit();
+            return $mainModel; // 返回创建后的主模型实例（含主键和关联关系）
+
+        } catch (Throwable $e) {
+            $this->rollback();
+            Log::error('智能创建失败: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     /**
      * 智能更新数据（主模型+一对多关联）
      * @param array $data 更新数据
