@@ -7,6 +7,7 @@ use think\facade\Config;
 use think\facade\Db;
 use think\facade\Cache;
 use Exception;
+use think\facade\Log;
 
 class JwtService
 {
@@ -56,16 +57,20 @@ class JwtService
 
         // 验证签名
         $payload = [
-            'iat' => $record['created_at'],
+            'iat' => $record->created_at_int,
             'exp' => $record['expire_time'],
             'admin_id' => $record['admin_id'],
             'type' => $record['client_type'],
             'jti' => $record['jti'] // 使用数据库存储的jti
         ];
+        Log::info("验证token的时候用于生成token的负载:".serialize($payload));
 
         // 使用相同的编码序列化
         $jsonPayload = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $expectedToken = hash_hmac('sha256', $jsonPayload, $config['secret']);
+
+        Log::info("验证的时候生成token:".serialize($expectedToken));
+
 
         if (!hash_equals($expectedToken, $token)) {
             throw new \Exception('令牌已被篡改', 40101);
@@ -123,11 +128,12 @@ class JwtService
             'jti' => uniqid($type . '_', true) // 唯一ID
         ];
 
+        Log::info("登录的时候用于生成token的负载:".serialize($payload));
         // 使用JSON_UNESCAPED_SLASHES和JSON_UNESCAPED_UNICODE确保编码一致
         $jsonPayload = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $secret = $config['secret'];
         $token = hash_hmac('sha256', $jsonPayload, $secret);
-
+        Log::info("登录的时候生成的token:".serialize($token));
         // 存入数据库
         $adminToken = new AdminToken();
         $adminToken->save([
@@ -138,6 +144,8 @@ class JwtService
             'created_at' => $payload['iat'],
             'jti' => $payload['jti']
         ]);
+
+//        $adminToken->append(["created_at_int"]);
 
         // 将新令牌记录存入缓存
         $cacheKey = self::CACHE_PREFIX . 'token_' . $token;
@@ -167,6 +175,7 @@ class JwtService
             // 删除缓存
             $cacheKey = self::CACHE_PREFIX . 'token_' . $token;
             Cache::delete($cacheKey);
+
 
             // 将令牌拉黑
             $result = AdminToken::where('token', $token)

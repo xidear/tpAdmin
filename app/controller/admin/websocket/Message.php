@@ -14,7 +14,7 @@ class Message
      */
     public static function initTimer(\Workerman\Worker $worker): void
     {
-        echo "定时任务已初始化，将每30秒推送一次示例消息\n".root_path("app");
+        echo "定时任务已初始化，将每30秒推送一次示例消息\n".\root_path("app");
         // 每30秒推送随机消息（包含三种类别）
         Timer::add(30, function () use ($worker) {
             // 随机生成三种类别之一的消息

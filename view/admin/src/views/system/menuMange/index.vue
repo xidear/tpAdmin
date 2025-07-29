@@ -8,6 +8,7 @@
       :columns="columns"
       :data="filteredMenuData"
       :tree-props="{ children: 'children' }"
+      :pagination="false"
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader>
@@ -59,15 +60,16 @@
 
       <!-- 菜单操作 -->
       <template #operation="scope">
+        <el-button @click="handleView(scope.row)" v-auth="'read'" type="primary" link :icon="View">查看</el-button>
         <el-button @click="handleEdit(scope.row)" v-auth="'update'" type="primary" link :icon="EditPen">编辑</el-button>
         <el-button @click="handleDelete(scope.row)" v-auth="'delete'" type="primary" link :icon="Delete">删除</el-button>
       </template>
     </ProTable>
 
-    <!-- 新增/编辑对话框 -->
+    <!-- 复用的对话框：支持查看/编辑/新增 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑菜单' : '新增菜单'"
+      :title="dialogTitle"
       width="60%"
       destroy-on-close
     >
@@ -76,6 +78,7 @@
         :model="menuForm"
         :rules="formRules"
         label-width="120px"
+        :disabled="mode === 'view'"
       >
         <!-- 父级菜单选择 -->
         <el-form-item label="父级菜单" prop="parent_id">
@@ -87,6 +90,7 @@
             clearable
             filterable
             @change="updatePathPreview"
+            :disabled="mode === 'view'"
           />
           <div class="text-gray-500 text-xs mt-1">
             顶级菜单请留空或选择空值
@@ -95,45 +99,60 @@
 
         <!-- 菜单标题 -->
         <el-form-item label="菜单标题" prop="title">
-          <el-input v-model="menuForm.title" placeholder="显示在菜单中的名称" @change="updatePathPreview" />
+          <el-input 
+            v-model="menuForm.title" 
+            placeholder="显示在菜单中的名称" 
+            @change="updatePathPreview"
+            :disabled="mode === 'view'"
+          />
         </el-form-item>
 
-        <!-- 菜单图标选择器 -->
+        <!-- 菜单图标选择器/查看器 -->
         <el-form-item label="菜单图标" prop="icon">
-          <el-popover
-            v-model:visible="iconPopoverVisible"
-            placement="bottom"
-            width="600"
-            trigger="click"
-          >
-            <template #reference>
-              <el-input
-                v-model="menuForm.icon"
-                placeholder="点击选择图标"
-                readonly
-                class="icon-input"
-              />
-            </template>
-            <div class="icon-selector">
-              <el-input
-                v-model="iconSearch"
-                placeholder="搜索图标"
-                prefix-icon="Search"
-                class="icon-search"
-              />
-              <div class="icon-list">
-                <div
-                  v-for="icon in filteredIcons"
-                  :key="icon"
-                  class="icon-item"
-                  @click="selectIcon(icon)"
-                >
-                  <el-icon :size="24"><component :is="icon" /></el-icon>
-                  <span>{{ icon }}</span>
+          <template v-if="mode === 'view'">
+            <div class="icon-preview">
+              <el-icon :size="24">
+                <component :is="menuForm.icon"></component>
+              </el-icon>
+              <span class="icon-name">{{ menuForm.icon }}</span>
+            </div>
+          </template>
+          <template v-else>
+            <el-popover
+              v-model:visible="iconPopoverVisible"
+              placement="bottom"
+              width="600"
+              trigger="click"
+            >
+              <template #reference>
+                <el-input
+                  v-model="menuForm.icon"
+                  placeholder="点击选择图标"
+                  readonly
+                  class="icon-input"
+                />
+              </template>
+              <div class="icon-selector">
+                <el-input
+                  v-model="iconSearch"
+                  placeholder="搜索图标"
+                  prefix-icon="Search"
+                  class="icon-search"
+                />
+                <div class="icon-list">
+                  <div
+                    v-for="icon in filteredIcons"
+                    :key="icon"
+                    class="icon-item"
+                    @click="selectIcon(icon)"
+                  >
+                    <el-icon :size="24"><component :is="icon" /></el-icon>
+                    <span>{{ icon }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </el-popover>
+            </el-popover>
+          </template>
         </el-form-item>
 
         <!-- 路由名称 -->
@@ -142,6 +161,7 @@
             v-model="menuForm.name"
             placeholder="唯一的英文标识（如：userManage）"
             @change="updatePathPreview"
+            :disabled="mode === 'view'"
           />
           <div class="text-gray-500 text-xs mt-1">
             路由路径将根据此标识和父菜单自动生成
@@ -158,13 +178,16 @@
           />
           <div class="text-gray-500 text-xs mt-1">
             <span>无子菜单的页面将自动添加 /index</span>
-            <span v-if="!isEdit" class="text-warning">*保存后将根据实际菜单结构生成最终路径</span>
+            <span v-if="mode !== 'view'" class="text-warning">*保存后将根据实际菜单结构生成最终路径</span>
           </div>
         </el-form-item>
 
         <!-- 菜单类型选择 -->
         <el-form-item label="菜单类型" prop="menu_type">
-          <el-radio-group v-model="menuForm.menu_type" @change="handleMenuTypeChange">
+          <el-radio-group 
+            v-model="menuForm.menu_type" 
+            :disabled="mode === 'view'"
+          >
             <el-radio :label="'internal'">内部路由</el-radio>
             <el-radio :label="'external'">外部链接</el-radio>
             <el-radio :label="'redirect'">路由重定向</el-radio>
@@ -172,15 +195,16 @@
         </el-form-item>
 
         <!-- 组件路径 (仅在内部路由时显示) -->
-        <el-form-item 
+        <el-form-item
+          v-if="menuForm.menu_type === 'internal'"
           label="文件路径" 
           prop="component"
           :required="menuForm.menu_type === 'internal'"
         >
-          <el-input 
+          <el-input
             v-model="menuForm.component" 
             placeholder="vue文件的相对路径,不包括pages和.vue" 
-            :disabled="menuForm.menu_type !== 'internal'"
+            :disabled="mode === 'view' || menuForm.menu_type !== 'internal'"
           />
           <div class="text-gray-500 text-xs mt-1">
             例如：/system/userManage/index（对应views/system/userManage/index.vue）
@@ -188,7 +212,8 @@
         </el-form-item>
 
         <!-- 外部链接 (仅在外部链接时显示) -->
-        <el-form-item 
+        <el-form-item
+          v-if="menuForm.menu_type === 'external'"
           label="外部链接" 
           prop="link_url"
           :required="menuForm.menu_type === 'external'"
@@ -196,7 +221,7 @@
           <el-input 
             v-model="menuForm.link_url" 
             placeholder="完整的URL地址" 
-            :disabled="menuForm.menu_type !== 'external'"
+            :disabled="mode === 'view' || menuForm.menu_type !== 'external'"
           />
           <div class="text-gray-500 text-xs mt-1">
             例如：https://www.example.com
@@ -204,7 +229,8 @@
         </el-form-item>
 
         <!-- 重定向路径 (仅在路由重定向时显示) -->
-        <el-form-item 
+        <el-form-item
+          v-if="menuForm.menu_type === 'redirect'"
           label="重定向路径" 
           prop="redirect"
           :required="menuForm.menu_type === 'redirect'"
@@ -212,7 +238,7 @@
           <el-input 
             v-model="menuForm.redirect" 
             placeholder="路由重定向路径" 
-            :disabled="menuForm.menu_type !== 'redirect'"
+            :disabled="mode === 'view' || menuForm.menu_type !== 'redirect'"
           />
           <div class="text-gray-500 text-xs mt-1">
             例如：/dashboard
@@ -226,12 +252,16 @@
             :min="0" 
             :max="9999" 
             placeholder="数字越小越靠前" 
+            :disabled="mode === 'view'"
           />
         </el-form-item>
 
         <!-- 菜单显示状态 -->
         <el-form-item label="显示状态" prop="visible">
-          <el-radio-group v-model="menuForm.visible">
+          <el-radio-group 
+            v-model="menuForm.visible"
+            :disabled="mode === 'view'"
+          >
             <el-radio :label="1">显示</el-radio>
             <el-radio :label="2">隐藏</el-radio>
           </el-radio-group>
@@ -239,7 +269,10 @@
 
         <!-- 是否固定 -->
         <el-form-item label="是否固定" prop="is_affix">
-          <el-radio-group v-model="menuForm.is_affix">
+          <el-radio-group 
+            v-model="menuForm.is_affix"
+            :disabled="mode === 'view'"
+          >
             <el-radio :label="1">是</el-radio>
             <el-radio :label="2">否</el-radio>
           </el-radio-group>
@@ -247,7 +280,10 @@
 
         <!-- 是否缓存 -->
         <el-form-item label="是否缓存" prop="is_keep_alive">
-          <el-radio-group v-model="menuForm.is_keep_alive">
+          <el-radio-group 
+            v-model="menuForm.is_keep_alive"
+            :disabled="mode === 'view'"
+          >
             <el-radio :label="1">是</el-radio>
             <el-radio :label="2">否</el-radio>
           </el-radio-group>
@@ -255,13 +291,20 @@
 
         <!-- 权限依赖管理 -->
         <el-form-item label="权限依赖" class="permission-section">
-
-          <div class="permission-header mb-3">
-            <el-button type="primary" size="small" :icon="CirclePlus" @click="showAddPermissionDialog = true">新增权限</el-button>
+          <div 
+            class="permission-header mb-3"
+            v-if="mode !== 'view'"
+          >
+            <el-button 
+              type="primary" 
+              size="small" 
+              :icon="CirclePlus" 
+              @click="showAddPermissionDialog = true"
+            >
+              新增权限
+            </el-button>
           </div>
 
-
-          
           <el-table
             :data="menuPermissions"
             border
@@ -276,15 +319,23 @@
               width="120"
             >
               <template #default="scope">
-                <el-select 
-                  v-model="scope.row.permission_type" 
-                  size="small"
-                  @change="handlePermissionTypeChange(scope.row)"
-                >
-                  <el-option label="按钮" value="button" />
-                  <el-option label="列表" value="data" />
-                  <el-option label="筛选" value="filter" />
-                </el-select>
+                <template v-if="mode === 'view'">
+                  <span>
+                    {{ scope.row.permission_type === 'button' ? '按钮' : 
+                      scope.row.permission_type === 'data' ? '列表' : '筛选' }}
+                  </span>
+                </template>
+                <template v-else>
+                  <el-select 
+                    v-model="scope.row.permission_type" 
+                    size="small"
+                    @change="handlePermissionTypeChange(scope.row)"
+                  >
+                    <el-option label="按钮" value="button" />
+                    <el-option label="列表" value="data" />
+                    <el-option label="筛选" value="filter" />
+                  </el-select>
+                </template>
               </template>
             </el-table-column>
             <el-table-column 
@@ -292,20 +343,42 @@
               width="120"
             >
               <template #default="scope">
-                <el-select 
-                  v-model="scope.row.type" 
-                  size="small"
-                  @change="handleDependencyTypeChange(scope.row)"
-                >
-                  <el-option label="必选" value="REQUIRED" />
-                  <el-option label="可选" value="OPTIONAL" />
-                </el-select>
+                <template v-if="mode === 'view'">
+                  <span>
+                    {{ scope.row.type === 'REQUIRED' ? '必选' : '可选' }}
+                  </span>
+                </template>
+                <template v-else>
+                  <el-select 
+                    v-model="scope.row.type" 
+                    size="small"
+                    @change="handleDependencyTypeChange(scope.row)"
+                  >
+                    <el-option label="可选" value="OPTIONAL" />
+                    <el-option label="必选" value="REQUIRED" />
+                  </el-select>
+                </template>
+              </template>
+            </el-table-column>
+            <el-table-column label="描述" width="200">
+              <template #default="scope">
+                <template v-if="mode === 'view'">
+                  <span>{{ scope.row.description || '-' }}</span>
+                </template>
+                <template v-else>
+                  <el-input
+                    v-model="scope.row.description"
+                    size="small"
+                    placeholder="请输入描述"
+                  />
+                </template>
               </template>
             </el-table-column>
             <el-table-column 
               label="操作" 
               width="100" 
               fixed="right"
+              v-if="mode !== 'view'"
             >
               <template #default="scope">
                 <el-button 
@@ -324,9 +397,13 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitMenuForm">
-          {{ isEdit ? '更新' : '创建' }}
+        <el-button @click="dialogVisible = false">关闭</el-button>
+        <el-button 
+          type="primary" 
+          @click="submitMenuForm"
+          v-if="mode !== 'view'"
+        >
+          {{ mode === 'edit' ? '更新' : '创建' }}
         </el-button>
       </template>
     </el-dialog>
@@ -338,6 +415,7 @@
       width="50%"
       destroy-on-close
     >
+      <!-- 权限对话框内容保持不变 -->
       <el-form
         ref="addPermissionFormRef"
         :model="addPermissionForm"
@@ -345,12 +423,12 @@
         label-width="120px"
       >
         <el-form-item label="选择权限" prop="permission_id">
-
           <el-select
             v-model="addPermissionForm.permission_id"
             placeholder="选择权限"
             filterable
             clearable
+            @change="handlePermissionSelected"
             @visible-change="handlePermissionSelectOpen"
             style="width: 100%"
           >
@@ -376,23 +454,6 @@
               </div>
             </el-scrollbar>
           </el-select>
-          
-
-
-<!--          <el-select-->
-<!--            v-model="addPermissionForm.permission_id"-->
-<!--            placeholder="选择权限"-->
-<!--            filterable-->
-<!--            clearable-->
-<!--          >-->
-<!--            <el-option-->
-<!--              v-for="perm in filteredPermissions"-->
-<!--              :key="perm.permission_id"-->
-<!--              :label="perm.name + '(' + perm.node + ')'"-->
-<!--              :value="perm.permission_id"-->
-<!--              :disabled="isPermissionAdded(perm.permission_id)"-->
-<!--            />-->
-<!--          </el-select>-->
         </el-form-item>
         <el-form-item label="权限类型" prop="permission_type">
           <el-select v-model="addPermissionForm.permission_type" placeholder="选择权限类型">
@@ -403,9 +464,17 @@
         </el-form-item>
         <el-form-item label="依赖类型" prop="type">
           <el-select v-model="addPermissionForm.type" placeholder="选择依赖类型">
-            <el-option label="必选" value="REQUIRED" />
             <el-option label="可选" value="OPTIONAL" />
+            <el-option label="必选" value="REQUIRED" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="权限描述">
+          <el-input
+            v-model="addPermissionForm.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入权限描述"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -422,7 +491,7 @@ const { BUTTONS } = useAuthButtons();
 
 import { onMounted, ref, reactive, computed, watch } from "vue";
 import { ColumnProps } from "@/components/ProTable/interface";
-import { Delete, EditPen, CirclePlus, Search } from "@element-plus/icons-vue";
+import { Delete, EditPen, CirclePlus, Search, View } from "@element-plus/icons-vue";
 import * as Icons from "@element-plus/icons-vue";
 import { 
   deleteDeleteApi, 
@@ -433,7 +502,6 @@ import {
 } from "@/api/modules/menu";
 // 导入权限相关API
 import { getListApi } from "@/api/modules/permission";
-import { ElCascader } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import ProTable from "@/components/ProTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -441,9 +509,9 @@ import { ElMessage, ElMessageBox } from "element-plus";
 const menuFormRef = ref<FormInstance>();
 const addPermissionFormRef = ref<FormInstance>();
 
-// 对话框状态
+// 对话框状态和模式控制
 const dialogVisible = ref(false);
-const isEdit = ref(false);
+const mode = ref<'view' | 'edit' | 'create'>('create'); // 核心状态：查看/编辑/新增
 const showAddPermissionDialog = ref(false);
 
 // 图标选择器状态
@@ -498,7 +566,19 @@ const handlePermissionSelectOpen = (visible: boolean) => {
   }
 };
 
+const handlePermissionSelected = (permissionId: number) => {
+  // 找到选中的权限对象
+  const selectedPermission = allPermissions.value.find(
+    perm => perm.permission_id === permissionId
+  );
 
+  // 将选中权限的description赋值给表单的description字段
+  if (selectedPermission) {
+    addPermissionForm.value.description = selectedPermission.description || '';
+  } else {
+    addPermissionForm.value.description = '';
+  }
+};
 
 // 手动加载更多
 const loadMorePermissions = () => {
@@ -671,25 +751,6 @@ const flattenTree = (nodes: any[], result: any[] = []) => {
   return result;
 };
 
-// 处理菜单类型变更
-const handleMenuTypeChange = (type: string) => {
-  // 清空其他类型的字段
-  switch(type) {
-    case MENU_TYPE.INTERNAL:
-      menuForm.value.link_url = "";
-      menuForm.value.redirect = "";
-      break;
-    case MENU_TYPE.EXTERNAL:
-      menuForm.value.component = "";
-      menuForm.value.redirect = "";
-      menuForm.value.is_link = 1; // 外部链接默认设置is_link为1
-      break;
-    case MENU_TYPE.REDIRECT:
-      menuForm.value.component = "";
-      menuForm.value.link_url = "";
-      break;
-  }
-};
 
 // 权限依赖数据结构
 interface PermissionDependency {
@@ -720,10 +781,12 @@ const addPermissionForm = ref<{
   permission_id: number|string;
   permission_type: 'button' | 'data' | 'filter';
   type: 'REQUIRED' | 'OPTIONAL';
+  description: string; 
 }>({
   permission_id: "",
   permission_type: 'button',
-  type: 'REQUIRED'
+  type: 'REQUIRED',
+  description: '' 
 });
 
 // 检查权限是否已添加
@@ -735,7 +798,6 @@ const isPermissionAdded = (permissionId: number) => {
 const fetchAllPermissions = async () => {
   try {
     const res = await getListApi({ list_rows: permissionPageSize.value });
-    console.log("列表返回数据",res);
     allPermissions.value = res.data.list || [];
   } catch (error) {
     console.error("获取权限列表失败", error);
@@ -766,6 +828,7 @@ const confirmAddPermission = async () => {
           permission_id: addPermissionForm.value.permission_id,
           type: addPermissionForm.value.type,
           permission_type: addPermissionForm.value.permission_type,
+          description: addPermissionForm.value.description || '',
           permission: {
             permission_id: permissionInfo.permission_id,
             node: permissionInfo.node,
@@ -780,7 +843,8 @@ const confirmAddPermission = async () => {
         addPermissionForm.value = {
           permission_id: "",
           permission_type: 'button',
-          type: 'REQUIRED'
+          type: 'REQUIRED',
+          description: ''
         };
         addPermissionFormRef.value.resetFields();
       }
@@ -844,7 +908,7 @@ const menuCascadeOptions = computed(() => {
 
   // 编辑时排除当前菜单及其子菜单
   const excludeIds = [...currentMenuChildrenIds.value];
-  if (isEdit.value && menuForm.value.menu_id) {
+  if (mode.value === 'edit' && menuForm.value.menu_id) {
     excludeIds.push(menuForm.value.menu_id);
   }
 
@@ -862,9 +926,85 @@ const getChildrenIds = (menu: any, idList: number[] = []) => {
   return idList;
 };
 
+// 对话框标题计算属性
+const dialogTitle = computed(() => {
+  switch(mode.value) {
+    case 'view': return '菜单详情';
+    case 'edit': return '编辑菜单';
+    case 'create': return '新增菜单';
+  }
+});
+
+// 加载菜单详情的共用方法（查看和编辑都用这个方法）
+const loadMenuDetail = async (menuId: number) => {
+  try {
+    const res = await getReadApi(menuId); // 只请求一次API
+    
+    // 处理权限列表数据
+    if (res.data.dependencies && res.data.dependencies.length) {
+      menuPermissions.value = res.data.dependencies.map(dep => ({
+        dependency_id: dep.dependency_id,
+        menu_id: dep.menu_id,
+        permission_id: dep.permission_id,
+        type: dep.type,
+        description: dep.description,
+        created_at: dep.created_at,
+        permission_type: dep.permission_type,
+        permission: {
+          permission_id: dep.permission.permission_id,
+          node: dep.permission.node,
+          name: dep.permission.name,
+          description: dep.permission.description,
+          method: dep.permission.method
+        }
+      }));
+    } else {
+      menuPermissions.value = [];
+    }
+    
+    currentMenuChildrenIds.value = getChildrenIds(res.data);
+
+    // 确定菜单类型
+    let menuType = 'internal';
+    if (res.data.is_link === 1) {
+      menuType = 'external';
+    } else if (res.data.redirect) {
+      menuType = 'redirect';
+    }
+
+    menuForm.value = {
+      menu_id: menuId,
+      parent_id: Number(res.data.parent_id) || 0,
+      title: res.data.title || "",
+      icon: res.data.icon || "",
+      name: res.data.name || "",
+      component: res.data.component || "",
+      path: res.data.path || "", // 后端生成，前端只读
+      link_url: res.data.link_url || "",
+      redirect: res.data.redirect || "",
+      order_num: res.data.order_num || 0,
+      visible: res.data.visible || 1,
+      menu_type: menuType as 'internal' | 'external' | 'redirect',
+      is_link: res.data.is_link || 2,
+      is_full: res.data.is_full || 2,
+      is_affix: res.data.is_affix || 2,
+      is_keep_alive: res.data.is_keep_alive || 1
+    };
+    
+    // 更新路径预览
+    updatePathPreview();
+    
+    return res.data;
+  } catch (error) {
+    console.error("获取菜单详情失败", error);
+    ElMessage.error("加载菜单详情失败");
+    throw error; // 抛出错误让调用方处理
+  }
+};
+
 // 新增菜单
 const handleAdd = async () => {
-  isEdit.value = false;
+  mode.value = 'create';
   currentMenuChildrenIds.value = [];
   menuForm.value = {
     menu_id: 0,
@@ -897,74 +1037,19 @@ const handleAdd = async () => {
   dialogVisible.value = true;
 };
 
+// 查看菜单详情
+const handleView = async (row: any) => {
+  mode.value = 'view';
+  await loadMenuDetail(row.menu_id); // 复用加载详情的方法
+  dialogVisible.value = true;
+};
+
 // 编辑菜单
 const handleEdit = async (row: any) => {
-  try {
-    isEdit.value = true;
-    const res = await getReadApi(row.menu_id);
-    
-    // 获取权限列表
-    await fetchAllPermissions();
-    
-    // 处理已有权限数据
-    if (res.data.dependencies && res.data.dependencies.length) {
-      menuPermissions.value = res.data.dependencies.map(dep => ({
-        dependency_id: dep.dependency_id,
-        menu_id: dep.menu_id,
-        permission_id: dep.permission_id,
-        type: dep.type,
-        description: dep.description,
-        created_at: dep.created_at,
-        permission_type: dep.permission_type,
-        permission: {
-          permission_id: dep.permission.permission_id,
-          node: dep.permission.node,
-          name: dep.permission.name,
-          description: dep.permission.description,
-          method: dep.permission.method
-        }
-      }));
-    } else {
-      menuPermissions.value = [];
-    }
-    
-    currentMenuChildrenIds.value = getChildrenIds(row);
-
-    // 确定菜单类型
-    let menuType = 'internal';
-    if (res.data.is_link === 1) {
-      menuType = 'external';
-    } else if (res.data.redirect) {
-      menuType = 'redirect';
-    }
-
-    menuForm.value = {
-      menu_id: row.menu_id,
-      parent_id: Number(res.data.parent_id) || 0,
-      title: res.data.title || "",
-      icon: res.data.icon || "",
-      name: res.data.name || "",
-      component: res.data.component || "",
-      path: res.data.path || "", // 后端生成，前端只读
-      link_url: res.data.link_url || "",
-      redirect: res.data.redirect || "",
-      order_num: res.data.order_num || 0,
-      visible: res.data.visible || 1,
-      menu_type: menuType as 'internal' | 'external' | 'redirect',
-      is_link: res.data.is_link || 2,
-      is_full: res.data.is_full || 2,
-      is_affix: res.data.is_affix || 2,
-      is_keep_alive: res.data.is_keep_alive || 1
-    };
-    
-    // 更新路径预览
-    updatePathPreview();
-
-    dialogVisible.value = true;
-  } catch (error) {
-    console.error("获取菜单详情失败", error);
-    ElMessage.error("加载菜单详情失败");
-  }
+  mode.value = 'edit';
+  await loadMenuDetail(row.menu_id); // 复用加载详情的方法
+  await fetchAllPermissions(); // 获取权限列表用于编辑
+  dialogVisible.value = true;
 };
 
 // 提交菜单表单
@@ -974,8 +1059,6 @@ const submitMenuForm = () => {
   menuFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-
-        
         // 根据菜单类型设置相关字段
         const payload: any = {
           title: menuForm.value.title,
@@ -995,11 +1078,12 @@ const submitMenuForm = () => {
           dependencies: menuPermissions.value.map(perm => ({
             permission_id: perm.permission_id,
             type: perm.type,
-            permission_type: perm.permission_type
+            permission_type: perm.permission_type,
+            description: perm.description ?? ''
           }))
         };
 
-        if (isEdit.value && menuForm.value.menu_id) {
+        if (mode.value === 'edit' && menuForm.value.menu_id) {
           await putUpdateApi(menuForm.value.menu_id, payload);
           ElMessage.success("菜单更新成功");
         } else {
@@ -1094,7 +1178,6 @@ const resetSearch = () => {
 const fetchMenuData = async () => {
   try {
     const res = await getTreeApi();
-    console.log("返回数据",res);
     originalMenuData.value = res.data;
   } catch (err) {
     console.error("获取菜单数据失败", err);
@@ -1123,6 +1206,7 @@ const handleDelete = async (row: any) => {
     ElMessage.success("删除成功");
     await fetchMenuData();
   } catch (error) {
+    // 取消操作不处理错误
   }
 };
 
@@ -1184,6 +1268,22 @@ const columns: ColumnProps[] = [
   margin-bottom: 8px;
 }
 
+/* 详情页图标预览样式 */
+.icon-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background-color: #f9fafb;
+}
+
+.icon-name {
+  color: #666;
+  font-size: 14px;
+}
+
 /* 权限部分样式 */
 .permission-section {
   margin-top: 10px;
@@ -1199,6 +1299,17 @@ const columns: ColumnProps[] = [
 .readonly-input .el-input__inner {
   background-color: #f5f7fa;
   cursor: not-allowed;
+}
+
+/* 详情模式下表单样式优化 */
+:deep(.el-form--disabled .el-form-item__label) {
+  color: #606266;
+  font-weight: 500;
+}
+
+:deep(.el-form--disabled .el-input__inner) {
+  background-color: #f9fafb;
+  color: #303133;
 }
 
 .loading-text {

@@ -39,6 +39,22 @@ class PermissionService
             return $this->true("未匹配到指定前缀的路由");
         }
 
+        // 新增验证：需要权限验证的节点必须要求登录
+        $invalidRoutes = [];
+        foreach ($formattedRoutes as $route) {
+            // need_permission=1 表示需要权限验证
+            // need_login=2 表示不需要登录
+            if ($route['need_permission'] == 1 && $route['need_login'] == 2) {
+                $invalidRoutes[] = "节点: {$route['node']} 方法: {$route['method']}";
+            }
+        }
+        if (!empty($invalidRoutes)) {
+            $errorMsg = "以下节点需要权限验证但未设置登录要求：\n" . implode("\n", $invalidRoutes);
+            return $this->false($errorMsg);
+        }
+
+
+
         $routeMap = [];
         foreach ($formattedRoutes as $route) {
             $key = $route['node'] . '|' . $route['method'];

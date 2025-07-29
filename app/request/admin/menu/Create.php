@@ -12,7 +12,7 @@ class Create extends BaseRequest
             'title' => 'require|chsAlphaNum|max:50',
             'icon' => 'require|alphaNum|max:100',
             'name' => 'require|alphaNum|max:100|unique:menu',
-            'parent_id' => 'integer|min:0|exists:menu,menu_id',
+            'parent_id' => 'integer|min:0|exists:menu,menu_id,true',
             'order_num' => 'require|integer|min:0|max:9999',
             'visible' => 'in:1,2',
             'is_link' => 'in:1,2',
@@ -23,9 +23,6 @@ class Create extends BaseRequest
             'link_url' => 'requireIf:is_link,1|url|max:255',
             'redirect' => 'max:255',
             'dependencies' => 'array|checkRequiredDependency',
-//            'dependencies.*.permission_id' => 'integer|min:1|exists:permission,permission_id',
-//            'dependencies.*.type' => 'in:REQUIRED,OPTIONAL',
-//            'dependencies.*.permission_type' => 'in:button,data,filter',
         ];
     }
 

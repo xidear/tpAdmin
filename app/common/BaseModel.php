@@ -54,11 +54,11 @@ class BaseModel extends Model
 
     public function fetchData(array $conditions=[],array $config=[]): \think\Collection|array
     {
-        if (request()->has("page","get")||request()->has("list_rows","get")) {
-            if (request()->has("page","get")){
+        if (request()->has("page","get")||request()->has("list_rows","get")||isset($config['pageNum'])||isset($config['pageSize'])) {
+            if (request()->has("page","get",true)){
                 $config['pageNum']=request()->get("page",1);
             }
-            if (request()->has("list_rows","get")){
+            if (request()->has("list_rows","get",true)){
                 $config['pageSize']=request()->get("list_rows",15);
             }
             return $this->fetchPaginated($conditions,$config);

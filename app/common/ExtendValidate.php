@@ -2,6 +2,8 @@
 
 namespace app\common;
 
+use app\common\enum\MenuPermissionDependenciesType;
+use app\common\enum\MenuPermissionPermissionType;
 use think\facade\Db;
 use think\Validate;
 
@@ -81,15 +83,18 @@ class ExtendValidate extends Validate
             if (!isset($item['type'])) {
                 return "{$field}[{$index}]缺少type字段";
             }
-            if (!in_array($item['type'], ['REQUIRED', 'OPTIONAL'])) {
-                return "{$field}[{$index}].type值无效，必须是REQUIRED或OPTIONAL";
+            if (!in_array($item['type'], MenuPermissionDependenciesType::getKeyList())) {
+                $allowedTypes = MenuPermissionDependenciesType::getKeyListString();
+                return "{$field}[{$index}].type值无效，必须是{$allowedTypes}";
             }
 
             if (!isset($item['permission_type'])) {
                 return "{$field}[{$index}]缺少permission_type字段";
             }
-            if (!in_array($item['permission_type'], ['button', 'data', 'filter'])) {
-                return "{$field}[{$index}].permission_type值无效，必须是button、data或filter";
+
+            if (!in_array($item['permission_type'],MenuPermissionPermissionType::getKeyList() )) {
+                $allowedTypes = MenuPermissionPermissionType::getKeyListString();
+                return "{$field}[{$index}].permission_type值无效，必须是{$allowedTypes}";
             }
         }
 
@@ -98,17 +103,44 @@ class ExtendValidate extends Validate
 
     /**
      * 检查数据库中是否存在记录
-     * 用法：'parent_id' => 'exists:menu,menu_id'
+     * - 'parent_id' => 'exists:menu,menu_id'  // 严格验证，0（含"0"）会被视为无效
+     * - 'parent_id' => 'exists:menu,menu_id,true'  // 允许0或"0"通过验证
      */
     protected function exists($value, $rule, $data = [], $field = ''): bool|string
     {
-        list($table, $dbField) = explode(',', $rule . ',id');
+        $params = explode(',', $rule);
+
+        if (count($params) < 2) {
+            return "验证规则格式错误，正确格式：exists:表名,字段名[,是否允许0值(true/false)]";
+        }
+
+        list($table, $dbField) = $params;
+        $allowZero = isset($params[2]) && filter_var($params[2], FILTER_VALIDATE_BOOLEAN);
+
+        // 关键优化：同时判断数值0和字符串"0"（宽松匹配）
+        $isZero = ($value === 0 || $value === '0');
+        if ($allowZero && $isZero) {
+            return true;
+        }
+
+        // 非0值时，验证数据库中是否存在记录
         $count = Db::name($table)->where($dbField, $value)->count();
         if ($count <= 0) {
             return "{$field}不存在有效的记录（值：{$value}）";
         }
+
         return true;
     }
+
+//    protected function exists($value, $rule, $data = [], $field = ''): bool|string
+//    {
+//        list($table, $dbField) = explode(',', $rule . ',id');
+//        $count = Db::name($table)->where($dbField, $value)->count();
+//        if ($count <= 0) {
+//            return "{$field}不存在有效的记录（值：{$value}）";
+//        }
+//        return true;
+//    }
 
     /**
      * 验证数组项中不允许存在指定字段

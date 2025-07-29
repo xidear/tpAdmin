@@ -86,15 +86,8 @@ enum Code: int
      */
     public static function getValue($key): string
     {
-
-
-
-        if (key_exists($key, self::getItems())) {
-            return self::getItems()[$key];
-        }
-
-
-        return "未知状态";
+        $items = self::getItems();
+        return $items[$key] ?? "未知状态";
     }
 
 

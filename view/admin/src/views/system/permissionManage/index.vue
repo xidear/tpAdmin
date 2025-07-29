@@ -24,13 +24,13 @@
       <!-- 是否需要登录列 -->
       <template #need_login="scope">
         <el-tag v-if="scope.row.need_login === 1" type="info">需登录</el-tag>
-        <el-tag v-else type="success">无需登录</el-tag>
+        <el-tag v-else type="danger">无需登录</el-tag>
       </template>
 
       <!-- 是否需要权限验证列 -->
       <template #need_permission="scope">
-        <el-tag v-if="scope.row.need_permission === 1" type="warning">需验证</el-tag>
-        <el-tag v-else type="success">无需验证</el-tag>
+        <el-tag v-if="scope.row.need_permission === 1" type="info">需验证</el-tag>
+        <el-tag v-else type="danger">无需验证</el-tag>
       </template>
 
       <!-- 请求方法列 -->
@@ -188,7 +188,6 @@ const formatDate = (dateString: string | undefined) => {
 
 // 表格列配置
 const columns = reactive<ColumnProps[]>([
-  { type: "sort", label: "排序", width: 80 },
   { prop: "node", label: "权限节点", search: { el: "input" }, width: 200 },
   { prop: "name", label: "权限名称", search: { el: "input" }, width: 150 },
   { prop: "rule", label: "路由规则", search: { el: "input" }, width: 250 },

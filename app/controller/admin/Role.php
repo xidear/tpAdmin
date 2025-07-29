@@ -3,7 +3,7 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
-use app\common\enum\DependenciesType;
+use app\common\enum\MenuPermissionDependenciesType;
 use app\model\MenuPermissionDependency;
 use app\model\Role as RoleModel;
 use app\request\admin\role\assignMenu;

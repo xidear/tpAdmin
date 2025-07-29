@@ -73,7 +73,8 @@ trait EnumTrait
      */
     public static function getKeyList(): array
     {
-        return array_keys(self::getItems());
+        return array_column(self::getList(),"key");
+//        return array_keys(self::getItems());
     }
 
 
@@ -83,7 +84,8 @@ trait EnumTrait
      */
     public static function getValueList(): array
     {
-        return array_values(self::getItems());
+        return array_column(self::getList(),"value");
+//        return array_values(self::getItems());
     }
 
 
