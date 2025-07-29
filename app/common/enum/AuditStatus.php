@@ -17,16 +17,16 @@ enum AuditStatus: int
     {
         return [
             [
-                'key' => self::Normal,
+                'key' => self::Normal->value,
                 'value' => "已审核通过",
             ],
             [
-                'key' => self::Disabled,
+                'key' => self::Disabled->value,
                 'value' => "审核不通过",
             ],
 
             [
-                'key' => self::Pending,
+                'key' => self::Pending->value,
                 'value' => "待审核",
             ],
         ];

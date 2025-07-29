@@ -15,11 +15,11 @@ enum MenuPermissionDependencies: string
     {
         return [
             [
-                'key' => self::Required,
+                'key' => self::Required->value,
                 'value' => "必备的",
             ],
             [
-                'key' => self::Optional,
+                'key' => self::Optional->value,
                 'value' => "可选的",
             ],
         ];

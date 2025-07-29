@@ -17,11 +17,11 @@ Enum AdminStatus : int
     {
         return [
             [
-                'key'=>self::Normal,
+                'key'=>self::Normal->value,
                 'value'=>"允许登录",
             ],
             [
-                'key'=>self::Disabled,
+                'key'=>self::Disabled->value,
                 'value'=>"已禁用",
             ],
         ];

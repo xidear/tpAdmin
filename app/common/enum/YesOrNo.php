@@ -18,11 +18,11 @@ Enum YesOrNo : int
     {
         return [
             [
-                'key'=>self::Yes,
+                'key'=>self::Yes->value,
                 'value'=>"是",
             ],
             [
-                'key'=>self::No,
+                'key'=>self::No->value,
                 'value'=>"否",
             ],
         ];

@@ -22,47 +22,54 @@ enum Code: int
     case FORBIDDEN = 403;
 
 
+    case DB_ERROR = 99;
+
     public static function getList(): array
     {
         return [
             [
-                'key' => self::SUCCESS,
+                'key' => self::SUCCESS->value,
                 'value' => "操作成功",
             ],
             [
-                'key' => self::CREATED,
+                'key' => self::CREATED->value,
                 'value' => "创建成功",
             ],
 
             [
-                'key' => self::NO_CONTENT,
+                'key' => self::NO_CONTENT->value,
                 'value' => "无内容",
             ],
 
             [
-                'key' => self::REQUEST_ERROR,
+                'key' => self::REQUEST_ERROR->value,
                 'value' => "请求参数错误",
             ],
 
             [
-                'key' => self::TOKEN_INVALID,
+                'key' => self::TOKEN_INVALID->value,
                 'value' => "未授权",
             ],
 
             [
-                'key' => self::FORBIDDEN,
+                'key' => self::FORBIDDEN->value,
                 'value' => "授权超时,请重新登录",
             ],
 
             [
-                'key' => self::NOT_FOUND,
+                'key' => self::NOT_FOUND->value,
                 'value' => "资源未找到",
             ],
 
 
             [
-                'key' => self::ERROR,
+                'key' => self::ERROR->value,
                 'value' => "系统错误",
+            ],
+
+            [
+                'key' => self::DB_ERROR->value,
+                'value' => "数据库错误",
             ],
 
 
@@ -79,6 +86,8 @@ enum Code: int
      */
     public static function getValue($key): string
     {
+
+
 
         if (key_exists($key, self::getItems())) {
             return self::getItems()[$key];

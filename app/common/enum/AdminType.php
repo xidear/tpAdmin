@@ -17,11 +17,11 @@ Enum AdminType : string
     {
         return [
             [
-                'key'=>self::Admin,
+                'key'=>self::Admin->value,
                 'value'=>"后台用户",
             ],
             [
-                'key'=>self::User,
+                'key'=>self::User->value,
                 'value'=>"小程序用户",
             ],
         ];

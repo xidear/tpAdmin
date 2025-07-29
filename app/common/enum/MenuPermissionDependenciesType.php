@@ -4,7 +4,7 @@ namespace app\common\enum;
 
 use app\common\trait\EnumTrait;
 
-Enum DependenciesType : string
+Enum MenuPermissionDependenciesType : string
 {
     case Required = "REQUIRED";
     case Optional = "OPTIONAL";
@@ -18,11 +18,11 @@ Enum DependenciesType : string
     {
         return [
             [
-                'key'=>self::Required,
+                'key'=>self::Required->value,
                 'value'=>"必备",
             ],
             [
-                'key'=>self::Optional,
+                'key'=>self::Optional->value,
                 'value'=>"可选",
             ],
         ];

@@ -18,11 +18,11 @@ Enum Status : int
     {
         return [
             [
-                'key'=>self::Normal,
+                'key'=>self::Normal->value,
                 'value'=>"可用",
             ],
             [
-                'key'=>self::Disabled,
+                'key'=>self::Disabled->value,
                 'value'=>"已禁用",
             ],
         ];
