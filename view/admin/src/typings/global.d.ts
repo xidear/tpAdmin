@@ -72,3 +72,13 @@ declare const __APP_INFO__: {
   };
   lastBuildTime: string;
 };
+
+
+/**
+ * 基础响应结构
+ */
+export interface BaseResponse<T = any> {
+  code: number;
+  msg: string;
+  data: T;
+}

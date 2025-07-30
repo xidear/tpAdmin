@@ -197,7 +197,9 @@ const logDetail = ref<SystemLogItem>({
   id: 0,
   admin_id: 0,
   username: "",
-  admin: null, // 管理员关联信息
+  admin:{
+    real_name:"",
+  }, // 管理员关联信息
   module: "",
   controller: "",
   action: "",
@@ -209,7 +211,7 @@ const logDetail = ref<SystemLogItem>({
   request_param: "",
   ip: "",
   user_agent: "",
-  ua: null, // 用户代理解析信息
+  ua:null, // 用户代理解析信息
   status: 1,
   error_msg: "",
   execution_time: 0,
@@ -332,26 +334,22 @@ const columns = reactive<ColumnProps[]>([
   {
     prop: "module",
     label: "模块",
-    search: { el: "input" },
-    width: 100
+    search: { el: "input" }
   },
   {
     prop: "controller",
     label: "控制器",
-    search: { el: "input" },
-    width: 120
+    search: { el: "input" }
   },
   {
     prop: "action",
     label: "操作方法",
-    search: { el: "input" },
-    width: 100
+    search: { el: "input" }
   },
   {
     prop: "description",
     label: "描述",
-    search: { el: "input" },
-    width: 150
+    search: { el: "input" }
   },
   {
 
@@ -369,8 +367,7 @@ const columns = reactive<ColumnProps[]>([
     },
     prop: "request_method",
     label: "请求方法",
-    width: 110,
-    custom: true
+    width: 110
   },
   {
     prop: "ip",
@@ -392,8 +389,7 @@ const columns = reactive<ColumnProps[]>([
       // 可选：添加筛选功能
       props: { filterable: true } // 透传给el-select的属性
     },
-    width: 100,
-    custom: true
+    width: 100
   },
   {
     prop: "execution_time",

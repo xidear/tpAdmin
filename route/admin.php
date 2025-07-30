@@ -18,6 +18,20 @@ Route::group('adminapi', function () {
 
 //    需要登录不需要权限验证
     Route::group(function () {
+
+        Route::group('enum', function () {
+            // 获取指定枚举数据（免权限）
+            Route::post('read/:enum_code', 'getEnum')
+                ->name('获取枚举列表')
+                ->option(['description' => '传入枚举名称，返回枚举数组']);
+
+            // 获取所有可用枚举名称（免权限）
+            Route::get('index', 'index')
+                ->name('获取枚举名称列表')
+                ->option(['description' => '返回所有支持的枚举名称']);
+        })->prefix('admin/Enum/');
+
+
         Route::post('logout', 'Login/logout')->name("退出登录")->option(["description"=>"退出登录"]);
         // 首页
         Route::get('base', 'My/getBaseInfo')->name("获取基础信息")->option(["description"=>"获取头像昵称等基础数据"]);
@@ -50,6 +64,40 @@ Route::group('adminapi', function () {
     })->middleware([AuthCheck::class]);
     // 需要登录同时需要权限验证
     Route::group(function () {
+
+
+        Route::group('config_form', function () {
+//            配置操作
+            Route::get('index', 'getForm')->name("获取配置表单")->option(["description"=>"获取所有配置分组及对应配置项，用于前端多Tab展示"]);
+            Route::post('save', 'saveByGroup')->name("分组批量保存")->option(["description"=>"按分组批量保存配置项值（多Tab页提交）"]);
+            Route::post('refresh_cache', 'refreshCache')->name("刷新配置缓存")->option(["description"=>"手动刷新系统配置缓存"]);
+
+
+        })->prefix("admin/ConfigForm/");
+
+
+// 系统配置路由组
+        Route::group('config', function () {
+//            配置项本身的维护
+            Route::get('index', 'index')->name("配置列表")->option(["description"=>"获取配置项列表"]);
+            Route::post('create', 'create')->name("新增配置项")->option(["description"=>"新增单个系统配置项（含指定分组）"]);
+            Route::get('read/:config_id', 'read')->name("配置项详情")->option(["description"=>"获取单个配置项详情，用于编辑页回显"]);
+            Route::put('update/:config_id', 'update')->name("更新配置项")->option(["description"=>"编辑配置项（支持修改分组/移动分组）"]);
+            Route::delete('delete/:config_id', 'delete')->name("删除配置项")->option(["description"=>"删除指定系统配置项"]);
+            Route::delete('batch_delete', 'batchDelete')->name("批量删除配置项")->option(["description"=>"批量删除选中的系统配置项"]);
+        })->prefix("admin/Config/");
+
+
+// 系统配置路由组
+        Route::group('config_group', function () {
+            Route::get('index', 'index')->name("配置分组列表")->option(["description"=>"获取配置分组列表"]);
+            Route::post('create', 'create')->name("新增配置分组")->option(["description"=>"新增单个分组"]);
+            Route::get('read/:group_id', 'read')->name("配置分组详情")->option(["description"=>"获取配置分组详情"]);
+            Route::put('update/:group_id', 'update')->name("更新配置分组")->option(["description"=>"编辑配置分组"]);
+            Route::delete('delete/:group_id', 'delete')->name("删除配置分组")->option(["description"=>"删除指定系统配置分组"]);
+        })->prefix("admin/ConfigGroup/");
+
+
 
         // 定时任务路由组
         Route::group('task', function () {

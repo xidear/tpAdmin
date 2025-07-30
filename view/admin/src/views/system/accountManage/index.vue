@@ -507,16 +507,15 @@ const beforeAvatarUpload = (file: File) => {
 const columns = reactive<ColumnProps[]>([
   { type: "selection", fixed: "left", width: 70 },
   { type: "sort", label: "排序", width: 80 },
-  { prop: "username", label: "用户名", search: { el: "input" }, width: 150 },
-  { prop: "real_name", label: "真实姓名", search: { el: "input" }, width: 120 },
-  { prop: "nick_name", label: "昵称", width: 120 },
+  { prop: "username", label: "用户名", search: { el: "input" } },
+  { prop: "real_name", label: "真实姓名", search: { el: "input" }},
+  { prop: "nick_name", label: "昵称"},
   {
     prop: "avatar",
     label: "头像",
-    width: 100,
-    custom: true
+    width: 100
   },
-  { prop: "status", label: "状态", width: 100, custom: true },
+  { prop: "status", label: "状态", width: 100 },
   {
     prop: "created_at",
     label: "创建时间",
@@ -529,7 +528,7 @@ const columns = reactive<ColumnProps[]>([
     width: 130,
     formatter: (row) => new Date(row.updated_at).toLocaleString()
   },
-  { prop: "operation", label: "操作", fixed: "right", width: 240 }
+  { prop: "operation", label: "操作", fixed: "right", width: 300 }
 ]);
 
 // 打开详情弹窗

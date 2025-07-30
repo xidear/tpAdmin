@@ -19,11 +19,42 @@ class Create extends BaseRequest
             'is_full' => 'in:1,2',
             'is_affix' => 'in:1,2',
             'is_keep_alive' => 'in:1,2',
-            'component' => 'requireIf:is_link,2|max:255',
             'link_url' => 'requireIf:is_link,1|url|max:255',
-            'redirect' => 'max:255',
+            // component字段验证
+            'component' => [
+                'max:255',
+                function ($value, $data) {
+                    return $this->checkComponentOrRedirect($value, $data);
+                }
+            ],
+            // redirect字段也需要添加相同验证
+            'redirect' => [
+                'max:255',
+                function ($value, $data) {
+                    return $this->checkComponentOrRedirect($data['component'] ?? '', $data, $value);
+                }
+            ],
             'dependencies' => 'array|checkRequiredDependency',
         ];
+    }
+
+// 优化处理null值的问题，确保传给trim()的是字符串
+    private function checkComponentOrRedirect($component, $data, $redirect = null): true|string
+    {
+        if (isset($data['is_link']) && $data['is_link'] == 2) {
+            // 处理null值，转为字符串
+            $componentValue = trim((string)($component ?? ''));
+            $redirectValue = trim((string)($redirect ?? ($data['redirect'] ?? '')));
+
+            $hasComponent = !empty($componentValue);
+            $hasRedirect = !empty($redirectValue);
+
+            // 同时存在或同时为空都不符合要求
+            if (($hasComponent && $hasRedirect) || (!$hasComponent && !$hasRedirect)) {
+                return '内部路由必须且只能填写文件路径（component）或重定向路径（redirect）中的一个';
+            }
+        }
+        return true;
     }
 
     public function message(): array
@@ -57,7 +88,6 @@ class Create extends BaseRequest
             'is_affix.in' => '是否固定只能是1(是)或2(否)',
             'is_keep_alive.in' => '是否缓存只能是1(是)或2(否)',
 
-            'component.requireIf' => '内部路由必须填写文件路径',
             'component.max' => '文件路径最多255个字符',
 
             'link_url.requireIf' => '外部链接必须填写URL地址',

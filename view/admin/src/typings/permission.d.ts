@@ -15,7 +15,6 @@ declare namespace Permission {
     total: number;
     per_page: number;
     current_page: number;
-    last_page: number;
-    data: PermissionOptions[];
+    list: PermissionOptions[];
   }
 }

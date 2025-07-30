@@ -1216,10 +1216,10 @@ const proTable = ref();
 const columns: ColumnProps[] = [
   { prop: "title", label: "菜单标题", align: "left", width: 200 },
   { prop: "icon", label: "菜单图标", width: 150 },
-  { prop: "name", label: "前端标识", width: 200 },
-  { prop: "path", label: "路由路径", width: 300 }, // 显示后端生成的路径
-  { prop: "component", label: "实际位置", width: 300 },
-  { prop: "operation", label: "操作", width: 250, fixed: "right" }
+  { prop: "name", label: "前端标识"  },
+  { prop: "path", label: "路由路径"  }, // 显示后端生成的路径
+  { prop: "component", label: "实际位置"  },
+  { prop: "operation", label: "操作", width: 300, fixed: "right" }
 ];
 </script>
 

@@ -789,8 +789,7 @@ const columns = reactive<ColumnProps[]>([
       el: "select",
       props: { filterable: true }
     },
-    width: 120,
-    custom: true
+    width: 120
   },
   {
     prop: "platform",
@@ -804,8 +803,7 @@ const columns = reactive<ColumnProps[]>([
       el: "select",
       props: { filterable: true }
     },
-    width: 120,
-    custom: true
+    width: 120
   },
   {
     prop: "schedule",
@@ -824,8 +822,7 @@ const columns = reactive<ColumnProps[]>([
       el: "select",
       props: { filterable: true }
     },
-    width: 100,
-    custom: true
+    width: 100
   },
   {
     prop: "last_exec_time",

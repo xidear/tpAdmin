@@ -188,32 +188,19 @@ const formatDate = (dateString: string | undefined) => {
 
 // 表格列配置
 const columns = reactive<ColumnProps[]>([
-  { prop: "node", label: "权限节点", search: { el: "input" }, width: 200 },
-  { prop: "name", label: "权限名称", search: { el: "input" }, width: 150 },
-  { prop: "rule", label: "路由规则", search: { el: "input" }, width: 250 },
-  { prop: "description", label: "权限描述", width: 200 },
+  { prop: "node", label: "权限节点", search: { el: "input" }},
+  { prop: "name", label: "权限名称", search: { el: "input" }  },
+  { prop: "rule", label: "路由规则", search: { el: "input" }  },
   {
     prop: "method",
     label: "请求方法",
     width: 100,
-    custom: true,
     formatter: (row) => row.method?.toUpperCase() || "N/A"
   },
-  { prop: "need_login", label: "是否需要登录", width: 120, custom: true },
-  { prop: "need_permission", label: "是否需要权限验证", width: 150, custom: true },
-  {
-    prop: "created_at",
-    label: "创建时间",
-    width: 130,
-    formatter: (row) => formatDate(row.created_at)
-  },
-  {
-    prop: "updated_at",
-    label: "更新时间",
-    width: 130,
-    formatter: (row) => formatDate(row.updated_at)
-  },
-  { prop: "operation", label: "操作", fixed: "right", width: 100, custom: true }
+  { prop: "need_login", label: "是否需要登录", width: 120},
+  { prop: "need_permission", label: "是否需要权限验证", width: 150 },
+
+  { prop: "operation", label: "操作", fixed: "right", width: 100 }
 ]);
 </script>
 

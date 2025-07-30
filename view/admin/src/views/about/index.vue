@@ -3,10 +3,8 @@
     <div class="card mb10">
       <h4 class="title">简介</h4>
       <span class="text">
-        <el-link type="primary" href="https://docs.spicyboy.cn" target="_blank">Geeker-Admin</el-link>
-        一款基于 Vue3.4、TypeScript、Vite5、Pinia、Element-Plus 开源的后台管理框架，使用目前最新技术栈开发。项目提供强大的
-        <el-link type="primary" href="https://juejin.cn/post/7166068828202336263" target="_blank">ProTable 组件</el-link>
-        在一定程度上提高您的开发效率。另外本项目还封装了一些常用组件、Hooks、指令、动态路由、按钮级别权限控制等功能。
+        <el-link type="primary" href="https://www.binnarui.com" target="_blank">tpAdmin</el-link>
+        一款基于ThinkPhp8.1、Vue3.4、TypeScript、Vite5、Pinia、Element-Plus 开源的后台管理框架，使用目前最新技术栈开发。
       </span>
     </div>
     <div class="card mb10">
@@ -19,21 +17,41 @@
           <el-tag>{{ lastBuildTime }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="Gitee" label-align="left">
-          <el-link type="primary" href="https://gitee.com/HalseySpicy/Geeker-Admin" target="_blank"> Gitee </el-link>
+          <el-link type="primary" href="https://gitee.com/xidear/tp_admin" target="_blank"> Gitee </el-link>
         </el-descriptions-item>
         <el-descriptions-item label="Github" label-align="left">
-          <el-link type="primary" href="https://github.com/HalseySpicy/Geeker-Admin" target="_blank"> Github </el-link>
-        </el-descriptions-item>
-        <el-descriptions-item label="文档地址" label-align="left">
-          <el-link type="primary" href="https://docs.spicyboy.cn" target="_blank"> 文档地址 </el-link>
-        </el-descriptions-item>
-        <el-descriptions-item label="预览地址" label-align="left">
-          <el-link type="primary" href="https://admin.spicyboy.cn" target="_blank"> 预览地址 </el-link>
+          <el-link type="primary" href="https://github.com/xidear/tpAdmin" target="_blank"> Github </el-link>
         </el-descriptions-item>
       </el-descriptions>
     </div>
     <div class="card mb10">
-      <h4 class="title">生产环境依赖</h4>
+      <h4 class="title">后端环境依赖</h4>
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="PHP版本" label-align="left">
+          <el-tag type="success">≥ 8.3</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="MySQL版本" label-align="left">
+          <el-tag type="success">≥ 8.0</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="Web服务器" label-align="left">
+          <el-tag type="info">Nginx / Apache</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="PHP扩展" label-align="left">
+          <el-tag type="info">PDO、OpenSSL、Mbstring</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="URL重写" label-align="left">
+          <el-tag type="warning">开启pathinfo</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="Composer" label-align="left">
+          <el-tag type="info">≥ 2.0</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="Redis" label-align="left">
+          <el-tag type="info">可选（用于消息推送）</el-tag>
+        </el-descriptions-item>
+      </el-descriptions>
+    </div>
+    <div class="card mb10">
+      <h4 class="title">前端生产环境依赖</h4>
       <el-descriptions :column="3" border>
         <el-descriptions-item v-for="(value, key) in dependencies" :key="key" width="400px" :label="key">
           <el-tag type="info">
@@ -43,7 +61,7 @@
       </el-descriptions>
     </div>
     <div class="card">
-      <h4 class="title">开发环境依赖</h4>
+      <h4 class="title">前端开发环境依赖</h4>
       <el-descriptions :column="3" border>
         <el-descriptions-item v-for="(value, key) in devDependencies" :key="key" width="400px" :label="key">
           <el-tag type="info">

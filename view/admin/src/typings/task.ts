@@ -1,12 +1,4 @@
-/**
- * 基础响应结构
- */
-export interface BaseResponse<T = any> {
-  code: number;
-  msg: string;
-  data: T;
-}
-
+import type{BaseResponse} from "@/typings/global";
 /**
  * 选项项结构
  */
@@ -80,9 +72,8 @@ export interface TaskLogItem {
 export interface TaskLogListResponse {
   list: TaskLogItem[];
   total: number;
-  page: number;
-  limit: number;
-  pages: number;
+  per_page: number;
+  current_page: number;
 }
 
 /**
