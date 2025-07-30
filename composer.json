@@ -31,7 +31,8 @@
         "ext-redis": "*",
         "topthink/think-queue": "^3.0",
         "guzzlehttp/guzzle": "^7.9",
-        "dragonmantank/cron-expression": "^3.4"
+        "dragonmantank/cron-expression": "^3.4",
+      "ext-ctype": "*"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",

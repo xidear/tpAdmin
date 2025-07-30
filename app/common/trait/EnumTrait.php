@@ -6,7 +6,15 @@ namespace app\common\trait;
 
 trait EnumTrait
 {
-
+    /**
+     * 验证值是否为合法的配置类型
+     * @param int $value 枚举值
+     * @return bool 合法返回true，否则false
+     */
+    public static function isValidValue(int $value): bool
+    {
+        return self::tryFrom($value) !== null;
+    }
 
     /**
      * 获取关联数组
