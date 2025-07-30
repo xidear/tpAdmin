@@ -22,7 +22,13 @@ export interface SystemLogItem {
   execution_time: number;
   created_at: string;
   // 扩展字段 - 从后端append获取
-  ua?: string;
+  ua: {
+    browser:string;
+    os:string;
+    device:string;
+    browser_version:string;
+    os_version:string;
+  };
 }
 
 // 系统日志列表响应

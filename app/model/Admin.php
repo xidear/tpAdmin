@@ -49,7 +49,7 @@ class Admin extends BaseModel
         $cacheKey = 'admin_info_' . $adminId;
         $admin = Cache::get($cacheKey);
 
-        if (!$admin) {
+        if (empty($admin)) {
 
             // 缓存未命中，从数据库获取
             $admin = (new Admin)->findOrEmpty($adminId);

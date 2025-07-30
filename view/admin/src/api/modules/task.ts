@@ -1,4 +1,5 @@
 import { PORT1 } from "@/api/config/servicePort";
+import type{BaseResponse} from "@/typings/global";
 import http from "@/api";
 import type {
   TaskItem,
@@ -6,8 +7,7 @@ import type {
   TaskDetailResponse,
   TaskLogItem,
   TaskLogListResponse,
-  OptionItem,
-  BaseResponse
+  OptionItem
 } from "@/typings/task";
 
 // 任务类型枚举

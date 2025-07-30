@@ -4,7 +4,7 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
-use app\common\enum\YesOrNo;
+use app\common\enum\Status;
 use app\model\Admin as AdminModel;
 use app\request\admin\admin\BatchDelete;
 use app\request\admin\admin\Create;
@@ -23,19 +23,18 @@ class Admin extends BaseController
     public function index(): Response
     {
 
-        $conditions=[];
+        $conditions = [];
         // 新增：处理 keyword 参数，转换为 name 字段的模糊查询条件
 
-        if (request()->has('keyword', 'get',true)) {
-            $conditions[] =  ['username|real_name|nick_name', 'like', "%".request()->get('keyword')."%"];
+        if (request()->has('keyword', 'get', true)) {
+            $conditions[] = ['username|real_name|nick_name', 'like', "%" . request()->get('keyword') . "%"];
         }
 
-        if (request()->has('not_super', 'get',true)&& request()->get('not_super')==1) {
-            $conditions[] =  ['admin_id', '<>', (new  AdminModel())->getSuperAdminId()];
+        if (request()->has('not_super', 'get', true) && request()->get('not_super') == 1) {
+            $conditions[] = ['admin_id', '<>', (new  AdminModel())->getSuperAdminId()];
         }
 
         $list = (new AdminModel())->fetchData($conditions);
-
 
 
         return $this->success($list);
@@ -72,10 +71,22 @@ class Admin extends BaseController
     public function update($admin_id, Edit $edit): Response
     {
         $params = $this->request->param();
+
         $info = (new AdminModel())->fetchOne($admin_id);
         if ($info->isEmpty()) {
             return $this->error("未找到指定数据");
         }
+
+        if ($params['status'] == Status::Disabled->value) {
+            if ($info->getKey() == request()->adminId) {
+                return $this->error("不能禁用自己");
+            }
+            if ($info->isSuper()) {
+                return $this->error("不能禁用超级管理员");
+
+            }
+        }
+
 //        这里需要更新角色关联表
         if ($info->intelligentUpdate($params)) {
             // 更新成功后清除缓存
@@ -112,9 +123,9 @@ class Admin extends BaseController
      * @param Delete $delete
      * @return Response
      */
-    public function delete($admin_id,Delete $delete): Response
+    public function delete($admin_id, Delete $delete): Response
     {
-        $ids=[$admin_id];
+        $ids = [$admin_id];
         $model = new AdminModel();
         if (in_array($model->getSuperAdminId(), $ids)) {
             return $this->error("超级管理员禁止删除");
