@@ -22,7 +22,15 @@ class ConfigGroup extends BaseController
      */
     public function index(): Response
     {
-        $configGroups = (new SystemConfigGroup())->fetchData(config: [
+
+
+        $conditions = [];
+        $params = $this->request->param();
+        if (!empty($params['group_name'])) {
+            $conditions[] = ["group_name", "like", "%" . $params['group_name'] . "%"];
+        }
+
+        $configGroups = (new SystemConfigGroup())->fetchData($conditions,config: [
             'orderBy' => "sort",
             'orderDir' => 'desc'
         ]);

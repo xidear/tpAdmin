@@ -81,9 +81,9 @@ Route::group('adminapi', function () {
 //            配置项本身的维护
             Route::get('index', 'index')->name("配置列表")->option(["description"=>"获取配置项列表"]);
             Route::post('create', 'create')->name("新增配置项")->option(["description"=>"新增单个系统配置项（含指定分组）"]);
-            Route::get('read/:config_id', 'read')->name("配置项详情")->option(["description"=>"获取单个配置项详情，用于编辑页回显"]);
-            Route::put('update/:config_id', 'update')->name("更新配置项")->option(["description"=>"编辑配置项（支持修改分组/移动分组）"]);
-            Route::delete('delete/:config_id', 'delete')->name("删除配置项")->option(["description"=>"删除指定系统配置项"]);
+            Route::get('read/:system_config_id', 'read')->name("配置项详情")->option(["description"=>"获取单个配置项详情，用于编辑页回显"]);
+            Route::put('update/:system_config_id', 'update')->name("更新配置项")->option(["description"=>"编辑配置项（支持修改分组/移动分组）"]);
+            Route::delete('delete/:system_config_id', 'delete')->name("删除配置项")->option(["description"=>"删除指定系统配置项"]);
             Route::delete('batch_delete', 'batchDelete')->name("批量删除配置项")->option(["description"=>"批量删除选中的系统配置项"]);
         })->prefix("admin/Config/");
 

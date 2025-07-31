@@ -126,8 +126,8 @@
 
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="adminForm.status">
-            <el-radio :label="1">启用</el-radio>
-            <el-radio :label="2">禁用</el-radio>
+            <el-radio :value="1">启用</el-radio>
+            <el-radio :value="2">禁用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>

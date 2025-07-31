@@ -262,8 +262,8 @@
             v-model="menuForm.visible"
             :disabled="mode === 'view'"
           >
-            <el-radio :label="1">显示</el-radio>
-            <el-radio :label="2">隐藏</el-radio>
+            <el-radio :value="1">显示</el-radio>
+            <el-radio :value="2">隐藏</el-radio>
           </el-radio-group>
         </el-form-item>
 
@@ -273,8 +273,8 @@
             v-model="menuForm.is_affix"
             :disabled="mode === 'view'"
           >
-            <el-radio :label="1">是</el-radio>
-            <el-radio :label="2">否</el-radio>
+            <el-radio :value="1">是</el-radio>
+            <el-radio :value="2">否</el-radio>
           </el-radio-group>
         </el-form-item>
 
@@ -284,8 +284,8 @@
             v-model="menuForm.is_keep_alive"
             :disabled="mode === 'view'"
           >
-            <el-radio :label="1">是</el-radio>
-            <el-radio :label="2">否</el-radio>
+            <el-radio :value="1">是</el-radio>
+            <el-radio :value="2">否</el-radio>
           </el-radio-group>
         </el-form-item>
 

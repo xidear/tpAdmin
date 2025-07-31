@@ -39,7 +39,15 @@ export type SearchRenderScope = {
 export type SearchProps = {
   el?: SearchType; // 当前项搜索框的类型
   label?: string; // 当前项搜索框的 label
-  props?: any; // 搜索项参数，根据 element plus 官方文档来传递，该属性所有值会透传到组件
+  props?: {
+    // 搜索项参数，根据 element plus 官方文档来传递，该属性所有值会透传到组件
+    // Select 远程搜索相关属性
+    remote?: boolean; // 是否启用远程搜索
+    loading?: boolean; // 远程加载状态
+    // 其他Select原生属性（如filterable、clearable等）
+    filterable?: boolean; // 支持输入过滤（远程搜索通常需要开启）
+    [key: string]: any; // 保留原有any类型兼容其他属性
+  };
   key?: string; // 当搜索项 key 不为 prop 属性时，可通过 key 指定
   tooltip?: string; // 搜索提示
   order?: number; // 搜索项排序（从大到小）
@@ -47,6 +55,8 @@ export type SearchProps = {
   offset?: number; // 搜索字段左侧偏移列数
   defaultValue?: string | number | boolean | any[] | Ref<any>; // 搜索项默认值
   render?: (scope: SearchRenderScope) => VNode; // 自定义搜索内容渲染（tsx语法）
+  // 远程搜索方法：参数为输入的关键词，返回Promise
+  remoteMethod?: (query: string) => Promise<any[]>;
 } & Partial<Record<BreakPoint, Responsive>>;
 
 export type FieldNamesProps = {
@@ -70,6 +80,7 @@ export type HeaderRenderScope<T> = {
 
 export interface ColumnProps<T = any>
   extends Partial<Omit<TableColumnCtx<T>, "type" | "children" | "renderCell" | "renderHeader">> {
+  prop: string; // 补充字段名定义
   type?: TypeProps; // 列类型
   tag?: boolean | Ref<boolean>; // 是否是标签展示
   isShow?: boolean | Ref<boolean>; // 是否显示在表格当中

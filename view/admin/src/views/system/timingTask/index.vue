@@ -135,7 +135,7 @@
         <el-table-column prop="operation" label="操作" width="120">
           <template #default="scope">
             <el-button
-              type="text"
+              type="primary"
               size="small"
               @click="showLogDetail(scope.row)"
             >
@@ -289,8 +289,8 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="taskForm.status">
-            <el-radio :label="TaskStatus.ENABLED">启用</el-radio>
-            <el-radio :label="TaskStatus.DISABLED">禁用</el-radio>
+            <el-radio :value="TaskStatus.ENABLED">启用</el-radio>
+            <el-radio :value="TaskStatus.DISABLED">禁用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
