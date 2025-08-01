@@ -15,3 +15,11 @@ if (!function_exists('debug')) {
         die();
     }
 }
+
+
+if (!function_exists('sys_config')) {
+    function sys_config($key,$defaultValue): mixed
+    {
+        return \app\model\SystemConfig::getCacheValue($key,$defaultValue);
+    }
+}

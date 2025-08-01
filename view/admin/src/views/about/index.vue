@@ -46,7 +46,7 @@
           <el-tag type="info">≥ 2.0</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="Redis" label-align="left">
-          <el-tag type="info">可选（用于消息推送）</el-tag>
+          <el-tag type="info">≥ 3.0</el-tag>
         </el-descriptions-item>
       </el-descriptions>
     </div>

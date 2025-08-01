@@ -3,7 +3,6 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
-use app\common\enum\ConfigGroup;
 use app\model\SystemConfig;
 use app\request\admin\config\CreateConfig;
 use app\request\admin\config\UpdateConfig;

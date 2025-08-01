@@ -1,10 +1,8 @@
-import { Upload } from "@/api/interface/index";
+import { Upload } from "@/api/interface";
 import { PORT1 } from "@/api/config/servicePort";
 import http from "@/api";
 
-/**
- * @name 文件上传模块
- */
+
 // 图片上传
 export const uploadImg = (params: FormData) => {
   return http.post<Upload.ResFileUrl>(PORT1 + `/upload/image`, params, { cancel: false });

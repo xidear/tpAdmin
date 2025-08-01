@@ -31,8 +31,9 @@ class SystemConfig extends BaseModel
      * 从缓存获取配置值
      * @param string $key 配置键名
      * @param mixed|null $default 默认值
+     * @return mixed
      */
-    public static function getCacheValue(string $key, mixed $default = null): array
+    public static function getCacheValue(string $key, mixed $default = null): mixed
     {
         $cache = cache('system_config');
         if (empty($cache)) {
