@@ -197,7 +197,7 @@
       width="600px"
       :close-on-click-modal="false"
     >
-      <el-descriptions column="1" border v-if="Object.keys(detailData).length">
+      <el-descriptions :column="1" border v-if="Object.keys(detailData).length">
         <el-descriptions-item label="配置ID">{{ detailData.system_config_id }}</el-descriptions-item>
         <el-descriptions-item label="配置键名">{{ detailData.config_key }}</el-descriptions-item>
         <el-descriptions-item label="配置名称">{{ detailData.config_name }}</el-descriptions-item>
@@ -210,7 +210,14 @@
             {{ getEnumLabelByValue('ConfigType', detailData.config_type) || '未知类型' }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="配置值">{{ detailData.config_value }}</el-descriptions-item>
+        <!-- 替换原来的配置值展示行 -->
+        <el-descriptions-item label="配置值">
+          <ConfigValueDisplay
+            :type="detailData.config_type"
+            :value="detailData.config_value"
+            :options="detailData.options"
+          />
+        </el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag
             :type="detailData.is_enabled === yesValue ? 'success' : 'danger'"
@@ -242,6 +249,13 @@
 </template>
 
 <script setup lang="ts">
+// 如果是 JavaScript 项目
+// 如果是 TypeScript 项目
+import { version } from 'vue';
+console.log('Vue 版本号：', version);
+
+
+
 import {useAuthButtons} from "@/hooks/useAuthButtons";
 import {computed, onMounted, reactive, ref, watch} from "vue";
 import {ElMessage, ElMessageBox, type FormInstance} from "element-plus";
@@ -262,6 +276,7 @@ import {getListApi as getConfigGroupsApi} from "@/api/modules/configGroup";
 import type {Config} from "@/typings/config";
 import type {EnumDict, EnumItem} from "@/typings/enum";
 import RemoteSelect from "@/components/ProTable/components/RemoteSelect.vue";
+import ConfigValueDisplay from "@/views/system/systemConfig/components/ConfigValueDisplay.vue";
 
 const { BUTTONS } = useAuthButtons();
 
@@ -407,6 +422,7 @@ const loadBaseData = async () => {
 
     // 3. 初始化表单默认值（基于获取到的枚举）
     if (enumData.value.ConfigType.length) {
+
       formData.value.config_type = enumData.value.ConfigType[0].value;
     }
     if (enumData.value.YesOrNo.length) {
@@ -457,54 +473,6 @@ const handleFormGroupRemoteSearch = async (params: string) => {
   return fetchConfigGroups(params.query, params.page,params.pageSize);
 };
 
-// const getUsers = async ({ query, page, pageSize }) => {
-//   const res = await api.user.list({ keyword: query, page, limit: pageSize })
-//   return {
-//     list: res.data.list,
-//     total: res.data.total
-//   }
-// }
-
-
-// 表单配置分组远程搜索
-// const handleTableGroupRemoteSearch = async (query: string, page: number, list_rows: number) => {
-//   try {
-//     // 严格按照后端要求传递参数
-//     const res = await getConfigGroupsApi({
-//       page,
-//       list_rows,  // 直接使用后端参数名
-//       keyword: query
-//     });
-//     return {
-//       list: res.data?.list.map((group: any) => ({
-//         label: group.group_name,
-//         value: group.system_config_group_id
-//       })),
-//       total: res.data?.total || 0  // 关键：返回总条数用于判断是否有更多数据
-//     };
-//   } catch (error) {
-//     console.error("配置分组搜索失败:", error);
-//     return { list: [], total: 0 };
-//   }
-// };
-//
-// // 2. 表单中的配置分组搜索
-// const handleFormGroupRemoteSearch = async (query: string, page: number, list_rows: number) => {
-//   try {
-//     const res = await getConfigGroupsApi({
-//       page,
-//       list_rows,  // 传递分页参数
-//       keyword: query
-//     });
-//     return {
-//       list: res.data?.list || [],
-//       total: res.data?.total || 0
-//     };
-//   } catch (error) {
-//     console.error("表单配置分组搜索失败:", error);
-//     return { list: [], total: 0 };
-//   }
-// };
 // 判断是否为系统配置（基于YesOrNo枚举）
 const isSystemConfig = (config: Partial<Config.ConfigOptions>) => {
   return config.is_system === yesValue.value;
