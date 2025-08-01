@@ -21,7 +21,6 @@
         >
           新增配置项
         </el-button>
-
       </template>
 
       <!-- 操作列 -->
@@ -145,13 +144,13 @@
           </el-select>
         </el-form-item>
 
-
-
-        <!-- 下拉选择的选项配置 -->
-        <el-form-item label="选项配置" prop="options" v-if="isConfigType(formData.config_type, '下拉选择')">
+        <!-- 选项配置（扩展支持多种类型） -->
+        <el-form-item label="选项配置" prop="options" v-if="needsOptions(formData.config_type)">
           <el-input
             v-model="optionsText"
             placeholder="请输入选项配置，格式：label:value;label2:value2"
+            type="textarea"
+            :rows="4"
           />
           <el-text type="info" size="small" class="mt-1">
             例如: 开启:1;关闭:2
@@ -210,7 +209,6 @@
             {{ getEnumLabelByValue('ConfigType', detailData.config_type) || '未知类型' }}
           </el-tag>
         </el-descriptions-item>
-        <!-- 替换原来的配置值展示行 -->
         <el-descriptions-item label="配置值">
           <ConfigValueDisplay
             :type="detailData.config_type"
@@ -249,36 +247,32 @@
 </template>
 
 <script setup lang="ts">
-// 如果是 JavaScript 项目
-// 如果是 TypeScript 项目
 import { version } from 'vue';
 console.log('Vue 版本号：', version);
 
-
-
-import {useAuthButtons} from "@/hooks/useAuthButtons";
-import {computed, onMounted, reactive, ref, watch} from "vue";
-import {ElMessage, ElMessageBox, type FormInstance} from "element-plus";
+import { useAuthButtons } from "@/hooks/useAuthButtons";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { ElMessage, ElMessageBox, type FormInstance } from "element-plus";
 import ProTable from "@/components/ProTable/index.vue";
-import {ColumnProps} from "@/components/ProTable/interface";
-import {Delete, Edit, Plus, View} from "@element-plus/icons-vue";
+import { ColumnProps } from "@/components/ProTable/interface";
+import { Delete, Edit, Plus, View } from "@element-plus/icons-vue";
 
 // 导入配置项API
-import {createConfigApi, deleteConfigApi, getConfigDetailApi, getConfigListApi, updateConfigApi} from "@/api/modules/config";
+import { createConfigApi, deleteConfigApi, getConfigDetailApi, getConfigListApi, updateConfigApi } from "@/api/modules/config";
 
-// 导入枚举API（严格使用提供的接口）
-import {clearEnumCache, getBatchEnumDataApi, getEnumLabelByValue} from "@/api/modules/enum";
+// 导入枚举API
+import { clearEnumCache, getBatchEnumDataApi, getEnumLabelByValue } from "@/api/modules/enum";
 
-// 导入配置分组API（直接使用分组模块的接口）
-import {getListApi as getConfigGroupsApi} from "@/api/modules/configGroup";
+// 导入配置分组API
+import { getListApi as getConfigGroupsApi } from "@/api/modules/configGroup";
 
 // 导入类型
-import type {Config} from "@/typings/config";
-import type {EnumDict, EnumItem} from "@/typings/enum";
+import type { Config } from "@/typings/config";
+import type { EnumDict, EnumItem } from "@/typings/enum";
 import RemoteSelect from "@/components/ProTable/components/RemoteSelect.vue";
 import ConfigValueDisplay from "@/views/system/systemConfig/components/ConfigValueDisplay.vue";
 
-const { BUTTONS } = useAuthButtons();
+const { BUTTONS, vAuth } = useAuthButtons();
 
 // 表格实例
 const proTable = ref<InstanceType<typeof ProTable>>();
@@ -294,6 +288,7 @@ const detailVisible = ref(false);
 const dialogTitle = ref("新增配置项");
 const isEdit = ref(false);
 const configForm = ref<FormInstance>();
+
 // 表单数据
 const formData = ref<Partial<Config.ConfigOptions & Config.ConfigFormData>>({
   config_key: "",
@@ -310,7 +305,7 @@ const formData = ref<Partial<Config.ConfigOptions & Config.ConfigFormData>>({
 // 选项文本（用于编辑时的转换）
 const optionsText = ref("");
 
-// 从后端获取的枚举数据（仅包含需要的枚举）
+// 从后端获取的枚举数据
 const enumData = ref<EnumDict>({
   ConfigType: [], // 配置类型枚举
   YesOrNo: []     // 是/否枚举
@@ -326,7 +321,7 @@ const formGroupLoading = ref(false);
 // 详情数据
 const detailData = ref<Config.ConfigOptions>({} as Config.ConfigOptions);
 
-// 枚举标签类型映射（用于显示不同样式的标签）
+// 枚举标签类型映射
 const enumTagTypeMap = {
   1: "primary",
   2: "success",
@@ -359,7 +354,7 @@ const formRules = reactive({
   options: [
     {
       validator: (rule: any, value: any, callback: any) => {
-        if (isConfigType(formData.value.config_type, '下拉选择')) {
+        if (needsOptions(formData.value.config_type)) {
           if (!optionsText.value) {
             return callback(new Error("请输入选项配置"));
           }
@@ -388,9 +383,6 @@ const formRules = reactive({
   ]
 });
 
-// 根据配置类型动态生成配置值的验证规则
-
-
 // 数据处理回调
 const dataCallback = (res: any) => {
   const safeData = res || {};
@@ -410,19 +402,18 @@ const loadBaseData = async () => {
   try {
     pageLoading.value = true;
 
-    // 1. 批量获取所需枚举（通过接口获取，不自定义枚举）
+    // 1. 批量获取所需枚举
     enumData.value = await getBatchEnumDataApi(['ConfigType', 'YesOrNo']);
 
-    // 2. 初始化配置分组（仅加载第一页用于初始显示）
+    // 2. 初始化配置分组
     const groupRes = await getConfigGroupsApi({ page: 1, list_rows: 15 });
     if (groupRes.data?.list) {
       configGroups.value = groupRes.data.list;
       formConfigGroups.value = groupRes.data.list;
     }
 
-    // 3. 初始化表单默认值（基于获取到的枚举）
+    // 3. 初始化表单默认值
     if (enumData.value.ConfigType.length) {
-
       formData.value.config_type = enumData.value.ConfigType[0].value;
     }
     if (enumData.value.YesOrNo.length) {
@@ -457,7 +448,6 @@ const fetchConfigGroups = async (query: string, page: number, list_rows: number)
 // 表格筛选使用
 const handleTableGroupRemoteSearch = async (query: string, page: number, list_rows: number) => {
   const result = await fetchConfigGroups(query, page, list_rows);
-  // 表格筛选需要转换格式为label/value
   return {
     list: result.list.map((group: any) => ({
       label: group.group_name,
@@ -468,23 +458,32 @@ const handleTableGroupRemoteSearch = async (query: string, page: number, list_ro
 };
 
 // 表单搜索使用
-const handleFormGroupRemoteSearch = async (params: string) => {
-  // 表单直接使用原始数据格式
-  return fetchConfigGroups(params.query, params.page,params.pageSize);
+const handleFormGroupRemoteSearch = async (params: any) => {
+  return fetchConfigGroups(params.query, params.page, params.pageSize);
 };
 
-// 判断是否为系统配置（基于YesOrNo枚举）
+// 判断是否为系统配置
 const isSystemConfig = (config: Partial<Config.ConfigOptions>) => {
   return config.is_system === yesValue.value;
 };
 
-// 判断配置类型是否匹配指定的label（基于ConfigType枚举）
+// 判断配置类型是否匹配指定的label
 const isConfigType = (configType: number | string | undefined, label: string) => {
   if (!configType || !enumData.value.ConfigType.length) return false;
   return enumData.value.ConfigType.some(item => item.value === configType && item.label === label);
 };
 
-// 根据枚举值获取标签类型（用于显示不同样式）
+const OPTION_NEEDED_VALUES = [10, 11, 12, 13, 14]; // 这里填写实际值
+
+// 判断是否需要选项配置（使用实际枚举值）
+const needsOptions = (configType: number | string | undefined) => {
+  if (configType === undefined) return false;
+  // 转换为数字进行比较（确保类型一致）
+  const typeValue = typeof configType === 'number' ? configType : Number(configType);
+  return !isNaN(typeValue) && OPTION_NEEDED_VALUES.includes(typeValue);
+};
+
+// 根据枚举值获取标签类型
 const getEnumTagType = (value: number | string, enumItems: EnumItem[]) => {
   const index = enumItems.findIndex(item => item.value === value);
   return enumTagTypeMap[(index % 5) + 1] || "info";
@@ -492,8 +491,7 @@ const getEnumTagType = (value: number | string, enumItems: EnumItem[]) => {
 
 // 处理配置类型变更
 const handleConfigTypeChange = () => {
-  // 当配置类型变为下拉选择时，初始化选项（使用YesOrNo枚举的"是/否"作为默认选项）
-  if (isConfigType(formData.value.config_type, '下拉选择') &&
+  if (needsOptions(formData.value.config_type) &&
     (!formData.value.options || !formData.value.options.length)) {
     const yesLabel = getEnumLabelByValue('YesOrNo', yesValue.value);
     const noLabel = getEnumLabelByValue('YesOrNo', noValue.value);
@@ -502,18 +500,17 @@ const handleConfigTypeChange = () => {
       { label: yesLabel, value: yesValue.value },
       { label: noLabel, value: noValue.value }
     ];
-  } else if (!isConfigType(formData.value.config_type, '下拉选择')) {
-    // 非下拉选择类型清空选项
+  } else if (!needsOptions(formData.value.config_type)) {
     formData.value.options = [];
     optionsText.value = "";
   }
 };
 
-// 监听选项文本变化（转换为EnumItem数组）
+// 监听选项文本变化
 watch(
   () => optionsText.value,
   (newVal) => {
-    if (isConfigType(formData.value.config_type, '下拉选择') && newVal) {
+    if (needsOptions(formData.value.config_type) && newVal) {
       try {
         formData.value.options = newVal.split(';').map(item => {
           const [label, value] = item.split(':');
@@ -544,7 +541,6 @@ const handleAdd = () => {
   optionsText.value = "";
   formConfigGroups.value = [];
   dialogVisible.value = true;
-  // 触发配置类型初始化
   handleConfigTypeChange();
 };
 
@@ -558,7 +554,7 @@ const handleEdit = async (row: Config.ConfigOptions) => {
     formData.value = { ...res.data };
 
     // 转换选项为文本格式
-    if (formData.value.options && formData.value.options.length) {
+    if (needsOptions(formData.value.config_type) && formData.value.options && formData.value.options.length) {
       optionsText.value = formData.value.options
         .map((opt: EnumItem) => `${opt.label}:${opt.value}`)
         .join(';');
@@ -616,17 +612,13 @@ const handleDelete = async (row: Config.ConfigOptions) => {
 
 // 提交表单
 const handleSubmit = async () => {
-
   if (!configForm.value) return;
-
 
   try {
     await configForm.value.validate();
 
-
     // 处理提交数据
     const submitData = { ...formData.value };
-    console.log(submitData);
     if (isEdit.value && submitData.system_config_id) {
       // 更新操作
       await updateConfigApi(submitData.system_config_id, submitData);
@@ -653,10 +645,8 @@ const handleSubmit = async () => {
 const refreshPage = async () => {
   try {
     pageLoading.value = true;
-    // 清除缓存并重新加载枚举和配置分组
     clearEnumCache();
     await loadBaseData();
-    // 刷新表格数据
     proTable.value?.getTableList();
   } catch (error) {
     console.error("刷新数据失败:", error);
@@ -675,16 +665,14 @@ const formatDate = (dateString: string | undefined) => {
   }
 };
 
-// "是/否"枚举值快捷访问（从后端获取的枚举中提取）
+// "是/否"枚举值快捷访问
 const yesValue = computed(() => {
-  // 查找label为"是"的枚举值
   const yesItem = enumData.value.YesOrNo.find(item => item.label === "是");
-  return yesItem?.value || 1; // 默认值仅作为 fallback
+  return yesItem?.value || 1;
 });
 const noValue = computed(() => {
-  // 查找label为"否"的枚举值
   const noItem = enumData.value.YesOrNo.find(item => item.label === "否");
-  return noItem?.value || 2; // 默认值仅作为 fallback
+  return noItem?.value || 2;
 });
 
 // 表格列配置
@@ -703,7 +691,7 @@ const columns = reactive<ColumnProps[]>([
     prop: "config_group.group_name",
     label: "配置分组",
     search: {
-      key: "system_config_group_id", // 新增：指定传递给后端的参数名
+      key: "system_config_group_id",
       el: "select",
       props: {
         remote: true,
