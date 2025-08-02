@@ -3,6 +3,7 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
+use app\common\enum\YesOrNo;
 use app\model\SystemConfig;
 use app\request\admin\config\CreateConfig;
 use app\request\admin\config\UpdateConfig;
@@ -130,4 +131,29 @@ class Config extends BaseController
 
         return $this->success($config);
     }
+
+
+    /**
+     * 获取单个配置项详情
+     * @param int $system_config_id
+     * @return Response
+     */
+    public function delete(int $system_config_id): Response
+    {
+        $config = (new SystemConfig)->fetchOne($system_config_id);
+        if ($config->isEmpty()) {
+            return $this->error("配置项不存在：{$system_config_id}");
+        }
+        if ($config->is_system==YesOrNo::Yes->value){
+            return $this->error("不允许删除");
+
+        }
+        if ($config->delete()) {
+            SystemConfig::refreshCache();
+            return $this->success();
+        }
+        return $this->error("删除失败");
+    }
+
+
 }
