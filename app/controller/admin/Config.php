@@ -82,6 +82,9 @@ class Config extends BaseController
             $data['created_by'] = $adminId;
         }
 
+        if (is_array($data['config_value'])){
+            $data['config_value'] = json_encode($data['config_value']);
+        }
         return $data;
     }
 

@@ -5,14 +5,15 @@ namespace app\model;
 use app\common\BaseModel;
 use app\common\enum\ConfigType;
 use app\common\enum\YesOrNo;
+use think\facade\Cache;
 use think\model\relation\BelongsTo;
-
 
 
 /**
  * @property int $config_type
  * @property array $rules
  * @property array $vue_rules
+ * @method static getConfigValueByConfigKey(string $key)
  */
 class SystemConfig extends BaseModel
 {
@@ -31,7 +32,6 @@ class SystemConfig extends BaseModel
         'is_enabled' => 'integer',
         'config_type' => 'integer',
         'is_system' => 'integer',
-        'config_value'=>"json",
     ];
 
     /**
@@ -44,7 +44,9 @@ class SystemConfig extends BaseModel
     {
         $cache = cache('system_config');
         if (empty($cache)) {
-            self::refreshCache();
+            if (!self::refreshCache()){
+                return self::getValue($key)?:$default;
+            }
             $cache = cache('system_config') ?: [];
         }
         return $cache[$key] ?? $default;
@@ -52,13 +54,17 @@ class SystemConfig extends BaseModel
 
     /**
      * 刷新配置缓存
-     * @return bool
      */
     public static function refreshCache(): bool
     {
-        $configs = (new SystemConfig)->where('is_enabled', YesOrNo::Yes->value)
-            ->column('config_value', 'config_key');
-        return cache('system_config', $configs) !== false;
+
+        $cacheTime=self::getValue("config_cache_time")??0;
+        if ($cacheTime>0){
+            $configs = (new SystemConfig)->where('is_enabled', YesOrNo::Yes->value)
+                ->column('config_value', 'config_key');
+           return  Cache::set("system_config",$configs,$cacheTime);
+        }
+        return  false;
     }
 
     /**
@@ -88,6 +94,11 @@ class SystemConfig extends BaseModel
         self::refreshCache();
     }
 
+    private static function getValue(string $key)
+    {
+        return self::getConfigValueByConfigKey($key);
+    }
+
     /**
      * 配置分组
      * @return BelongsTo
@@ -108,16 +119,16 @@ class SystemConfig extends BaseModel
 
     public function getVueRulesAttr(): array
     {
-        return $this->getVueRules($this->config_type,$this->rules);
+        return $this->getVueRules($this->config_type,$this->rules?:[]);
     }
 
     /**
      * 生成前端验证规则
      * @param int $type
-     * @param array $rules
+     * @param array|null $rules
      * @return array
      */
-    public function getVueRules(int $type,array $rules=[]): array
+    public function getVueRules(int $type,?array $rules=[]): array
     {
 
         if (empty($type)){

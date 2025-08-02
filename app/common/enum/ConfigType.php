@@ -176,17 +176,20 @@ enum ConfigType: int
      * @param mixed $value 待验证的值
      * @return bool 验证通过返回true，否则false
      */
-    public static function validateValue(int $type, mixed $value): bool
+    public static function validateValue(int $type, mixed $value,bool $allow=true): bool
     {
         $case = self::tryFrom($type);
         if (!$case) {
             return true; // 未知类型不验证
         }
 
+        if ($allow&& empty($value)){
+            return true;
+        }
         return match ($case) {
             // 1. 基础文本类（对应前端string类型验证）
             self::TEXT, self::PASSWORD, self::TEXTAREA, self::RICH_TEXT, self::MARKDOWN, self::CODE =>
-                is_string($value) || is_numeric($value) || is_null($value),
+             is_string($value) || is_numeric($value) || is_null($value),
 
             // 2. 数字类（对应前端number类型验证）
             self::NUMBER =>

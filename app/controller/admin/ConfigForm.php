@@ -7,9 +7,11 @@ use app\model\SystemConfig;
 use app\model\SystemConfigGroup;
 use app\common\enum\ConfigType;
 use app\common\enum\YesOrNo;
+use app\request\admin\config_form\SaveByGroup;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
+use think\facade\Cache;
 use think\Response;
 use think\Request;
 
@@ -40,11 +42,15 @@ class ConfigForm extends BaseController
             ];
 
             foreach ($group->configs as $config) {
+                $value=$config->config_value;
+                if (is_string($config->config_value)&&json_validate($config->config_value)){
+                    $value=json_decode($value,true);
+                }
                 $field = [
                     'key' => $config->config_key,
                     'label' => $config->config_name,
                     'type' => $config->config_type,
-                    'value' => $config->config_value,
+                    'value' => $value,
                     'options' => $config->options ?: [],
                     'required' => $config->is_system==YesOrNo::Yes->value, // 可根据需要扩展
                     'placeholder' => $config->remark ?: '',
@@ -65,29 +71,37 @@ class ConfigForm extends BaseController
 
     /**
      * 分组批量保存配置
-     * @param Request $request
+     * @param SaveByGroup $request
      * @return Response
      */
-    public function saveByGroup(Request $request): Response
+    public function saveByGroup(SaveByGroup $request): Response
     {
-        $data = $request->post();
+        $data= $request->put();
 
         if (empty($data)) {
             return $this->error('保存数据不能为空');
         }
+        $groupId = $data['group_id'];
+        $fields = $data['fields'];
 
+//        halt($data);
         try {
-            foreach ($data as $key => $value) {
-                $config = SystemConfig::where('config_key', $key)->find();
-                if (!$config) {
+            foreach ($fields as $key => $value) {
+                $config = (new \app\model\SystemConfig)->where('config_key', $key)->where("system_config_group_id",$groupId)->findOrEmpty();
+
+                if (!$config||$config->isEmpty()) {
                     continue;
                 }
 
+
                 // 验证数据类型
-                if (!ConfigType::validateValue($config->config_type, $value)) {
+                if (!ConfigType::validateValue($config->config_type, $value,$config->is_system!=YesOrNo::Yes->value)) {
                     return $this->error("配置项 {$config->config_name} 数据格式不正确");
                 }
-                $config->save();
+                if (is_array($value)){
+                    $value=json_encode($value);
+                }
+                $config->save(['config_value' => $value], ['config_key' => $key]);
             }
 
             return $this->success([], '保存成功');
@@ -103,9 +117,16 @@ class ConfigForm extends BaseController
     public function refreshCache(): Response
     {
         try {
+            $cacheTime=SystemConfig::getValueByKey("config_cache_time")?:0;
+            if (empty($cacheTime)) {
+                return $this->error('系统配置不缓存');
+            }
+
+
+
             $result = SystemConfig::refreshCache();
             if ($result) {
-                return $this->success([], '缓存刷新成功');
+                return $this->success($result, '缓存刷新成功');
             } else {
                 return $this->error('缓存刷新失败');
             }
