@@ -11,6 +11,7 @@ export declare namespace Config {
     config_type?: number|string; // 对应ConfigType枚举
     system_config_group_id: number;
     options?: EnumItem[];
+    rules?: EnumItem[];
     sort: number;
     is_enabled: number; // 对应YesOrNo枚举
     remark?: string;
@@ -44,8 +45,10 @@ export declare namespace Config {
     config_type: number|string;
     system_config_group_id: number;
     options?: EnumItem[];
+    rules?: EnumItem[];
     sort?: number;
     is_enabled: number|string; // 对应YesOrNo枚举
+    is_system: number|string; // 对应YesOrNo枚举
     remark?: string;
   }
 }

@@ -66,11 +66,14 @@
 
       <!-- 启用状态列 -->
       <template #is_enabled="scope">
-        <el-switch disabled
-          v-model="scope.row.is_enabled"
-          :active-value="yesValue"
-          :inactive-value="noValue"
-        />
+        <el-tag
+          :type="scope.row.is_enabled === yesValue ? 'warning' : 'success'"
+          size="small"
+        >
+          {{ getEnumLabelByValue('YesOrNo', scope.row.is_enabled) || '未知' }}
+        </el-tag>
+
+
       </template>
 
       <!-- 系统配置标识 -->
@@ -156,6 +159,20 @@
             例如: 开启:1;关闭:2
           </el-text>
         </el-form-item>
+        <!-- 验证规则配置 -->
+        <el-form-item label="验证规则" prop="rules">
+          <el-input
+            v-model="rulesText"
+            placeholder="请输入验证规则，格式：规则名:规则值;规则名2:规则值2"
+            type="textarea"
+            :rows="4"
+          />
+          <el-text type="info" size="small" class="mt-1">
+            例如: required:true;min:1;max:15;pattern:^[a-zA-Z]+$<br>
+            支持规则：required(必填:true/false)、min(最小值)、max(最大值)、pattern(正则表达式)
+          </el-text>
+        </el-form-item>
+
 
         <el-form-item label="排序" prop="sort">
           <el-input-number
@@ -172,6 +189,15 @@
             <el-radio :value="noValue">{{ getEnumLabelByValue('YesOrNo', noValue) }}</el-radio>
           </el-radio-group>
         </el-form-item>
+
+
+        <el-form-item label="是否系统" prop="is_system">
+          <el-radio-group v-model="formData.is_system">
+            <el-radio :value="yesValue">{{ getEnumLabelByValue('YesOrNo', yesValue) }}</el-radio>
+            <el-radio :value="noValue">{{ getEnumLabelByValue('YesOrNo', noValue) }}</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
 
         <el-form-item label="备注" prop="remark">
           <el-input
@@ -247,8 +273,6 @@
 </template>
 
 <script setup lang="ts">
-import { version } from 'vue';
-console.log('Vue 版本号：', version);
 
 import { useAuthButtons } from "@/hooks/useAuthButtons";
 import { computed, onMounted, reactive, ref, watch } from "vue";
@@ -272,8 +296,8 @@ import type { EnumDict, EnumItem } from "@/typings/enum";
 import RemoteSelect from "@/components/ProTable/components/RemoteSelect.vue";
 import ConfigValueDisplay from "@/views/system/systemConfig/components/ConfigValueDisplay.vue";
 
-const { BUTTONS, vAuth } = useAuthButtons();
-
+const { BUTTONS } = useAuthButtons();
+const rulesText = ref("");
 // 表格实例
 const proTable = ref<InstanceType<typeof ProTable>>();
 
@@ -297,8 +321,10 @@ const formData = ref<Partial<Config.ConfigOptions & Config.ConfigFormData>>({
   config_type: undefined,
   system_config_group_id: undefined,
   options: [],
-  sort: 99,
+  rules: [],
+  sort: 0,
   is_enabled: undefined,
+  is_system: undefined,
   remark: ""
 });
 
@@ -351,6 +377,9 @@ const formRules = reactive({
   is_enabled: [
     { required: true, message: "请选择状态", trigger: "change" }
   ],
+  is_system: [
+    { required: true, message: "是否系统内置", trigger: "change" }
+  ],
   options: [
     {
       validator: (rule: any, value: any, callback: any) => {
@@ -375,6 +404,39 @@ const formRules = reactive({
             callback(new Error("选项配置格式错误，请使用label:value;形式"));
           }
         } else {
+          callback();
+        }
+      },
+      trigger: "blur"
+    }
+  ],
+  rules: [
+    {
+      validator: (rule: any, value: any, callback: any) => {
+        if (rulesText.value) { // 有输入时才验证格式
+          try {
+            // 解析规则文本为EnumItem数组
+            const rules: EnumItem[] = rulesText.value.split(';').map(item => {
+              const [label, val] = item.split(':');
+              if (!label || val === undefined) {
+                throw new Error('格式错误');
+              }
+              // 基础规则名校验
+              const validRuleNames = ['required', 'min', 'max', 'pattern'];
+              if (!validRuleNames.includes(label) && !label.startsWith('custom:')) {
+                throw new Error(`不支持的规则名: ${label}`);
+              }
+              return { label, value: val };
+            });
+
+            formData.value.rules = rules;
+            callback();
+          } catch (error: any) {
+            callback(new Error(`规则格式错误: ${error.message}，请使用规则名:规则值;形式`));
+          }
+        } else {
+          // 允许为空（非必填）
+          formData.value.rules = [];
           callback();
         }
       },
@@ -418,6 +480,7 @@ const loadBaseData = async () => {
     }
     if (enumData.value.YesOrNo.length) {
       formData.value.is_enabled = yesValue.value;
+      formData.value.is_system = noValue.value;
     }
 
   } catch (error) {
@@ -522,6 +585,23 @@ watch(
     }
   }
 );
+watch(
+  () => rulesText.value,
+  (newVal) => {
+    if (newVal) {
+      try {
+        formData.value.rules = newVal.split(';').map(item => {
+          const [label, value] = item.split(':');
+          return { label: label || value, value } as EnumItem;
+        });
+      } catch (error) {
+        // 格式错误时不更新
+      }
+    } else {
+      formData.value.rules = [];
+    }
+  }
+);
 
 // 新增配置项
 const handleAdd = () => {
@@ -536,6 +616,7 @@ const handleAdd = () => {
     options: [],
     sort: 99,
     is_enabled: yesValue.value,
+    is_system: noValue.value,
     remark: ""
   };
   optionsText.value = "";
@@ -569,6 +650,16 @@ const handleEdit = async (row: Config.ConfigOptions) => {
         group_name: row.config_group?.group_name || ''
       }];
     }
+
+    // 转换规则为文本格式（新增这段）
+    if (formData.value.rules && formData.value.rules.length) {
+      rulesText.value = formData.value.rules
+        .map((rule: EnumItem) => `${rule.label}:${rule.value}`)
+        .join(';');
+    } else {
+      rulesText.value = "";
+    }
+
 
     dialogVisible.value = true;
   } catch (error) {

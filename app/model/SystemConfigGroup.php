@@ -3,9 +3,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
-use think\db\exception\DataNotFoundException;
-use think\db\exception\DbException;
-use think\db\exception\ModelNotFoundException;
+use think\model\relation\HasMany;
 
 /**
  * 系统配置分组模型
@@ -16,6 +14,7 @@ use think\db\exception\ModelNotFoundException;
  * @property int $updated_by 更新人ID
  * @property string $updated_at 更新时间
  * @property int $sort 排序
+ * @property HasMany $configs
  */
 class SystemConfigGroup extends BaseModel
 {
@@ -25,7 +24,7 @@ class SystemConfigGroup extends BaseModel
     // 设置表名
     protected string $table = 'system_config_group';
 
-    public function configs(): \think\model\relation\HasMany
+    public function configs(): HasMany
     {
         return $this->hasMany(SystemConfig::class);
     }

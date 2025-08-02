@@ -25,6 +25,7 @@ class SystemConfig extends BaseModel
         'is_enabled' => 'integer',
         'config_type' => 'integer',
         'is_system' => 'integer',
+        'config_value'=>"json",
     ];
 
     /**
