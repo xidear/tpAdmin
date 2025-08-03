@@ -7,6 +7,7 @@ use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
 use think\model\concern\SoftDelete;
+use think\model\relation\BelongsTo;
 
 /**
  * 任务执行日志模型
@@ -26,7 +27,7 @@ class TaskLog extends BaseModel
 {
     use SoftDelete;
 
-    protected $pk = 'id';
+    protected $pk = 'task_log_id';
     protected string $deleteTime = 'deleted_at';
     protected bool $autoWriteTimestamp = true;
 
@@ -92,11 +93,11 @@ class TaskLog extends BaseModel
 
     /**
      * 关联任务
-     * @return \think\model\relation\BelongsTo
+     * @return BelongsTo
      */
-    public function task(): \think\model\relation\BelongsTo
+    public function task(): BelongsTo
     {
-        return $this->belongsTo(Task::class, 'task_id', 'id');
+        return $this->belongsTo(Task::class, 'task_id', $this->getPk());
     }
 
     /**

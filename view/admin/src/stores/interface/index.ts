@@ -25,11 +25,13 @@ export interface GlobalState {
   tabsIcon: boolean;
   footer: boolean;
 }
+import { AdminInfo } from "@/api/modules/base"; // 导入AdminInfo
 
+/* UserState */
 /* UserState */
 export interface UserState {
   token: string;
-  userInfo: { name: string,avatar:string };
+  userInfo: AdminInfo
 }
 
 /* tabsMenuProps */
@@ -46,6 +48,8 @@ export interface TabsMenuProps {
 export interface TabsState {
   tabsMenuList: TabsMenuProps[];
 }
+
+import {Menu} from "@/typings/global";
 
 /* AuthState */
 export interface AuthState {

@@ -7,6 +7,7 @@ use app\common\BaseController;
 use app\common\BaseRequest;
 use app\common\enum\Status;
 use app\common\enum\YesOrNo;
+use app\model\SystemConfig;
 use app\request\admin\my\changePassword;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\ModelNotFoundException;
@@ -18,9 +19,15 @@ class My extends BaseController
     public function getBaseInfo(BaseRequest $request): Response
     {
 //        获取当前登录用户的基本数据
-        $baseInfo=$request->admin->toArray();
-        $baseInfo['is_super']=$request->admin->isSuper()?YesOrNo::Yes:YesOrNo::No;
-        $baseInfo['role_name_list']=$request->admin->roles()->column("name");
+        $adminInfo=$request->admin->toArray();
+        $adminInfo['is_super']=$request->admin->isSuper()?YesOrNo::Yes:YesOrNo::No;
+        $adminInfo['role_name_list']=$request->admin->roles()->column("name");
+
+        $baseInfo['admin']=$adminInfo;
+
+
+
+        $baseInfo['system']=SystemConfig::getCacheValues(["site_name","admin_logo","phone","company_name","site_url","icp"]);
         return  $this->success($baseInfo);
     }
 

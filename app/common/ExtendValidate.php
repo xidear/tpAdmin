@@ -132,15 +132,6 @@ class ExtendValidate extends Validate
         return true;
     }
 
-//    protected function exists($value, $rule, $data = [], $field = ''): bool|string
-//    {
-//        list($table, $dbField) = explode(',', $rule . ',id');
-//        $count = Db::name($table)->where($dbField, $value)->count();
-//        if ($count <= 0) {
-//            return "{$field}不存在有效的记录（值：{$value}）";
-//        }
-//        return true;
-//    }
 
     /**
      * 验证数组项中不允许存在指定字段

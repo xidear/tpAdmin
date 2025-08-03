@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 import { useUserStore } from "@/stores/modules/user";
-import { getBaseApi } from "@/api/modules/base";
+import {AdminInfo, getBaseApi} from "@/api/modules/base";
 import AssemblySize from "./components/AssemblySize.vue";
 import Language from "./components/Language.vue";
 import SearchMenu from "./components/SearchMenu.vue";
@@ -24,6 +24,7 @@ import ThemeSetting from "./components/ThemeSetting.vue";
 import Message from "./components/Message.vue";
 import Fullscreen from "./components/Fullscreen.vue";
 import Avatar from "./components/Avatar.vue";
+import {UserState} from "@/stores/interface";
 
 const userStore = useUserStore();
 
@@ -38,10 +39,8 @@ const avatar = computed(() => userStore.userInfo.avatar);
 onMounted(async () => {
   try {
     const response = await getBaseApi();
-    // 后端返回结构中直接是data包含用户信息，不需要.userInfo
-    if (response.code === 200 && response.data) {
-      // 直接使用response.data作为用户信息
-      userStore.setUserInfo(response.data);
+    if ( response.data) {
+      userStore.setUserInfo(response.data.admin as unknown as never);
     }
   } catch (error) {
     console.error("获取用户信息失败:", error);

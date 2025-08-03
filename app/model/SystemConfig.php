@@ -34,6 +34,23 @@ class SystemConfig extends BaseModel
         'is_system' => 'integer',
     ];
 
+
+    /**
+     * 从缓存获取配置值
+     * @param array $keys 配置键名数组
+     * @param mixed|null $default 默认值
+     * @return mixed
+     */
+    public static function getCacheValues(array $keys, mixed $default = null): array
+    {
+        $array=[];
+        foreach ($keys as $key) {
+            $array[$key] = self::getCacheValue($key,!empty($default[$key])?$default[$key]:null);
+        }
+        return $array;
+    }
+
+
     /**
      * 从缓存获取配置值
      * @param string $key 配置键名

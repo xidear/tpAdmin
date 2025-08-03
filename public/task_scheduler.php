@@ -33,9 +33,9 @@ try {
             try {
                 $service = new TaskService();
                 $result = $service->executeTask($task);
-                Log::info("【任务执行】ID:{$task->id}，结果：" . ($result['success'] ? '成功' : '失败'));
+                Log::info("【任务执行】ID:{$task->getKey()}，结果：" . ($result['success'] ? '成功' : '失败'));
             } catch (Exception $e) {
-                Log::error("【任务执行异常】ID:{$task->id}，错误：{$e->getMessage()}");
+                Log::error("【任务执行异常】ID:{$task->getKey()}，错误：{$e->getMessage()}");
             }
             exit(); // 子进程执行完退出
         }

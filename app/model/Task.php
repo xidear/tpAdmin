@@ -6,13 +6,19 @@ use app\common\BaseModel;
 use app\common\enum\Status;
 use app\common\enum\TaskPlatform;
 use app\common\enum\TaskType;
+use think\db\exception\DataNotFoundException;
+use think\db\exception\DbException;
+use think\db\exception\ModelNotFoundException;
 use think\facade\Cache;
 use think\model\concern\SoftDelete;
 use think\facade\Db;
+use think\model\contract\Modelable;
+use think\model\relation\HasMany;
+use think\model\relation\HasOne;
 
 /**
  * 定时任务模型
- * @property int $id
+ * @property int $task_id
  * @property string $name
  * @property string $description
  * @property int $type
@@ -34,16 +40,17 @@ class Task extends BaseModel
 {
     use SoftDelete;
 
-    protected $pk = 'id';
+    protected $pk = 'task_id';
     protected string $deleteTime = 'deleted_at';
-
-
 
 
     /**
      * 获取需要执行的任务
      * @param string $platform 平台标识 linux/windows
      * @return array
+     * @throws DataNotFoundException
+     * @throws DbException
+     * @throws ModelNotFoundException
      */
     public static function getPendingTasks(string $platform): array
     {
@@ -54,7 +61,7 @@ class Task extends BaseModel
 
         $platformId = $platformMap[$platform] ?? TaskPlatform::ALL;
 
-        return self::where('status', Status::Normal->value)
+        return (new Task)->where('status', Status::Normal->value)
             ->where(function($query) use ($platformId) {
                 $query->where('platform', TaskPlatform::ALL->value)
                     ->whereOr('platform', $platformId->value);
@@ -70,26 +77,23 @@ class Task extends BaseModel
      * @param int $id
      * @param string $lastExecTime
      * @param string $nextExecTime
-     * @return bool
+     * @return Modelable
      */
-    public static function updateExecTime(int $id, string $lastExecTime, string $nextExecTime): bool
+    public static function updateExecTime(int $id, string $lastExecTime, string $nextExecTime): \think\model\contract\Modelable
     {
-        $result = self::where('id', $id)
+        return (new Task)->where((new Task)->getPk(), $id)
             ->update([
                 'last_exec_time' => $lastExecTime,
                 'next_exec_time' => $nextExecTime,
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
-
-
-        return $result !== false;
     }
 
     /**
      * 关联创建人
-     * @return \think\model\relation\HasOne
+     * @return HasOne
      */
-    public function creator()
+    public function creator(): HasOne
     {
         return $this->hasOne(Admin::class, 'admin_id', 'created_by')
             ->field('admin_id, username, avatar');
@@ -97,9 +101,9 @@ class Task extends BaseModel
 
     /**
      * 关联更新人
-     * @return \think\model\relation\HasOne
+     * @return HasOne
      */
-    public function updater()
+    public function updater(): HasOne
     {
         return $this->hasOne(Admin::class, 'admin_id', 'updated_by')
             ->field('admin_id, username, avatar');
@@ -107,11 +111,11 @@ class Task extends BaseModel
 
     /**
      * 关联执行日志
-     * @return \think\model\relation\HasMany
+     * @return HasMany
      */
-    public function logs()
+    public function logs(): HasMany
     {
-        return $this->hasMany(TaskLog::class, 'task_id', 'id')
+        return $this->hasMany(TaskLog::class, 'task_id', $this->getPk())
             ->order('start_time', 'desc');
     }
 

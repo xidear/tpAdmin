@@ -109,7 +109,7 @@ class Task extends BaseController
         $task = (new TaskModel())->fetchOneOrCreate($params);
 
         // 清除任务缓存
-        TaskModel::clearCache($task->id);
+        TaskModel::clearCache($task->getKey());
 
         return $this->success($task, "任务创建成功");
     }

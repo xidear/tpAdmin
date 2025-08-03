@@ -14,7 +14,7 @@ class Edit extends BaseRequest
 
     public function rules(): array
     {
-        $id = $this->param('id');
+        $id = $this->param('task_id');
         return [
             'name' => 'require|max:100|unique:task,name,' . $id,
             'description' => 'max:500',

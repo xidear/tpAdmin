@@ -48,11 +48,11 @@ export const postCreateApi = (params: Role.RoleOptions) => {
 
 /**
  * 获取详情
- * @param id ID
+ * @param role_id ID
  */
-export const getReadApi = (id: number) => {
+export const getReadApi = (role_id: number) => {
   return http.get<Role.RoleOptions>(
-    `/role/read/${id}`,
+    `/role/read/${role_id}`,
     {},
     { loading: true }
   );
@@ -60,23 +60,23 @@ export const getReadApi = (id: number) => {
 
 /**
  * 更新
- * @param id ID
+ * @param role_id ID
  * @param params 更新数据
  */
 export const putUpdateApi = (
-  id: number,
+  role_id: number,
   params: Role.RoleOptions
 ) => {
-  return http.put(`/role/update/${id}`, params, { loading: true });
+  return http.put(`/role/update/${role_id}`, params, { loading: true });
 };
 
 
 
 
 export const deleteDeleteApi = (
-  id: number,
+  role_id: number,
 ) => {
-  return http.delete(`/role/delete/${id}`, { loading: true });
+  return http.delete(`/role/delete/${role_id}`, { loading: true });
 };
 
 

@@ -72,10 +72,10 @@ class TaskWorker extends Worker
             foreach ($tasks as $task) {
                 // 用队列异步执行，避免任务执行时间过长阻塞调度
                 \think\facade\Queue::push(\app\queue\job\ExecuteTask::class, [
-                    'task_id' => $task->id
+                    'task_id' => $task->getKey()
                 ], 'task_exec'); // 单独的任务执行队列
 
-                Log::info("【定时任务】ID:{$task->id} 已加入执行队列");
+                Log::info("【定时任务】ID:{$task->getKey()} 已加入执行队列");
             }
         } catch (\Exception $e) {
             Log::error("【定时任务检查异常】：{$e->getMessage()}");

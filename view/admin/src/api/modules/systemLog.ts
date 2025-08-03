@@ -3,7 +3,7 @@ import http from "@/api";
 
 // 系统日志数据结构定义
 export interface SystemLogItem {
-  id: number;
+  system_log_id: number;
   admin_id: number;
   username: string;
   module: string;
@@ -58,11 +58,11 @@ export const getListApi = (params?: any) => {
 
 /**
  * 获取详情
- * @param id 日志ID
+ * @param system_log_id 日志ID
  */
-export const getReadApi = (id: number) => {
+export const getReadApi = (system_log_id: number) => {
   return http.get<SystemLogDetailResponse>(
-    PORT1 + `/log/read/${id}`,  // 补充完整PORT1路径
+    PORT1 + `/log/read/${system_log_id}`,  // 补充完整PORT1路径
     {},
     { loading: true }
   );
@@ -80,10 +80,10 @@ export const batchDeleteDeleteApi = (params: { ids: number[] }) => {
 
 /**
  * 删除单个日志
- * @param id 日志ID
+ * @param system_log_id 日志ID
  */
-export const deleteApi = (id: number) => {
-  return http.delete(PORT1 + `/log/delete/${id}`, {
+export const deleteApi = (system_log_id: number) => {
+  return http.delete(PORT1 + `/log/delete/${system_log_id}`, {
     loading: true
   });
 };

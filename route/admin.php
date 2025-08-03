@@ -104,19 +104,19 @@ Route::group('adminapi', function () {
             // 任务列表
             Route::get('index', 'index')->name("定时任务列表")->option(["description"=>"获取定时任务列表及分页数据"]);
             // 任务详情（含执行日志）
-            Route::get('read/:id', 'read')->name("定时任务详情")->option(["description"=>"获取单个定时任务详情及执行日志"]);
+            Route::get('read/:task_id', 'read')->name("定时任务详情")->option(["description"=>"获取单个定时任务详情及执行日志"]);
             // 创建任务
             Route::post('create', 'create')->name("创建定时任务")->option(["description"=>"新增定时任务配置"]);
             // 更新任务
-            Route::put('update/:id', 'update')->name("更新定时任务")->option(["description"=>"修改定时任务配置"]);
+            Route::put('update/:task_id', 'update')->name("更新定时任务")->option(["description"=>"修改定时任务配置"]);
             // 删除单个任务
-            Route::delete('delete/:id', 'delete')->name("删除定时任务")->option(["description"=>"删除指定定时任务"]);
+            Route::delete('delete/:task_id', 'delete')->name("删除定时任务")->option(["description"=>"删除指定定时任务"]);
             // 批量删除任务
             Route::delete('batch_delete', 'batchDelete')->name("批量删除定时任务")->option(["description"=>"批量删除选中的定时任务"]);
             // 切换任务状态（启用/禁用）
-            Route::post('toggle_status/:id', 'toggleStatus')->name("切换任务状态")->option(["description"=>"切换定时任务的启用/禁用状态"]);
+            Route::post('toggle_status/:task_id', 'toggleStatus')->name("切换任务状态")->option(["description"=>"切换定时任务的启用/禁用状态"]);
             // 立即执行任务
-            Route::post('execute_now/:id', 'executeNow')->name("立即执行任务")->option(["description"=>"立即执行指定的定时任务"]);
+            Route::post('execute_now/:task_id', 'executeNow')->name("立即执行任务")->option(["description"=>"立即执行指定的定时任务"]);
             // 获取任务类型选项
             Route::get('get_type_options', 'getTypeOptions')->name("任务类型选项")->option(["description"=>"获取任务类型下拉选项数据"]);
             // 获取平台选项
@@ -127,8 +127,8 @@ Route::group('adminapi', function () {
 //        日志
         Route::group('log', function () {
             Route::get('index', 'index')->name("日志列表")->option(["description"=>"日志列表"]);
-            Route::get('read/:id', 'read')->name("读取日志信息")->option(["description"=>"显示单个日志的详情"]);
-            Route::delete('delete/:id', 'delete')->name("删除日志")->option(["description"=>"删除日志"]);
+            Route::get('read/:task_log_id', 'read')->name("读取日志信息")->option(["description"=>"显示单个日志的详情"]);
+            Route::delete('delete/:task_log_id', 'delete')->name("删除日志")->option(["description"=>"删除日志"]);
             Route::delete('batch_delete', 'batchDelete')->name("批量删除日志")->option(["description"=>"批量删除日志"]);
         })->prefix("admin/SystemLog/");
 

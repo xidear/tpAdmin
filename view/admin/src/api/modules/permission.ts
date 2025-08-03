@@ -26,11 +26,11 @@ export const postSyncApi = () => {
 };
 /**
  * 获取权限详情
- * @param id 权限ID
+ * @param permission_id 权限ID
  */
-export const getReadApi = (id: number) => {
+export const getReadApi = (permission_id: number) => {
   return http.get<Permission.PermissionOptions>(
-    `/permission/read/${id}`,
+    `/permission/read/${permission_id}`,
     {},
     { loading: true }
   );
@@ -38,26 +38,26 @@ export const getReadApi = (id: number) => {
 
 /**
  * 更新权限
- * @param id 权限ID
+ * @param permission_id 权限ID
  * @param params 更新数据
  */
 export const putUpdateApi = (
-  id: number,
+  permission_id: number,
   params: Permission.PermissionOptions
 ) => {
-  return http.put(`/permission/update/${id}`, params, { loading: true });
+  return http.put(`/permission/update/${permission_id}`, params, { loading: true });
 };
 
 
 /**
  * 删除权限
- * @param id
+ * @param permission_id
  */
 
 export const deleteDeleteApi = (
-  id: number,
+  permission_id: number,
 ) => {
-  return http.delete(`/permission/delete/${id}`, { loading: true });
+  return http.delete(`/permission/delete/${permission_id}`, { loading: true });
 };
 
 

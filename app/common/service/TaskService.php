@@ -77,7 +77,7 @@ class TaskService extends BaseService
                 $this->handleRetry($task, $e->getMessage());
             }
 
-            $this->logInfo("任务执行失败 [ID:{$task->id}]", [
+            $this->logInfo("任务执行失败 [ID:{$task->getKey()}]", [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -196,7 +196,7 @@ class TaskService extends BaseService
     private function handleRetry(Task $task, string $errorMsg): void
     {
         // 这里实现重试逻辑，可以是延时队列或定时重试
-        $this->logInfo("任务将进行重试 [ID:{$task->id}]", [
+        $this->logInfo("任务将进行重试 [ID:{$task->getKey()}]", [
             'error' => $errorMsg,
             'retry_count' => $task->retry,
             'interval' => $task->interval

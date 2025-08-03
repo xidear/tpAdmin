@@ -20,11 +20,11 @@ export const postCreateApi = (params: Admin.AdminOptions) => {
 
 /**
  * 获取详情
- * @param id ID
+ * @param admin_id ID
  */
-export const getReadApi = (id: number) => {
+export const getReadApi = (admin_id: number) => {
   return http.get<Admin.AdminOptions>(
-    `/admin/read/${id}`,
+    `/admin/read/${admin_id}`,
     {},
     { loading: true }
   );
@@ -32,24 +32,24 @@ export const getReadApi = (id: number) => {
 
 /**
  * 更新
- * @param id ID
+ * @param admin_id admin_id
  * @param params 更新数据
  */
 export const putUpdateApi = (
-  id: number,
+  admin_id: number,
   params: Admin.AdminOptions
 ) => {
-  return http.put(`/admin/update/${id}`, params, { loading: true });
+  return http.put(`/admin/update/${admin_id}`, params, { loading: true });
 };
 
 /**
  * 删除
- * @param id
+ * @param admin_id
  */
 
 
-export const deleteDeleteApi = ( id: number                                ) => {
-  return http.delete(`/admin/delete/${id}`, { loading: true });
+export const deleteDeleteApi = ( admin_id: number                                ) => {
+  return http.delete(`/admin/delete/${admin_id}`, { loading: true });
 };
 
 

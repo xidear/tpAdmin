@@ -3,7 +3,7 @@
     <ProTable
       ref="proTable"
       title="定时任务管理"
-      row-key="id"
+      row-key="task_id"
       :columns="columns"
       :request-api="getTaskList"
       :init-param="initParam"
@@ -34,8 +34,8 @@
 
       <!-- 操作列 -->
       <template #operation="scope">
-        <el-button type="primary" v-auth="'read'" link :icon="View" @click="openDetailDialog(scope.row.id)">详情</el-button>
-        <el-button type="primary" v-auth="'update'" link :icon="Edit" @click="openEditDialog(scope.row.id)">编辑</el-button>
+        <el-button type="primary" v-auth="'read'" link :icon="View" @click="openDetailDialog(scope.row.task_id)">详情</el-button>
+        <el-button type="primary" v-auth="'update'" link :icon="Edit" @click="openEditDialog(scope.row.task_id)">编辑</el-button>
         <el-button
           type="primary"
           v-auth="'toggleStatus'"
@@ -45,7 +45,7 @@
         >
           {{ scope.row.status === TaskStatus.ENABLED ? '停止' : '开启' }}
         </el-button>
-        <el-button type="primary" v-auth="'executeNow'" link :icon="RefreshRight" @click="executeTaskNow(scope.row.id)">立即执行</el-button>
+        <el-button type="primary" v-auth="'executeNow'" link :icon="RefreshRight" @click="executeTaskNow(scope.row.task_id)">立即执行</el-button>
         <el-button type="primary" v-auth="'delete'" link :icon="Delete" @click="deleteTask(scope.row)">删除</el-button>
       </template>
 
@@ -80,7 +80,7 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-descriptions column="1" border>
-            <el-descriptions-item label="任务ID">{{ taskDetail.id }}</el-descriptions-item>
+            <el-descriptions-item label="任务ID">{{ taskDetail.task_id }}</el-descriptions-item>
             <el-descriptions-item label="任务名称">{{ taskDetail.name }}</el-descriptions-item>
             <el-descriptions-item label="任务类型">{{ getTypeName(taskDetail.type) }}</el-descriptions-item>
             <el-descriptions-item label="运行平台">{{ getPlatformName(taskDetail.platform) }}</el-descriptions-item>
@@ -116,7 +116,7 @@
         style="width: 100%; margin-top: 10px"
         max-height="300"
       >
-        <el-table-column prop="id" label="ID" width="80"></el-table-column>
+        <el-table-column prop="task_log_id" label="ID" width="80"></el-table-column>
         <el-table-column prop="start_time" label="开始时间" width="180" :formatter="formatDateTime"></el-table-column>
         <el-table-column prop="end_time" label="结束时间" width="180" :formatter="formatDateTime"></el-table-column>
         <el-table-column prop="duration" label="执行时长(ms)" width="120"></el-table-column>
@@ -169,7 +169,7 @@
       :close-on-click-modal="false"
     >
       <el-descriptions column="1" border>
-        <el-descriptions-item label="日志ID">{{ currentLog.id }}</el-descriptions-item>
+        <el-descriptions-item label="日志ID">{{ currentLog.task_log_id }}</el-descriptions-item>
         <el-descriptions-item label="任务ID">{{ currentLog.task_id }}</el-descriptions-item>
         <el-descriptions-item label="任务名称">{{ currentLog.task_name }}</el-descriptions-item>
         <el-descriptions-item label="开始时间">{{ formatDateTime(currentLog.start_time) }}</el-descriptions-item>
@@ -346,7 +346,7 @@ const logLimit = ref(10);
 
 // 任务详情数据
 const taskDetail = ref<TaskItem>({
-  id: 0,
+  task_id: 0,
   name: "",
   description: "",
   type: TaskType.COMMAND,
@@ -376,7 +376,7 @@ const taskLogs = ref<TaskLogListResponse>({
 
 // 当前查看的日志详情
 const currentLog = ref<TaskLogItem>({
-  id: 0,
+  task_log_id: 0,
   task_id: 0,
   task_name: "",
   start_time: "",
@@ -531,7 +531,7 @@ const deleteTask = async (row: TaskItem) => {
         type: "warning"
       }
     );
-    await deleteTaskApi(row.id);
+    await deleteTaskApi(row.task_id);
     ElMessage.success("删除成功");
     proTable.value?.getTableList();
   } catch (error) {
@@ -574,11 +574,11 @@ const batchDelete = async () => {
 };
 
 // 打开详情弹窗
-const openDetailDialog = async (id: number) => {
+const openDetailDialog = async (task_id: number) => {
   try {
-    currentTaskId.value = id;
+    currentTaskId.value = task_id;
     logPage.value = 1;
-    await loadTaskDetail(id);
+    await loadTaskDetail(task_id);
     detailDialogVisible.value = true;
   } catch (error) {
     ElMessage.error("获取任务详情失败");
@@ -586,8 +586,8 @@ const openDetailDialog = async (id: number) => {
 };
 
 // 加载任务详情
-const loadTaskDetail = async (id: number) => {
-  const res = await getTaskReadApi(id, {
+const loadTaskDetail = async (task_id: number) => {
+  const res = await getTaskReadApi(task_id, {
     log_page: logPage.value,
     log_limit: logLimit.value
   });
@@ -604,13 +604,13 @@ const loadTaskDetail = async (id: number) => {
 };
 
 // 打开编辑弹窗
-const openEditDialog = (id?: number) => {
-  if (id) {
+const openEditDialog = (task_id?: number) => {
+  if (task_id) {
     // 编辑模式
-    currentTaskId.value = id;
+    currentTaskId.value = task_id;
     editDialogTitle.value = "编辑任务";
     // 从接口获取任务详情
-    getTaskReadApi(id).then(res => {
+    getTaskReadApi(task_id).then(res => {
       const data = res.data || {};
       const task = data.task || {};
       taskForm.value = {
@@ -692,7 +692,7 @@ const toggleTaskStatus = async (row: TaskItem) => {
       }
     );
 
-    await toggleTaskStatusApi(row.id);
+    await toggleTaskStatusApi(row.task_id);
     ElMessage.success(`${confirmText}成功`);
     proTable.value?.getTableList();
   } catch (error) {
@@ -704,7 +704,7 @@ const toggleTaskStatus = async (row: TaskItem) => {
 };
 
 // 立即执行任务
-const executeTaskNow = async (id: number) => {
+const executeTaskNow = async (task_id: number) => {
   try {
     await ElMessageBox.confirm(
       "确定要立即执行该任务吗?",
@@ -716,11 +716,11 @@ const executeTaskNow = async (id: number) => {
       }
     );
 
-    await executeTaskNowApi(id);
+    await executeTaskNowApi(task_id);
     ElMessage.success("任务已触发执行");
     // 如果当前在详情页，刷新日志
-    if (detailDialogVisible.value && currentTaskId.value === id) {
-      await loadTaskDetail(id);
+    if (detailDialogVisible.value && currentTaskId.value === task_id) {
+      await loadTaskDetail(task_id);
     }
   } catch (error) {
     // 忽略取消操作的错误
@@ -768,9 +768,9 @@ const loadOptions = async () => {
 // 表格列定义
 const columns = reactive<ColumnProps[]>([
   { type: "selection", fixed: "left", width: 70, onSelect: (row: TaskItem, selected: boolean, selectedRows: TaskItem[]) => {
-      selectedList.value = selectedRows.map(item => item.id);
+      selectedList.value = selectedRows.map(item => item.task_id);
     }} ,
-  { prop: "id", label: "ID", width: 80, sortable: true },
+  { prop: "task_id", label: "ID", width: 80, sortable: true },
   {
     prop: "name",
     label: "任务名称",

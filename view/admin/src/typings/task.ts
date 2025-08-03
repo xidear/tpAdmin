@@ -11,7 +11,7 @@ export interface OptionItem {
  * 任务项结构
  */
 export interface TaskItem {
-  id: number;
+  task_id: number;
   name: string;
   description: string | null;
   type: number;
@@ -52,7 +52,7 @@ export interface TaskOptions {
  * 任务日志项结构
  */
 export interface TaskLogItem {
-  id: number;
+  task_log_id: number;
   task_id: number;
   task_name: string;
   start_time: string;

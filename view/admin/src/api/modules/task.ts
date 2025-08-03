@@ -59,13 +59,13 @@ export const getTaskListApi = (params?: any) => {
 
 /**
  * 获取任务详情
- * @param id 任务ID
+ * @param task_id 任务ID
  * @param logParams 日志分页参数
  * @returns 任务详情响应
  */
-export const getTaskReadApi = (id: number, logParams?: { log_page?: number; log_limit?: number }) => {
+export const getTaskReadApi = (task_id: number, logParams?: { log_page?: number; log_limit?: number }) => {
   return http.get<TaskDetailResponse>(
-    PORT1 + `/task/read/${id}`,
+    PORT1 + `/task/read/${task_id}`,
     logParams || {},
     { loading: true }
   );
@@ -86,13 +86,13 @@ export const postTaskCreateApi = (data: TaskOptions) => {
 
 /**
  * 更新任务
- * @param id 任务ID
+ * @param task_id 任务ID
  * @param data 任务数据
  * @returns 响应结果
  */
-export const putTaskUpdateApi = (id: number, data: TaskOptions) => {
+export const putTaskUpdateApi = (task_id: number, data: TaskOptions) => {
   return http.put<BaseResponse>(
-    PORT1 + `/task/update/${id}`,
+    PORT1 + `/task/update/${task_id}`,
     data,
     { loading: true }
   );
@@ -100,12 +100,12 @@ export const putTaskUpdateApi = (id: number, data: TaskOptions) => {
 
 /**
  * 删除单个任务
- * @param id 任务ID
+ * @param task_id 任务ID
  * @returns 响应结果
  */
-export const deleteTaskApi = (id: number) => {
+export const deleteTaskApi = (task_id: number) => {
   return http.delete<BaseResponse>(
-    PORT1 + `/task/delete/${id}`,
+    PORT1 + `/task/delete/${task_id}`,
     { loading: true }
   );
 };
@@ -124,12 +124,12 @@ export const batchDeleteTaskApi = (params: { ids: number[] }) => {
 
 /**
  * 切换任务状态（启用/禁用）
- * @param id 任务ID
+ * @param task_id 任务ID
  * @returns 响应结果
  */
-export const toggleTaskStatusApi = (id: number) => {
+export const toggleTaskStatusApi = (task_id: number) => {
   return http.post<BaseResponse>(
-    PORT1 + `/task/toggle_status/${id}`,
+    PORT1 + `/task/toggle_status/${task_id}`,
     {},
     { loading: true }
   );
@@ -137,12 +137,12 @@ export const toggleTaskStatusApi = (id: number) => {
 
 /**
  * 立即执行任务
- * @param id 任务ID
+ * @param task_id 任务ID
  * @returns 响应结果
  */
-export const executeTaskNowApi = (id: number) => {
+export const executeTaskNowApi = (task_id: number) => {
   return http.post<BaseResponse>(
-    PORT1 + `/task/execute_now/${id}`,
+    PORT1 + `/task/execute_now/${task_id}`,
     {},
     { loading: true }
   );

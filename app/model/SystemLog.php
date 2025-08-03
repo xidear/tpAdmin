@@ -12,10 +12,10 @@ use think\model\relation\BelongsTo;
 class SystemLog extends BaseModel
 {
     // 表名
-    protected $name = 'system_logs';
+    protected $name = 'system_log';
 
     // 主键
-    protected $pk = 'id';
+    protected $pk = 'system_log_id';
 
     // 自动写入时间戳
     protected bool $autoWriteTimestamp = true;

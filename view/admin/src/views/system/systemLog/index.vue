@@ -3,7 +3,7 @@
     <ProTable
       ref="proTable"
       title="系统日志"
-      row-key="id"
+      row-key="system_log_id"
       :columns="columns"
       :request-api="getSystemLogList"
       :init-param="initParam"
@@ -26,7 +26,7 @@
 
       <!-- 操作列 -->
       <template #operation="scope">
-        <el-button type="primary" v-auth="'read'" link :icon="View" @click="openDetailDialog(scope.row.id)">详情</el-button>
+        <el-button type="primary" v-auth="'read'" link :icon="View" @click="openDetailDialog(scope.row.system_log_id)">详情</el-button>
         <el-button type="primary" v-auth="'delete'" link :icon="Delete" @click="deleteLog(scope.row)">删除</el-button>
       </template>
 
@@ -67,7 +67,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="日志ID">
-              <span>{{ logDetail.id }}</span>
+              <span>{{ logDetail.system_log_id }}</span>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -194,7 +194,7 @@ const detailDialogVisible = ref(false);
 
 // 详情数据（完善数据结构定义）
 const logDetail = ref<SystemLogItem>({
-  id: 0,
+  system_log_id: 0,
   admin_id: 0,
   username: "",
   admin:{
@@ -256,7 +256,7 @@ const formatParams = (params: string) => {
 const deleteLog = async (row: any) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除ID为 "${row.id}" 的日志吗?`,
+      `确定要删除ID为 "${row.system_log_id}" 的日志吗?`,
       "提示",
       {
         confirmButtonText: "确定",
@@ -264,7 +264,7 @@ const deleteLog = async (row: any) => {
         type: "warning"
       }
     );
-    await deleteApi(row.id);
+    await deleteApi(row.system_log_id);
     ElMessage.success("删除成功");
     proTable.value?.getTableList();
   } catch (error) {
@@ -306,9 +306,9 @@ const batchDelete = async (ids: number[]) => {
 };
 
 // 打开详情弹窗
-const openDetailDialog = async (id: number) => {
+const openDetailDialog = async (system_log_id: number) => {
   try {
-    const res = await getReadApi(id);
+    const res = await getReadApi(system_log_id);
     const data = res.data || {};
     logDetail.value = {
       ...data,
@@ -324,7 +324,7 @@ const openDetailDialog = async (id: number) => {
 // 表格列定义
 const columns = reactive<ColumnProps[]>([
   { type: "selection", fixed: "left", width: 70 },
-  { prop: "id", label: "ID", width: 80, sortable: true },
+  { prop: "system_log_id", label: "ID", width: 80, sortable: true },
   {
     prop: "username",
     label: "操作用户",

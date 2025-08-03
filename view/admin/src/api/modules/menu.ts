@@ -1,5 +1,6 @@
 import { PORT1 } from "@/api/config/servicePort";
 import http from "@/api";
+import {Menu} from "@/typings/global";
 
 // 获取菜单列表
 export const getTreeApi = (params?: any) => {
@@ -16,26 +17,26 @@ export const postCreateApi = (params: Menu.MenuOptions) => {
 
 /**
  * 获取单个菜单详情
- * @param id 菜单ID
+ * @param menu_id 菜单ID
  */
-export const getReadApi = (id: number) => {
-  return http.get<Menu.MenuOptions>(`/menu/read/${id}`,{}, { loading: true });
+export const getReadApi = (menu_id: number) => {
+  return http.get<Menu.MenuOptions>(`/menu/read/${menu_id}`,{}, { loading: true });
 };
 
 /**
  * 更新菜单
- * @param id 菜单ID
+ * @param menu_id 菜单ID
  * @param params 更新数据
  */
-export const putUpdateApi = (id: number, params: Menu.MenuOptions) => {
-  return http.put(`/menu/update/${id}`, params, { loading: true });
+export const putUpdateApi = (menu_id: number, params: Menu.MenuOptions) => {
+  return http.put(`/menu/update/${menu_id}`, params, { loading: true });
 };
 
 /**
  * 删除菜单
- * @param id 菜单ID
+ * @param menu_id 菜单ID
  */
-export const deleteDeleteApi = (id: number) => {
-  return http.delete(`/menu/delete/${id}`, { loading: true });
+export const deleteDeleteApi = (menu_id: number) => {
+  return http.delete(`/menu/delete/${menu_id}`, { loading: true });
 };
 

@@ -100,7 +100,6 @@
         :rules="formRules"
         label-width="120px"
         size="default"
-        id="configForm"
       >
         <el-form-item label="配置键名" prop="config_key">
           <el-input
