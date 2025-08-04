@@ -25,6 +25,7 @@ import Message from "./components/Message.vue";
 import Fullscreen from "./components/Fullscreen.vue";
 import Avatar from "./components/Avatar.vue";
 import {UserState} from "@/stores/interface";
+import {useSystemStore} from "@/stores/modules/system";
 
 const userStore = useUserStore();
 
@@ -34,13 +35,17 @@ const username = computed(() => {
   return userStore.userInfo.nick_name || userStore.userInfo.username || '未知用户';
 });
 const avatar = computed(() => userStore.userInfo.avatar);
-
+const systemStore = useSystemStore();
 // 组件挂载时获取用户基本信息
 onMounted(async () => {
   try {
     const response = await getBaseApi();
     if ( response.data) {
-      userStore.setUserInfo(response.data.admin as unknown as never);
+      userStore.setUserInfo(response.data.admin);
+
+      systemStore.setSystemInfo(response.data.system);
+
+
     }
   } catch (error) {
     console.error("获取用户信息失败:", error);

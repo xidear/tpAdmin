@@ -198,7 +198,7 @@ enum ConfigType: int
             // 3. 格式验证类（使用与前端相同的正则/过滤器）
             self::URL => filter_var($value, FILTER_VALIDATE_URL) !== false,
             self::EMAIL => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
-            self::PHONE => is_string($value) && preg_match(self::REGEX_PHONE, $value),
+            self::PHONE => (is_string($value)||is_numeric($value)) && preg_match(self::REGEX_PHONE, $value),
 
             // 4. 选择类（对应前端array/number类型验证）
             self::SWITCH => self::validateSwitchValue($value),

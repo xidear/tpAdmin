@@ -59,6 +59,7 @@ class SystemConfig extends BaseModel
      */
     public static function getCacheValue(string $key, mixed $default = null): mixed
     {
+        self::refreshCache();
         $cache = cache('system_config');
         if (empty($cache)) {
             if (!self::refreshCache()){
@@ -74,14 +75,14 @@ class SystemConfig extends BaseModel
      */
     public static function refreshCache(): bool
     {
-
-        $cacheTime=self::getValue("config_cache_time")??0;
+        $cacheTime=(int)self::getValue("config_cache_time")??0;
         if ($cacheTime>0){
             $configs = (new SystemConfig)->where('is_enabled', YesOrNo::Yes->value)
                 ->column('config_value', 'config_key');
            return  Cache::set("system_config",$configs,$cacheTime);
+        }else{
+            return Cache::delete("system_config");
         }
-        return  false;
     }
 
     /**
@@ -113,7 +114,10 @@ class SystemConfig extends BaseModel
 
     private static function getValue(string $key)
     {
-        return self::getConfigValueByConfigKey($key);
+
+        return (new SystemConfig)->where("config_key", $key)->value("config_value",null);
+
+
     }
 
     /**

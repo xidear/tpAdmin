@@ -4,7 +4,9 @@
     <el-aside>
       <div class="aside-box" :style="{ width: isCollapse ? '65px' : '210px' }">
         <div class="logo flx-center">
-          <img class="logo-img" src="@/assets/images/logo.svg" alt="logo" />
+
+          <img class="logo-img" :src="logo" :alt="title" />
+
           <span v-show="!isCollapse" class="logo-text">{{ title }}</span>
         </div>
         <el-scrollbar>
@@ -40,7 +42,19 @@ import ToolBarLeft from "@/layouts/components/Header/ToolBarLeft.vue";
 import ToolBarRight from "@/layouts/components/Header/ToolBarRight.vue";
 import SubMenu from "@/layouts/components/Menu/SubMenu.vue";
 
-const title = import.meta.env.VITE_GLOB_APP_TITLE;
+// const title = import.meta.env.VITE_GLOB_APP_TITLE;
+
+
+
+
+
+import { useSystemStore } from "@/stores/modules/system";
+const systemStore = useSystemStore();
+
+// 新增：通过Store获取网站名称（优先用后端返回的site_name，无则用默认值）
+const title = computed(() => systemStore.getSiteName);
+// 新增：通过Store获取管理员Logo
+const logo = computed(() => systemStore.getAdminLogo);
 
 const route = useRoute();
 const authStore = useAuthStore();
