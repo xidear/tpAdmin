@@ -481,7 +481,8 @@ const getTypeTagType = (type: TaskType) => {
     [TaskType.URL]: "info",
     [TaskType.PHP_METHOD]: "primary"
   };
-  return typeMap[type] || "default";
+  // 修正：默认返回支持的 'info' 类型
+  return typeMap[type] || "info";
 };
 
 // 获取平台名称

@@ -66,6 +66,32 @@ Route::group('adminapi', function () {
     Route::group(function () {
 
 
+//        省市区管理
+        Route::group('region', function () {
+            // 地区树形结构
+            Route::get('tree', 'tree')->name("地区树")->option(["description"=>"获取省市区树形结构数据"]);
+            // 地区列表
+            Route::get('index', 'index')->name("地区列表")->option(["description"=>"获取地区列表及分页数据"]);
+            // 地区详情
+            Route::get('read/:region_id', 'read')->name("读取地区")->option(["description"=>"获取单个地区详情"]);
+            // 新增地区
+            Route::post('create', 'create')->name("创建地区")->option(["description"=>"新增省市区数据"]);
+            // 更新地区
+            Route::put('update/:region_id', 'update')->name("更新地区")->option(["description"=>"编辑地区信息（含改名、调级等）"]);
+            // 删除地区（软删除）
+            Route::delete('delete/:region_id', 'delete')->name("删除地区")->option(["description"=>"软删除指定地区"]);
+            // 恢复地区
+            Route::post('restore/:region_id', 'restore')->name("恢复地区")->option(["description"=>"恢复已删除的地区"]);
+            // 合并地区
+            Route::post('merge', 'merge')->name("合并地区")->option(["description"=>"将多个地区合并到目标地区"]);
+            // 拆分地区
+            Route::post('split', 'split')->name("拆分地区")->option(["description"=>"将地区拆分为多个子地区"]);
+            // 获取子地区
+            Route::get('children/:parent_id', 'children')->name("子地区列表")->option(["description"=>"获取指定地区的子地区列表"]);
+        })->prefix("admin/Region/");
+
+
+
         Route::group('config_form', function () {
 //            配置操作
             Route::get('index', 'getForm')->name("获取配置表单")->option(["description"=>"获取所有配置分组及对应配置项，用于前端多Tab展示"]);

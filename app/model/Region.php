@@ -3,359 +3,114 @@
 namespace app\model;
 
 use app\common\BaseModel;
-use app\common\enum\MenuPermissionDependencies;
-use app\Request;
-use app\service\PermissionService;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
 use think\Exception;
+use think\facade\Log;
+use think\model\concern\SoftDelete;
 use think\model\relation\BelongsTo;
-use think\model\relation\BelongsToMany;
 use think\model\relation\HasMany;
 
 class Region extends BaseModel
 {
-    protected $pk = 'menu_id';
+    protected $pk = 'region_id';
+    protected bool $autoWriteTimestamp = true;
+    protected string $table='region';
 
     /**
-     * 获取权限按钮
-     * @param $adminId
+     * 按父ID获取地区树形结构（支持懒加载）
+     * @param int $parentId 父级ID，默认为0（顶级）
+     * @param bool $recursive 是否递归加载所有子节点
      * @return array
      */
-    public static function getUserButtons($adminId): array
+    public static function getRegionTreeByParentId(int $parentId = 0, bool $recursive = false): array
     {
-        // 检查是否为超级管理员
-        if ((new Admin())->isSuper($adminId)) {
-            // 超级管理员：获取所有OPTIONAL_BUTTON类型的所有依赖关系
-            try {
-                $dependencies = MenuPermissionDependency::where('permission_type', 'button')
-                    ->select()
-                    ->toArray();
-            } catch (DataNotFoundException|DbException $e) {
-                return [];
-            }
-        } else {
-            // 普通用户：获取相关角色
-            $roleIds = AdminRole::where('admin_id', $adminId)->column('role_id');
-            if (empty($roleIds)) {
-                return [];
-            }
+//        try {
+            // 基础查询：获取指定父ID的直接子节点
+            $query = self::where('parent_id', $parentId)
+                ->where('deleted_at', null)
+                ->order('snum asc, region_id asc');
 
-            // 获取用户关联的菜单ID
-            $menuIds = RoleMenu::whereIn('role_id', $roleIds)->column('menu_id');
-            if (empty($menuIds)) {
-                return [];
-            }
-            $permissionIds = (new PermissionService)->getAdminPermissions($adminId);
+            $regions = $query->select()->toArray() ?? [];
 
-            if (empty($permissionIds)) {
-                return [];
-            }
-
-            // 获取按钮权限依赖
-            try {
-                $dependencies = MenuPermissionDependency::whereIn('menu_id', $menuIds)
-                    ->where('permission_type', 'button')
-                    ->whereIn('permission_id', $permissionIds)
-                    ->select()
-                    ->toArray();
-            } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
-                return [];
-            }
-        }
-
-        if (empty($dependencies)) {
-            return [];
-        }
-
-        // 高效获取菜单名和权限节点信息
-        $menuIds = array_unique(array_column($dependencies, 'menu_id'));
-        $menuMap = (new Region)->whereIn('menu_id', $menuIds)
-            ->column('name', 'menu_id');
-
-        $permissionIds = array_unique(array_column($dependencies, 'permission_id'));
-        $permissionMap = Permission::whereIn('permission_id', $permissionIds)
-            ->column('node', 'permission_id');
-
-        // 组织按钮数据
-        $buttons = [];
-        foreach ($dependencies as $dep) {
-            $menuName = $menuMap[$dep['menu_id']] ?? null;
-            $permissionNode = $permissionMap[$dep['permission_id']] ?? null;
-
-            if ($menuName && $permissionNode) {
-                $buttonName = substr(strrchr($permissionNode, '/'), 1);  // 高效提取按钮名
-
-                if (!isset($buttons[$menuName])) {
-                    $buttons[$menuName] = [];
+            // 如果需要递归加载所有子节点，递归调用自身
+            if ($recursive && !empty($regions)) {
+                foreach ($regions as &$region) {
+                    $region['children'] = self::getRegionTreeByParentId($region['region_id'], true);
                 }
-
-                if (!in_array($buttonName, $buttons[$menuName])) {
-                    $buttons[$menuName][] = $buttonName;
+            } else {
+                // 非递归模式下，只标记是否有子节点（用于前端判断是否显示展开按钮）
+                foreach ($regions as &$region) {
+                    $hasChildren = self::where('parent_id', $region['region_id'])
+                            ->where('deleted_at', null)
+                            ->count() > 0; // 使用 count() 判断记录是否存在
+                    $region['hasChildren'] = $hasChildren; // 标记是否有子节点
                 }
             }
-        }
 
-        return $buttons;
+            return $regions;
+//        } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
+//            Log::error('获取地区树形结构失败：' . $e->getMessage());
+//            return [];
+//        }
     }
 
+
     /**
-     * 获取用户可访问菜单树
-     * @param int|null $adminId
-     * @param Request|null $request
+     * 获取树形结构
+     * @param int $level
      * @return array
      */
-    public static function getUserMenuTree(?int $adminId, ?Request $request): array
-    {
-        return self::buildMenuTree(self::getUserMenus($adminId, $request));
-    }
-
-
-
-
-    /**
-     * 将扁平的菜单数据转换为树形结构并生成路径
-     * @param array $items 扁平的菜单数据数组
-     * @param int $parentId 父级 ID，默认为 0
-     * @param string|null $pk
-     * @param string $parentFieldName
-     * @param string $childrenName
-     * @param string $parentPath 当前父级路径，用于生成子菜单路径
-     * @return array 树形结构的菜单数据
-     */
-    public static function buildMenuTree(array $items, int $parentId = 0, string $pk = null, string $parentFieldName = "parent_id", string $childrenName = "children", string $parentPath = ''): array
-    {
-        if (empty($pk)) {
-            $pk = (new Region)->getPk();
-        }
-        $tree = [];
-
-        foreach ($items as $item) {
-            if ($item[$parentFieldName] == $parentId) {
-                // 计算当前菜单的基础路径
-                $basePath = $parentPath
-                    ? "{$parentPath}/{$item['name']}"
-                    : "/{$item['name']}";
-
-                // 递归查找子菜单
-                $children = self::buildMenuTree(
-                    $items,
-                    $item[$pk],
-                    $pk,
-                    $parentFieldName,
-                    $childrenName,
-                    $basePath // 传递当前路径作为子菜单的父路径
-                );
-
-                // 判断是否有子菜单
-                $hasChildren = !empty($children);
-
-                // 根据是否有子菜单决定路径是否添加/index
-                $item['path'] = $hasChildren ? $basePath : "{$basePath}/index";
-
-                // 如果有子菜单，添加到当前节点
-                if ($hasChildren) {
-                    $item[$childrenName] = $children;
-                }
-
-                $tree[] = $item;
-            }
-        }
-
-        return $tree;
-    }
-
-
-    /**
-     * 获取用户可访问菜单
-     * @param int|null $adminId
-     * @param Request|null $request
-     * @return array
-     */
-    public static function getUserMenus(?int $adminId, ?Request $request = null): array
-    {
-        if (empty($adminId)) {
-            return [];
-        }
-
-        if ((new Admin)->isSuper($adminId)) {
-            $menuIds = Region::where("1=1")->column('menu_id');
-        } else {
-            $roleIds = AdminRole::where("admin_id", $adminId)->column('role_id');
-            if (empty($roleIds)) {
-                return [];
-            }
-            $menuIds = RoleMenu::whereIn('role_id', $roleIds)->column('menu_id');
-
-            if (empty($menuIds)) {
-                return [];
-            }
-        }
-        try {
-            return (new Region)
-                ->hidden(["order_num", "is_link", "visible", "link_url", "is_full", "is_affix", "is_keep_alive", "created_at", "updated_at"])
-                ->order("order_num asc")
-                ->append(["meta"])
-                ->selectOrFail($menuIds)
-                ->each(function ($item) {
-                    if (!empty($item['redirect'])) {
-                        unset($item['component']);
-                    }
-                    return $item;
-                })->toArray();
-        } catch (DataNotFoundException|ModelNotFoundException $e) {
-            (new Region)->reportError($e->getMessage(), (array)$e, $e->getCode());
-            return [];
-        }
-    }
-
-    /**
-     * 获取用户可访问菜单树
-     * @param Request|null $request
-     * @return array
-     */
-    public static function getMenuTree(?Request $request): array
-    {
-        return self::buildMenuTree(self::getUserMenus((new Admin())->getSuperAdminId(), $request));
-    }
-
-    /**
-     * 所有菜单树,不是菜单结构
-     * @return array
-     */
-    public static function getAllMenuTree(): array
+    public static function getAllRegionTree($level=3    ): array
     {
         try {
-            return self::buildMenuTree(self::where("1=1")->with(["permissions"])->order("order_num asc")
-                ?->select()
-                ?->toArray() ?? []);
+            return   self::field('region_id,parent_id,name')->where("level","<=",$level)
+                ->order('snum asc')
+                ->select()->toTree();
         } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
             return [];
         }
     }
 
+
+
     /**
-     * 父级菜单
+     * 获取父级地区
      * @return BelongsTo
      */
-    public function parent_menu(): BelongsTo
+    public function parentRegion(): BelongsTo
     {
-        return $this->belongsTo(Region::class, 'menu_id', 'menu_id');
+        return $this->belongsTo(Region::class, 'parent_id', 'region_id');
     }
 
     /**
-     * 父级菜单
-     * @return BelongsTo
-     */
-    public function parentMenu(): BelongsTo
-    {
-        return $this->belongsTo(Region::class, 'menu_id', 'menu_id');
-    }
-
-    /**
-     * 子级菜单
+     * 获取子级地区
      * @return HasMany
      */
-    public function childrenMenu(): HasMany
+    public function childrenRegions(): HasMany
     {
-        return $this->hasMany(Region::class, 'menu_id', 'menu_id');
+        return $this->hasMany(Region::class, 'parent_id', 'region_id');
     }
 
     /**
-     * 子级菜单
-     * @return HasMany
+     * 获取所有后代地区ID（包括自身）
+     * @param int $regionId
+     * @return array
      */
-    public function children_menu(): HasMany
+    public function getAllDescendantIds(int $regionId): array
     {
-        return $this->hasMany(Region::class, 'menu_id', 'menu_id');
+        $regionIds = [$regionId];
+        $this->collectChildIds($regionId, $regionIds);
+        return $regionIds;
     }
 
     /**
-     * 必备权限
-     * @return HasMany
+     * 递归收集子地区ID
+     * @param int $parentId
+     * @param array $ids
      */
-    public function requiredPermission(): HasMany
-    {
-        return $this->requiredPermissionDependencies();
-    }
-
-    /**
-     * 必备权限中间表
-     * @return HasMany
-     */
-    public function requiredPermissionDependencies(): HasMany
-    {
-        return $this->dependencies()->where("type", MenuPermissionDependencies::Required->value);
-    }
-
-    /**
-     * 已有权限中间表
-     * @return HasMany
-     */
-    public function dependencies(): HasMany
-    {
-        return $this->hasMany(MenuPermissionDependency::class, 'menu_id');
-    }
-
-    /**
-     * 必备权限
-     * @return HasMany
-     */
-    public function required_permission(): HasMany
-    {
-        return $this->requiredPermissionDependencies();
-    }
-
-    /**
-     * 递归删除指定id的菜单/子级/和角色关联表
-     * @param int $menuId
-     * @return bool
-     */
-    public function deleteRecursive(int $menuId = 0): bool
-    {
-        if (empty($menuId)) {
-            $menuId = $this->getKey();
-        }
-        if (empty($menuId)) {
-            return $this->false("id缺失");
-        }
-        // 获取所有后代菜单ID（包括自身）
-        $allMenuIds = $this->getAllDescendantIds($menuId);
-        // 批量删除相关数据
-        if (!empty($allMenuIds)) {
-            $this->startTrans();
-            try {
-                // 一次性删除所有依赖
-                (new MenuPermissionDependency)->whereIn($this->getPk(), $allMenuIds)->delete();
-                // 一次性删除所有角色关联
-                (new RoleMenu)->whereIn($this->getPk(), $allMenuIds)->delete();
-                // 一次性删除所有菜单
-                $this->whereIn($this->getPk(), $allMenuIds)->delete();
-                $this->commit();
-            } catch (\Exception $exception) {
-                $this->rollback();
-                return $this->false($exception->getMessage());
-            }
-        }
-        return true;
-    }
-
-    /**
-     * 获取所有后代菜单ID（包括自身）
-     */
-    private function getAllDescendantIds($menuId): array
-    {
-        $menuIds = [$menuId];
-        // 递归获取所有子菜单ID
-        $this->collectChildIds($menuId, $menuIds);
-        return $menuIds;
-    }
-
-    /**
-     * 递归收集子菜单ID
-     */
-    private function collectChildIds($parentId, array &$ids): void
+    private function collectChildIds(int $parentId, array &$ids): void
     {
         $children = $this->where('parent_id', $parentId)->column($this->getPk());
         if (!empty($children)) {
@@ -367,107 +122,188 @@ class Region extends BaseModel
     }
 
     /**
-     * 必备权限中间表
-     * @return HasMany
+     * 递归删除指定ID的地区及子级
+     * @param int $regionId
+     * @return bool
      */
-    public function required_permission_dependencies(): HasMany
+    public function deleteRecursive(int $regionId = 0): bool
     {
-        return $this->dependencies()->where("type", MenuPermissionDependencies::Required->value);
-    }
-
-    /**
-     * 已有权限
-     * @return BelongsToMany
-     */
-    public function permissions(): BelongsToMany
-    {
-
-        return $this->belongsToMany(Permission::class, MenuPermissionDependency::class);
-    }
-
-
-    /**
-     * 已有权限中间表
-     * @return HasMany
-     */
-    public function notRequiredDependencies(): HasMany
-    {
-        return $this->hasMany(MenuPermissionDependency::class, 'menu_id')->where("type", MenuPermissionDependencies::Optional->value);
-    }
-
-    /**
-     * 已有权限中间表
-     * @return HasMany
-     */
-    public function not_required_dependencies(): HasMany
-    {
-        return $this->hasMany(MenuPermissionDependency::class, 'menu_id')->where("type", MenuPermissionDependencies::Optional->value);
-    }
-
-
-    /**
-     * 获取菜单meta数据
-     * @param [type] $value
-     * @param [type] $data
-     * @return array
-     */
-    public function getMetaAttr($value, $data): array
-    {
-
-        return [
-            'icon' => $data['icon'],
-            'title' => $data['title'],
-            'isLink' => $data['link_url'] ?: false,
-            'isHide' => !($data['visible'] == 1),
-            'isFull' => $data['is_full'] == 1,
-            'isAffix' => $data['is_affix'] == 1,
-            'isKeepAlive' => $data['is_keep_alive'] == 1,
-        ];
-
-    }
-
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class, RoleMenu::class, 'menu_id', 'role_id');
-    }
-
-
-
-    /**
-     * 删除依赖关系
-     * @param int $id
-     * @return void
-     * @throws \Exception
-     */
-    private function deleteDependencies(int $id = 0): void
-    {
-        if (empty($id)) {
-            $id = $this->getKey();
+        if (empty($regionId)) {
+            $regionId = $this->getKey();
         }
-        if (empty($id)) {
-            return;
+        if (empty($regionId)) {
+            return $this->false("ID缺失");
         }
-        if (!MenuPermissionDependency::where('menu_id', $id)->delete()) {
-            throw new Exception("删除 主键为[{$this->getKey()}]的权限关联中间表数据 时出错");
+
+        $this->startTrans();
+        try {
+            // 获取所有后代地区ID（包括自身）
+            $allRegionIds = $this->getAllDescendantIds($regionId);
+
+            // 执行软删除
+            $result = self::destroy($allRegionIds);
+
+            if ($result === false) {
+                throw new Exception("删除地区失败");
+            }
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            return $this->false($e->getMessage());
         }
     }
 
     /**
-     * 删除角色关联
-     * @param int $id
-     * @return void
-     * @throws \Exception
+     * 恢复被删除的地区
+     * @param int $regionId
+     * @return bool
      */
-    private function deleteRoleRelations(int $id = 0): void
+    public function restoreRegion(int $regionId): bool
     {
-        if (empty($id)) {
-            $id = $this->getKey();
+        $this->startTrans();
+        try {
+            // 获取所有后代地区ID（包括自身）
+            $allRegionIds = $this->getAllDescendantIds($regionId);
+
+            // 恢复删除
+            $result = self::onlyTrashed()
+                ->whereIn('region_id', $allRegionIds)
+                ->update(['deleted_at' => null]);
+
+            if ($result === false) {
+                throw new Exception("恢复地区失败");
+            }
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            return $this->false($e->getMessage());
         }
-        if (empty($id)) {
-            return;
+    }
+
+    /**
+     * 合并地区
+     * @param int $targetRegionId 目标地区ID
+     * @param array $sourceRegionIds 被合并的地区ID数组
+     * @return bool
+     */
+    public function mergeRegions(int $targetRegionId, array $sourceRegionIds): bool
+    {
+        if (empty($targetRegionId) || empty($sourceRegionIds)) {
+            return $this->false("参数不完整");
         }
-        if (!RoleMenu::where('menu_id', $id)->delete()) {
-            throw new Exception("删除 主键为[{$this->getKey()}]的角色关联中间表数据 时出错");
+
+        // 检查目标地区是否存在
+        $targetRegion = self::find($targetRegionId);
+        if (!$targetRegion) {
+            return $this->false("目标地区不存在");
         }
+
+        $this->startTrans();
+        try {
+            foreach ($sourceRegionIds as $regionId) {
+                if ($regionId == $targetRegionId) {
+                    continue;
+                }
+
+                // 获取被合并地区的子地区
+                $children = $this->where('parent_id', $regionId)->select();
+                foreach ($children as $child) {
+                    // 更新子地区的父ID为目标地区ID
+                    $child->parent_id = $targetRegionId;
+                    // 更新路径
+                    $child->path = str_replace("/{$regionId}/", "/{$targetRegionId}/", $child->path);
+                    $child->save();
+                }
+
+                // 标记被合并地区为删除
+                $region = self::find($regionId);
+                $region->delete();
+            }
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            return $this->false($e->getMessage());
+        }
+    }
+
+    /**
+     * 拆分地区 - 创建新的子地区
+     * @param int $parentRegionId 父地区ID
+     * @param array $newRegions 新地区数据数组
+     * @return bool
+     */
+    public function splitRegion(int $parentRegionId, array $newRegions): bool
+    {
+        if (empty($parentRegionId) || empty($newRegions)) {
+            return $this->false("参数不完整");
+        }
+
+        // 检查父地区是否存在
+        $parentRegion = self::find($parentRegionId);
+        if (!$parentRegion) {
+            return $this->false("父地区不存在");
+        }
+
+        $this->startTrans();
+        try {
+            foreach ($newRegions as $regionData) {
+                $region = new self();
+                $region->parent_id = $parentRegionId;
+                $region->name = $regionData['name'];
+                $region->type = $regionData['type'] ?? $parentRegion->type;
+                $region->level = $parentRegion->level + 1;
+                $region->code = $regionData['code'] ?? '';
+                $region->snum = $regionData['snum'] ?? 0;
+                // 构建路径
+                $region->path = rtrim($parentRegion->path, '/') . "/{$region->region_id}/";
+                $region->save();
+            }
+
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            return $this->false($e->getMessage());
+        }
+    }
+
+    /**
+     * 更新地区路径
+     * @param int $regionId
+     * @return bool
+     */
+    public function updateRegionPath(int $regionId): bool
+    {
+        $region = self::find($regionId);
+        if (!$region) {
+            return $this->false("地区不存在");
+        }
+
+        if ($region->parent_id == 0) {
+            $region->path = "/{$regionId}/";
+            return $region->save() !== false;
+        }
+
+        $parentRegion = self::find($region->parent_id);
+        if (!$parentRegion) {
+            return $this->false("父地区不存在");
+        }
+
+        $region->path = rtrim($parentRegion->path, '/') . "/{$regionId}/";
+        $result = $region->save();
+
+        // 递归更新子地区路径
+        $children = $this->where('parent_id', $regionId)->select();
+        foreach ($children as $child) {
+            $this->updateRegionPath($child->region_id);
+        }
+
+        return $result !== false;
     }
 }
