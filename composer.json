@@ -20,19 +20,19 @@
         }
     ],
     "require": {
-        "php": ">=8.0.0",
-        "topthink/framework": "^8.0",
-        "topthink/think-orm": "^3.0|^4.0",
+        "php": ">=8.3.0",
+        "topthink/framework": "^8.1",
+        "topthink/think-orm": "^4.0",
         "topthink/think-filesystem": "^2.0",
         "firebase/php-jwt": "^6.11",
         "phpoffice/phpspreadsheet": "^4.3",
         "topthink/think-migration": "^3.1",
         "topthink/think-worker": "^5.0",
-        "ext-redis": "*",
         "topthink/think-queue": "^3.0",
         "guzzlehttp/guzzle": "^7.9",
         "dragonmantank/cron-expression": "^3.4",
-        "ext-ctype": "*"
+        "ext-ctype": "*",
+        "ext-redis": "*"
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",

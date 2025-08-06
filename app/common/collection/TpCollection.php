@@ -13,6 +13,8 @@ use PhpOffice\PhpSpreadsheet\Writer\Csv;
 
 class TpCollection extends Collection
 {
+
+
     /**
      * 默认需要隐藏的字段
      * @var array
@@ -163,7 +165,7 @@ class TpCollection extends Collection
      * @param string $type 文件类型 xlsx/csv
      * @throws \PhpOffice\PhpSpreadsheet\Writer\Exception
      */
-    public function export(array $headers, string $filename = 'export', string $type = 'xlsx')
+    public function simple_export(array $headers, string $filename = 'export', string $type = 'xlsx')
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();

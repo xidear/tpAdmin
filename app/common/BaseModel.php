@@ -3,6 +3,7 @@
 
 namespace app\common;
 
+use app\common\service\ExportService;
 use app\common\trait\BaseTrait;
 use app\common\trait\LaravelTrait;
 use Closure;
@@ -32,6 +33,111 @@ class BaseModel extends Model
     // 默认配置
     protected int $defaultPageSize = 15;
     protected int $maxResults = 1000;
+
+
+
+    /**
+     * 导出入口方法
+     */
+    public function export(array $headers, string $filename = 'export', string $type = 'xlsx', bool $forceQueue = false)
+    {
+        // 获取当前查询条件
+        $query = $this->getCurrentQuery();
+        $modelClass = get_class($this);
+
+        // 估算数据量
+        $exportService = new ExportService();
+        $estimatedCount = $exportService->estimateCount(function() use ($query) {
+            return clone $query;
+        });
+
+        // 判断是否需要走队列
+        $threshold = config('export.large_data_threshold', 100000);
+        if ($forceQueue || $estimatedCount > $threshold) {
+            return $exportService->createQueueTask(
+                $modelClass,
+                $query,
+                $headers,
+                $filename,
+                $type
+            );
+        }
+
+        // 直接导出
+        return $exportService->directExport(
+            clone $query,
+            $headers,
+            $filename,
+            $type
+        );
+    }
+
+    /**
+     * 获取当前查询对象
+     */
+    protected function getCurrentQuery(): BaseModel|static
+    {
+        return clone $this;
+    }
+
+    /**
+     * 支持链式调用的导出方法
+     */
+    public function exportData(array $headers, string $filename = 'export', string $type = 'xlsx', bool $forceQueue = false)
+    {
+        return $this->export($headers, $filename, $type, $forceQueue);
+    }
+
+
+    /**
+     * 估算查询结果数量（适合判断是否超大数据量）
+     * @param Closure $queryCallback 查询构造回调
+     * @return int 估算的行数
+     */
+    public function estimateCount(Closure $queryCallback): int
+    {
+        $query = $queryCallback();
+        $sql = $query->fetchSql()->select(); // 获取查询SQL
+
+        // 构造EXPLAIN语句
+        $explainSql = "EXPLAIN " . $sql;
+        $result = \think\facade\Db::query($explainSql);
+
+        // 返回估算的行数（不同数据库字段可能不同，MySQL是rows）
+        return $result[0]['rows'] ?? 0;
+    }
+
+
+    /**
+     * 精确分段计数（适合需要准确判断阈值的场景）
+     * @param Closure $queryCallback 查询构造回调
+     * @param int $batchSize 每次查询的批次大小
+     * @param int $threshold 阈值（超过此值则停止计数）
+     * @return int 计数结果（不超过阈值时返回精确值，否则返回阈值+1）
+     */
+    public function batchCount(Closure $queryCallback, int $batchSize = 10000, int $threshold = 1000000): int
+    {
+        $query = $queryCallback();
+        $count = 0;
+        $offset = 0;
+
+        do {
+            // 每次查询一批数据的ID（仅查主键，减少IO）
+            $ids = $query->limit($batchSize)->offset($offset)->column('id');
+            $batchCount = count($ids);
+            $count += $batchCount;
+
+            // 如果已超过阈值，提前终止
+            if ($count > $threshold) {
+                return $threshold + 1;
+            }
+
+            $offset += $batchSize;
+        } while ($batchCount == $batchSize); // 直到某批数据不足batchSize，说明已到末尾
+
+        return $count;
+    }
+
 
 
     public function getByKey($id){
