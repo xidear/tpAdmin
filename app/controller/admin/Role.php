@@ -3,7 +3,7 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
-use app\common\enum\MenuPermissionDependenciesType;
+use app\common\service\PermissionService;
 use app\model\MenuPermissionDependency;
 use app\model\Role as RoleModel;
 use app\request\admin\role\assignMenu;
@@ -11,11 +11,6 @@ use app\request\admin\role\Create;
 use app\request\admin\role\Delete;
 use app\request\admin\role\Edit;
 use app\request\admin\role\Read;
-use app\service\PermissionService;
-use think\db\exception\DataNotFoundException;
-use think\db\exception\DbException;
-use think\db\exception\ModelNotFoundException;
-use think\facade\Db;
 use think\Response;
 use Throwable;
 

@@ -174,7 +174,9 @@ class TpCollection extends Collection
         $colIndex = 1;
         $fieldMap = array_keys($headers);
         foreach ($headers as $label) {
-            $sheet->setCellValueByColumnAndRow($colIndex++, 1, $label);
+            $cellCoordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex) . '1';
+            $sheet->setCellValue($cellCoordinate, $label);
+            $colIndex++;
         }
 
         // 填充数据
@@ -183,7 +185,9 @@ class TpCollection extends Collection
             $colIndex = 1;
             $item = is_object($item) ? $item->toArray() : $item;
             foreach ($fieldMap as $field) {
-                $sheet->setCellValueByColumnAndRow($colIndex++, $rowIndex, $item[$field] ?? '');
+                $cellCoordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex) . $rowIndex;
+                $sheet->setCellValue($cellCoordinate, $item[$field] ?? '');
+                $colIndex++;
             }
             $rowIndex++;
         }

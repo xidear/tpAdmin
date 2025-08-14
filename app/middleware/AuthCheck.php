@@ -3,17 +3,14 @@ namespace app\middleware;
 
 use app\common\enum\Code;
 use app\common\enum\Status;
+use app\common\service\JwtService;
 use app\model\Admin;
-use app\model\AdminRole;
-use app\model\Menu;
-use app\service\JwtService;
-use app\service\PermissionService;
-use think\facade\Cookie;
-use think\facade\Session;
-use think\facade\View;
 
 class AuthCheck
 {
+    /**
+     * @throws \Exception
+     */
     public function handle($request, \Closure $next)
     {
         $adminId=null;

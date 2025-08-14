@@ -1,12 +1,10 @@
 <?php
 namespace app\controller\admin;
 use app\common\BaseController;
-use app\common\enum\AdminType;
-use app\model\Admin;
+use app\common\enum\Status;
+use app\common\service\JwtService;
 use app\request\admin\login\Delete;
 use app\request\admin\login\DoLogin;
-use app\service\JwtService;
-use app\common\enum\Status;
 use think\facade\Cookie;
 use think\facade\Session;
 use think\Response;

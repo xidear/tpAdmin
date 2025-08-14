@@ -20,14 +20,14 @@ return [
         'file' => [
             // 日志记录方式
             'type'           => 'File',
-            // 日志保存目录
-            'path'           => '',
+            // 日志保存目录 - 设置为runtime下的log目录
+            'path'           => runtime_path() . 'log' . DIRECTORY_SEPARATOR,
             // 单文件日志写入
             'single'         => false,
             // 独立日志级别
             'apart_level'    => [],
             // 最大日志文件数量
-            'max_files'      => 0,
+            'max_files'      => 30,
             // 使用JSON格式记录
             'json'           => false,
             // 日志处理
@@ -37,7 +37,7 @@ return [
             // 日志输出格式化
             'format'         => '[%s][%s] %s',
             // 是否实时写入
-            'realtime_write' => false,
+            'realtime_write' => true,  // 改为true确保实时写入
         ],
         // 其它日志通道配置
     ],

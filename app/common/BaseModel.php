@@ -3,9 +3,10 @@
 
 namespace app\common;
 
-use app\common\service\ExportService;
+use app\common\service\export\ExportService;
 use app\common\trait\BaseTrait;
 use app\common\trait\LaravelTrait;
+use app\common\trait\RewriteCollectionTrait;
 use Closure;
 use ReflectionClass;
 use ReflectionMethod;
@@ -20,7 +21,6 @@ use think\{Collection,
     model\relation\HasMany};
 use think\db\exception\{DataNotFoundException, DbException, ModelNotFoundException};
 use Throwable;
-use app\common\trait\RewriteCollectionTrait;
 
 class BaseModel extends Model
 {

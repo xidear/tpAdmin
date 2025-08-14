@@ -1,8 +1,8 @@
 <?php
 namespace app\common\model;
 
+use app\common\service\export\ExportService;
 use think\Model;
-use app\common\service\ExportService;
 
 /**
  * @property int $export_task_id

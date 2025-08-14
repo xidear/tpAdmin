@@ -4,8 +4,8 @@ namespace app\model;
 
 use app\common\BaseModel;
 use app\common\enum\MenuPermissionDependencies;
+use app\common\service\PermissionService;
 use app\Request;
-use app\service\PermissionService;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;

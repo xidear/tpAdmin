@@ -70,17 +70,23 @@ class TaskLog extends BaseModel
      */
     public static function recordEnd(int $logId, int $status, string $output = '', string $error = ''): bool
     {
-        $endTime = date('Y-m-d H:i:s');
+        // 获取当前时间的毫秒时间戳
+        $endTimeMs = microtime(true);
+        
+        // 将毫秒时间戳转换为年月日时分秒格式
+        $endTime = date('Y-m-d H:i:s', (int)$endTimeMs);
+        
         $log = self::find($logId);
 
         if (!$log) {
             return false;
         }
 
-        // 计算执行时长(毫秒)
-        $startTime = strtotime($log->start_time) * 1000;
-        $endTimeMs = strtotime($endTime) * 1000;
-        $duration = $endTimeMs - $startTime;
+        // 开始时间转换成秒时间戳
+        $startTime = strtotime($log->start_time);
+        
+        // 结束时间毫秒时间戳减去开始时间秒时间戳，得到毫秒级时长
+        $duration = (int)(($endTimeMs - $startTime) * 1000);
 
         return $log->save([
             'end_time' => $endTime,

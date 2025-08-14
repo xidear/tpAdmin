@@ -2,16 +2,13 @@
 namespace app\controller;
 
 use app\common\BaseController;
-use app\model\Admin;
 use app\common\model\ExportTask as ExportTaskModel;
-use app\common\service\ExportService;
+use app\common\service\export\ExportService;
+use app\model\Admin;
 use app\model\Permission;
-use think\facade\Queue;
-use think\facade\Log;
-use think\facade\Filesystem;
 use think\exception\ValidateException;
-use think\db\exception\DataNotFoundException;
-use think\db\exception\ModelNotFoundException;
+use think\facade\Log;
+use think\facade\Queue;
 
 class ExportTask extends BaseController
 {
@@ -193,7 +190,7 @@ class ExportTask extends BaseController
             $newTask->save();
 
             // 推送队列
-            Queue::push(\app\common\job\ExportJob::class, $newJobId, 'export');
+            Queue::push(\app\common\service\export\ExportJob::class, $newJobId, 'export');
 
             return $this->success(['job_id' => $newJobId], "任务已重启");
         } catch (\Exception $e) {

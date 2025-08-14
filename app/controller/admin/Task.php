@@ -56,21 +56,21 @@ class Task extends BaseController
 
     /**
      * 任务详情（包含执行日志）
-     * @param int $id
+     * @param int $task_id
      * @param Read $read
      * @return Response
      */
-    public function read(int $id, Read $read): Response
+    public function read(int $task_id, Read $read): Response
     {
         // 获取任务基本信息
-        $task = (new TaskModel())->fetchOne($id);
+        $task = (new TaskModel())->fetchOne($task_id);
         if ($task->isEmpty()) {
             return $this->error("未找到指定任务");
         }
 
         // 获取任务执行日志
         $logConditions = [
-            ['task_id', '=', $id]
+            ['task_id', '=', $task_id]
         ];
 
         $config = [];
@@ -103,38 +103,34 @@ class Task extends BaseController
     {
         $params = $create->param();
         // 补充创建人信息
-        $params['created_by'] = $this->adminId;
-        $params['updated_by'] = $this->adminId;
+        $params['created_by'] = request()->adminId;
+        $params['updated_by'] = request()->adminId;
 
         $task = (new TaskModel())->fetchOneOrCreate($params);
 
-        // 清除任务缓存
-        TaskModel::clearCache($task->getKey());
 
         return $this->success($task, "任务创建成功");
     }
 
     /**
      * 编辑任务
-     * @param int $id
+     * @param int $task_id
      * @param Edit $edit
      * @return Response
      */
-    public function update(int $id, Edit $edit): Response
+    public function update(int $task_id, Edit $edit): Response
     {
         $params = Request::param();
-        $task = (new TaskModel())->fetchOne($id);
+        $task = (new TaskModel())->fetchOne($task_id);
 
         if ($task->isEmpty()) {
             return $this->error("未找到指定任务");
         }
 
         // 补充更新人信息
-        $params['updated_by'] = $this->adminId;
+        $params['updated_by'] = request()->adminId;
 
         if ($task->intelligentUpdate($params)) {
-            // 清除缓存
-            TaskModel::clearCache($id);
             return $this->success($task, "任务编辑成功");
         }
 
@@ -162,22 +158,22 @@ class Task extends BaseController
 
     /**
      * 删除单个任务
-     * @param int $id
+     * @param int $task_id
      * @param Delete $delete
      * @return Response
      */
-    public function delete(int $id, Delete $delete): Response
+    public function delete(int $task_id, Delete $delete): Response
     {
         $model = new TaskModel();
-        $task = $model->fetchOne($id);
+        $task = $model->fetchOne($task_id);
 
         if ($task->isEmpty()) {
             return $this->error("未找到指定任务");
         }
 
-        if ($model->batchDeleteWithRelation([$id], ["logs"])) {
+        if ($model->batchDeleteWithRelation([$task_id], ["logs"])) {
             // 清除缓存
-            TaskModel::clearCache($id);
+            TaskModel::clearCache($task_id);
             return $this->success("任务删除成功");
         } else {
             return $this->error($model->getMessage() ?: "任务删除失败");
@@ -186,12 +182,12 @@ class Task extends BaseController
 
     /**
      * 切换任务状态（开启/停止）
-     * @param int $id
+     * @param int $task_id
      * @return Response
      */
-    public function toggleStatus(int $id): Response
+    public function toggleStatus(int $task_id): Response
     {
-        $task = (new TaskModel())->fetchOne($id);
+        $task = (new TaskModel())->fetchOne($task_id);
 
         if ($task->isEmpty()) {
             return $this->error("未找到指定任务");
@@ -203,11 +199,10 @@ class Task extends BaseController
             : Status::Normal->value;
 
         $task->status = $newStatus;
-        $task->updated_by = $this->adminId;
+        $task->updated_by = request()->adminId;
 
         if ($task->save()) {
             // 清除缓存
-            TaskModel::clearCache($id);
             return $this->success([
                 'status' => $newStatus
             ], $newStatus == Status::Normal->value ? "任务已开启" : "任务已停止");
@@ -218,12 +213,12 @@ class Task extends BaseController
 
     /**
      * 立即执行一次任务
-     * @param int $id
+     * @param int $task_id
      * @return Response
      */
-    public function executeNow(int $id): Response
+    public function executeNow(int $task_id): Response
     {
-        $task = (new TaskModel())->fetchOne($id);
+        $task = (new TaskModel())->fetchOne($task_id);
 
         if ($task->isEmpty()) {
             return $this->error("未找到指定任务");

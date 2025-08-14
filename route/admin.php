@@ -5,6 +5,8 @@ use app\middleware\AutoPermissionCheck;
 use app\middleware\LogRecord;
 use think\facade\Route;
 // 后台路由组
+Route::get('api/test', 'Test/index');
+
 Route::group('adminapi', function () {
     //    不需要登录
     Route::group(function () {
@@ -82,10 +84,13 @@ Route::group('adminapi', function () {
             Route::delete('delete/:region_id', 'delete')->name("删除地区")->option(["description"=>"软删除指定地区"]);
             // 恢复地区
             Route::post('restore/:region_id', 'restore')->name("恢复地区")->option(["description"=>"恢复已删除的地区"]);
-            // 合并地区
-            Route::post('merge', 'merge')->name("合并地区")->option(["description"=>"将多个地区合并到目标地区"]);
-            // 拆分地区
-            Route::post('split', 'split')->name("拆分地区")->option(["description"=>"将地区拆分为多个子地区"]);
+            Route::post('split', 'split')->name("拆分")->option(["description"=>"将地区拆分为多个子地区"]);
+            
+            Route::post('merge', 'merge')->name("合并")->option(["description"=>"合并地区"]);
+
+            // 刷新缓存
+            Route::get('refresh_cache', 'refreshCache')->name("清除缓存")
+            ->option(["description"=>"清除地区缓存"]);
             // 获取子地区
             Route::get('children/:parent_id', 'children')->name("子地区列表")->option(["description"=>"获取指定地区的子地区列表"]);
         })->prefix("admin/Region/");
@@ -211,3 +216,5 @@ Route::group('adminapi', function () {
     ]);
 })->prefix('admin/')->allowCrossDomain()
     ->middleware(LogRecord::class); // 应用日志记录中间件
+
+

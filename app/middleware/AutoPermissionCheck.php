@@ -4,7 +4,7 @@ namespace app\middleware;
 
 use app\common\BaseRequest;
 use app\common\enum\Code;
-use app\service\PermissionService;
+use app\common\service\PermissionService;
 use Closure;
 use think\response\Json;
 

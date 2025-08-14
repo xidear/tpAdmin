@@ -1,9 +1,10 @@
 <?php
 
-namespace app\service;
+namespace app\common\service;
 
 use app\common\enum\SuccessOrFail;
 use app\common\enum\TaskPlatform;
+use app\common\enum\TaskExecuteMode;
 use app\common\enum\TaskType;
 use app\common\enum\Status;
 use app\model\Task;
@@ -29,10 +30,10 @@ class TaskService extends BaseService
     {
         // 记录任务开始日志
         $logId = TaskLog::recordStart(
-            $task->id,
+            $task->getKey(),
             $task->name,
             getmypid(),
-            Request::ip()
+            \app\common\support\Tool::getServerIp()
         );
 
         try {
@@ -49,7 +50,18 @@ class TaskService extends BaseService
 
             // 更新任务执行时间
             $task->last_exec_time = date('Y-m-d H:i:s');
-            $task->next_exec_time = $this->calculateNextExecTime($task->schedule);
+            
+            // 根据执行模式处理下次执行时间
+            if ($task->execute_mode == TaskExecuteMode::ONCE->value) {
+                // 一次性任务：设置为null表示不再执行
+                $task->next_exec_time = null;
+                // 可选：自动禁用任务
+                $task->status = Status::Disabled->value;
+            } else {
+                // 循环任务：计算下次执行时间
+                $task->next_exec_time = $this->calculateNextExecTime($task->schedule);
+            }
+            
             $task->save();
 
             // 记录成功日志
@@ -210,8 +222,10 @@ class TaskService extends BaseService
      */
     private function calculateNextExecTime(string $cronExpression): string
     {
+        
         // 使用crontab解析库计算下次执行时间
         $parser = $this->make(\Cron\CronExpression::class, [$cronExpression]);
         return $parser->getNextRunDate()->format('Y-m-d H:i:s');
     }
 }
+

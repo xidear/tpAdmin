@@ -1,1108 +1,668 @@
 <template>
-  <div class="table-box">
-    <ProTable
-      ref="proTable"
-      title="省市区管理"
-      row-key="region_id"
-      :indent="20"
-      :columns="columns"
-      :data="filteredRegionData"
-      :tree-props="{
-        children: 'children',
-        hasChildren: 'hasChildren',
-        label: 'name'
+  <div class="region-manage-container">
+    <div class="toolbar">
+      <el-button 
+        type="primary" 
+        size="large" 
+        v-auth="'create'"
+        @click="handleAdd"
+        :loading="addButtonLoading"
+      >
+        <el-icon><Plus /></el-icon>
+        添加地区
+      </el-button>
+      <el-button 
+        type="warning" 
+        size="large" 
+        @click="handleClearCache"
+        v-auth="'refreshCache'"
+        :loading="clearCacheLoading"
+      >
+        <el-icon><Refresh /></el-icon>
+        清除地区缓存
+      </el-button>
+    </div>
+    
+    <el-tree-v2
+      :data="tableData"
+      :props="{
+        value: 'region_id',
+        label: 'name',
+        children: 'children'
       }"
-      :pagination="false"
-      lazy
-      @node-expand="handleNodeExpand"
-      @select="handleTableSelect"
-      @select-all="handleTableSelectAll"
+      :height="600"
+      :item-size="32"
+      :default-expanded-keys="expandedKeys"
+      highlight-current
+      @node-click="handleNodeClick"
     >
-      <!-- 表格 header 按钮 -->
-      <template #tableHeader>
-        <div class="flex items-center flex-wrap gap-2">
-          <div class="search-box flex items-center gap-3 flex-wrap">
-            <el-button
-              type="primary"
-              :icon="CirclePlus"
-              @click="handleAdd"
-            >
-              新增地区
-            </el-button>
-
-            <el-button
-              type="warning"
-              :icon="Search"
-              @click="handleMerge"
-              :disabled="!canMerge"
-            >
-              合并地区
-            </el-button>
-
-            <el-button
-              type="info"
-              :icon="CirclePlus"
-              @click="handleSplit"
-              :disabled="!selectedRegion"
-            >
-              拆分地区
-            </el-button>
-
-            <!-- 搜索框 -->
-            <el-input
-              v-model="searchParams.name"
-              placeholder="地区名称"
-              clearable
-              style="width: 200px"
-            />
-            <el-input
-              v-model="searchParams.code"
-              placeholder="地区编码"
-              clearable
-              style="width: 200px"
-            />
-            <el-select
-              v-model="searchParams.type"
-              placeholder="地区类型"
-              clearable
-              style="width: 150px"
-            >
-              <el-option label="省份" value="province" />
-              <el-option label="城市" value="city" />
-              <el-option label="区县" value="district" />
-              <el-option label="街道" value="street" />
-              <el-option label="乡镇" value="town" />
-            </el-select>
-            <el-button-group>
-              <el-button type="primary" @click="handleSearch">搜索</el-button>
-              <el-button @click="resetSearch">重置</el-button>
-            </el-button-group>
+      <template #default="{ node, data }">
+        <div class="custom-tree-node">
+          <div class="node-info">
+            <span class="node-name">{{ node.label }}</span>
+            <span class="node-type">{{ getTypeLabel(data.type) }}</span>
+          </div>
+          <div class="node-actions">
+            <el-button size="small" type="primary" v-auth="'read'" link @click.stop="handleDetail(data)">详情</el-button>
+            <el-button size="small" type="primary" v-auth="'update'" link @click.stop="handleEdit(data)">编辑</el-button>
+            <el-button size="small" type="danger" v-auth="'delete'" link @click.stop="handleDelete(data)">删除</el-button>
           </div>
         </div>
       </template>
+    </el-tree-v2>
 
-      <!-- 地区类型 -->
-      <template #type="scope">
-        <el-tag :type="getTypeTagType(scope.row.type)">
-          {{ getTypeName(scope.row.type) }}
-        </el-tag>
-      </template>
-
-      <!-- 状态显示 -->
-      <template #status="scope">
-        <el-tag :type="scope.row.deleted_at ? 'danger' : 'success'">
-          {{ scope.row.deleted_at ? '已删除' : '正常' }}
-        </el-tag>
-      </template>
-
-      <!-- 操作按钮 -->
-      <template #operation="scope">
-        <el-button
-          @click="handleView(scope.row)"
-          type="primary"
-          link
-          :icon="View"
-          :disabled="scope.row.deleted_at"
-        >
-          查看
-        </el-button>
-        <el-button
-          @click="handleEdit(scope.row)"
-          type="primary"
-          link
-          :icon="EditPen"
-          :disabled="scope.row.deleted_at"
-        >
-          编辑
-        </el-button>
-        <el-button
-          @click="handleDelete(scope.row)"
-          type="primary"
-          link
-          :icon="Delete"
-          :disabled="scope.row.deleted_at"
-        >
-          删除
-        </el-button>
-        <el-button
-          @click="handleRestore(scope.row)"
-          type="primary"
-          link
-          :icon="Refresh"
-          v-if="scope.row.deleted_at"
-        >
-          恢复
-        </el-button>
-        <el-button
-          @click="handleSelectForMerge(scope.row)"
-          type="primary"
-          link
-          :icon="Check"
-          :disabled="scope.row.deleted_at || isSelected(scope.row.region_id)"
-        >
-          {{ isSelected(scope.row.region_id) ? '已选择' : '选择合并' }}
-        </el-button>
-      </template>
-    </ProTable>
-
-    <!-- 地区表单对话框：支持查看/编辑/新增 -->
+    <!-- 详情弹窗 -->
     <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="60%"
-      destroy-on-close
+      v-model="detailDialogVisible"
+      title="地区详情"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="地区ID">{{ detailData.region_id }}</el-descriptions-item>
+        <el-descriptions-item label="地区名称">{{ detailData.name }}</el-descriptions-item>
+        <el-descriptions-item label="地区编码">{{ detailData.code }}</el-descriptions-item>
+        <el-descriptions-item label="地区类型">{{ getTypeLabel(detailData.type) }}</el-descriptions-item>
+        <el-descriptions-item label="父级ID">{{ detailData.parent_id || '无' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ detailData.created_at }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ detailData.updated_at }}</el-descriptions-item>
+     </el-descriptions>
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑弹窗 -->
+    <el-dialog
+      v-model="editDialogVisible"
+      title="编辑地区"
+      width="500px"
+      :close-on-click-modal="false"
     >
       <el-form
-        ref="regionFormRef"
-        :model="regionForm"
-        :rules="formRules"
-        label-width="120px"
-        :disabled="mode === 'view'"
+        ref="editFormRef"
+        :model="editForm"
+        :rules="editRules"
+        label-width="100px"
       >
-        <!-- 父级地区选择 -->
-        <el-form-item label="父级地区" prop="parent_id">
-          <el-cascader
-            v-model="regionForm.parent_id"
-            :props="cascadeProps"
-            placeholder="选择父级地区"
-            clearable
-            filterable
-            :disabled="mode === 'view'"
-            :load="loadCascadeChildren"
-            lazy
-          />
-          <div class="text-gray-500 text-xs mt-1">
-            顶级地区（省份）请留空或选择空值
-          </div>
-        </el-form-item>
-
-        <!-- 地区名称 -->
         <el-form-item label="地区名称" prop="name">
-          <el-input
-            v-model="regionForm.name"
-            placeholder="地区名称"
-            :disabled="mode === 'view'"
-          />
+          <el-input v-model="editForm.name" placeholder="请输入地区名称" />
         </el-form-item>
-
-        <!-- 地区类型 -->
+        <el-form-item label="地区编码" prop="code">
+          <el-input v-model="editForm.code" placeholder="请输入地区编码" />
+        </el-form-item>
         <el-form-item label="地区类型" prop="type">
-          <el-select
-            v-model="regionForm.type"
-            placeholder="选择地区类型"
-            :disabled="mode === 'view'"
-          >
+          <el-select v-model="editForm.type" placeholder="请选择地区类型">
+            <el-option label="国家" value="country" />
             <el-option label="省份" value="province" />
             <el-option label="城市" value="city" />
-            <el-option label="区县" value="district" />
+            <el-option label="区县" value="area" />
             <el-option label="街道" value="street" />
-            <el-option label="乡镇" value="town" />
+            <el-option label="社区" value="community" />
           </el-select>
         </el-form-item>
-
-        <!-- 地区编码 -->
-        <el-form-item label="地区编码" prop="code">
-          <el-input
-            v-model="regionForm.code"
-            placeholder="地区编码"
-            :disabled="mode === 'view'"
-          />
-          <div class="text-gray-500 text-xs mt-1">
-            行政区域代码，如：110102001000
-          </div>
-        </el-form-item>
-
-        <!-- 排序号 -->
-        <el-form-item label="排序号" prop="snum">
-          <el-input-number
-            v-model="regionForm.snum"
-            :min="0"
-            :max="9999"
-            placeholder="数字越小越靠前"
-            :disabled="mode === 'view'"
-          />
-        </el-form-item>
-
-        <!-- 路径信息 -->
-        <el-form-item label="路径信息" v-if="mode === 'view'">
-          <el-input
-            v-model="regionForm.path"
-            readonly
-            class="readonly-input"
-          />
-        </el-form-item>
-
-        <!-- 层级信息 -->
-        <el-form-item label="层级信息" v-if="mode === 'view'">
-          <el-input
-            v-model="regionLevel"
-            readonly
-            class="readonly-input"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">关闭</el-button>
-        <el-button
-          type="primary"
-          @click="submitRegionForm"
-          v-if="mode !== 'view'"
-        >
-          {{ mode === 'edit' ? '更新' : '创建' }}
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 合并地区对话框 -->
-    <el-dialog
-      v-model="mergeDialogVisible"
-      title="合并地区"
-      width="50%"
-      destroy-on-close
-    >
-      <el-form
-        ref="mergeFormRef"
-        :model="mergeForm"
-        :rules="mergeFormRules"
-        label-width="120px"
-      >
-        <el-form-item label="目标地区" prop="target_region_id">
-          <el-select
-            v-model="mergeForm.target_region_id"
-            placeholder="选择合并到的目标地区"
-            filterable
-            clearable
+        <el-form-item label="父级地区" prop="parent_id">
+          <el-tree-select
+            v-model="editForm.parent_id"
+            :data="parentOptions"
+            :props="{
+              value: 'region_id',
+              label: 'name',
+              children: 'children',
+              disabled: 'disabled'
+            }"
+            :filter-method="filterParentNode"
+            :filterable="true"
+            :clearable="true"
+            placeholder="请选择父级地区"
+            :default-expanded-keys="getTreeSelectProps().expandedKeys"
+            :node-key="'region_id'"
+            :render-after-expand="false"
+            :show-checkbox="false"
+            :check-strictly="true"
+            :disabled="editLoading"
             style="width: 100%"
-          >
-            <el-option
-              v-for="region in filteredRegionOptions"
-              :key="region.region_id"
-              :label="region.name"
-              :value="region.region_id"
-              :disabled="region.deleted_at || isSelected(region.region_id)"
-            />
-          </el-select>
-          <div class="text-gray-500 text-xs mt-1">
-            被合并的地区将成为该地区的子地区
-          </div>
-        </el-form-item>
-
-        <el-form-item label="已选择地区" prop="source_region_ids">
-          <el-tag
-            v-for="id in selectedRegionIds"
-            :key="id"
-            closable
-            :disable-transitions="false"
-            @close="removeFromMerge(id)"
-            style="margin-right: 5px; margin-bottom: 5px"
-          >
-            {{ getRegionNameById(id) }}
-          </el-tag>
-          <div v-if="selectedRegionIds.length === 0" class="text-gray-500 text-xs">
-            请从列表中选择要合并的地区
-          </div>
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="mergeDialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          @click="submitMergeForm"
-          :disabled="selectedRegionIds.length === 0 || !mergeForm.target_region_id"
-        >
-          确认合并
-        </el-button>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleEditSubmit" :loading="editLoading">确定</el-button>
       </template>
     </el-dialog>
 
-    <!-- 拆分地区对话框 -->
+    <!-- 新增弹窗 -->
     <el-dialog
-      v-model="splitDialogVisible"
-      title="拆分地区"
-      width="60%"
-      destroy-on-close
+      v-model="addDialogVisible"
+      title="添加地区"
+      width="500px"
+      :close-on-click-modal="false"
     >
       <el-form
-        ref="splitFormRef"
-        :model="splitForm"
-        :rules="splitFormRules"
-        label-width="120px"
+        ref="addFormRef"
+        :model="addForm"
+        :rules="addRules"
+        label-width="100px"
       >
-        <el-form-item label="父级地区" prop="parent_region_id">
-          <el-input
-            v-model="splitParentRegionName"
-            readonly
-            class="readonly-input"
-          />
+        <el-form-item label="地区名称" prop="name">
+          <el-input v-model="addForm.name" placeholder="请输入地区名称" />
         </el-form-item>
-
-        <el-form-item label="新增子地区" prop="new_regions">
-          <el-table
-            :data="splitForm.new_regions"
-            border
-            row-key="key"
-            style="width: 100%; margin-bottom: 10px"
-          >
-            <el-table-column prop="name" label="地区名称" width="200">
-              <template #default="scope">
-                <el-input v-model="scope.row.name" placeholder="请输入地区名称" />
-              </template>
-            </el-table-column>
-            <el-table-column prop="type" label="地区类型" width="150">
-              <template #default="scope">
-                <el-select v-model="scope.row.type" placeholder="选择类型">
-                  <el-option label="省份" value="province" />
-                  <el-option label="城市" value="city" />
-                  <el-option label="区县" value="district" />
-                  <el-option label="街道" value="street" />
-                  <el-option label="乡镇" value="town" />
-                </el-select>
-              </template>
-            </el-table-column>
-            <el-table-column prop="code" label="地区编码" width="200">
-              <template #default="scope">
-                <el-input v-model="scope.row.code" placeholder="请输入编码" />
-              </template>
-            </el-table-column>
-            <el-table-column prop="snum" label="排序号" width="100">
-              <template #default="scope">
-                <el-input-number
-                  v-model="scope.row.snum"
-                  :min="0"
-                  :max="9999"
-                  size="small"
-                />
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100">
-              <template #default="scope">
-                <el-button
-                  type="primary"
-                  link
-                  size="small"
-                  :icon="Delete"
-                  @click="removeSplitRegion(scope.$index)"
-                >
-                  删除
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-button
-            type="primary"
-            size="small"
-            :icon="CirclePlus"
-            @click="addSplitRegion"
-          >
-            添加子地区
-          </el-button>
+        <el-form-item label="地区编码" prop="code">
+          <el-input v-model="addForm.code" placeholder="请输入地区编码" />
+        </el-form-item>
+        <el-form-item label="地区类型" prop="type">
+          <el-select v-model="addForm.type" placeholder="请选择地区类型">
+            <el-option label="国家" value="country" />
+            <el-option label="省份" value="province" />
+            <el-option label="城市" value="city" />
+            <el-option label="区县" value="area" />
+            <el-option label="街道" value="street" />
+            <el-option label="社区" value="community" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="父级地区" prop="parent_id">
+          <el-tree-select
+            v-model="addForm.parent_id"
+            :data="parentOptions"
+            :props="{
+              value: 'region_id',
+              label: 'name',
+              children: 'children'
+            }"
+            :filter-method="filterParentNode"
+            :filterable="true"
+            :clearable="true"
+            placeholder="请选择父级地区（不选择则为顶级地区）"
+            :default-expanded-keys="[]"
+            :node-key="'region_id'"
+            :render-after-expand="false"
+            :show-checkbox="false"
+            :check-strictly="true"
+            :disabled="addLoading"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="splitDialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          @click="submitSplitForm"
-          :disabled="splitForm.new_regions.length === 0"
-        >
-          确认拆分
-        </el-button>
+        <el-button @click="addDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleAddSubmit" :loading="addLoading">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
-<script setup lang="ts" name="regionManage">
-import { onMounted, ref, reactive, computed, watch } from "vue";
-import { ColumnProps } from "@/components/ProTable/interface";
-import {
-  Delete,
-  EditPen,
-  CirclePlus,
-  Search,
-  View,
-  Refresh,
-  Check
-} from "@element-plus/icons-vue";
-import {
-  getTreeApi,
-  getReadApi,
-  postCreateApi,
-  putUpdateApi,
-  deleteDeleteApi,
-  postRestoreApi,
-  postMergeApi,
-  postSplitApi
-} from "@/api/modules/region";
-import type { FormInstance, FormRules } from "element-plus";
-import ProTable from "@/components/ProTable/index.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+<script setup>
+import { ref, reactive, nextTick } from 'vue'
+import { ElTreeV2, ElButton, ElMessageBox, ElMessage, ElDialog, ElDescriptions, ElDescriptionsItem, ElTag, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElTreeSelect, ElInputNumber, ElRadioGroup, ElRadio } from 'element-plus'
+import { Refresh, Plus } from '@element-plus/icons-vue'
+import { getTreeApi, getRegionDetailApi, addRegionApi, editRegionApi, deleteRegionApi, refreshCacheApi } from '@/api/modules/region'
 
-// 类型定义
-interface RegionItem {
-  region_id: number;
-  parent_id: number;
-  name: string;
-  type: 'province' | 'city' | 'district' | 'street' | 'town';
-  code: string;
-  snum: number;
-  level: number;
-  path: string;
-  deleted_at: string | null;
-  children?: RegionItem[];
-  hasChildren?: boolean;
-  updated_at: string;
-  created_at: string;
+const tableData = ref([])
+const expandedKeys = ref([])
+const clearCacheLoading = ref(false)
+const detailDialogVisible = ref(false)
+const editDialogVisible = ref(false)
+const addDialogVisible = ref(false)
+const editLoading = ref(false)
+const addLoading = ref(false)
+const addButtonLoading = ref(false) // 添加添加按钮loading状态
+const editFormRef = ref(null)
+const addFormRef = ref(null)
+const loading = ref(false)
+
+// 详情数据
+const detailData = reactive({
+  region_id: '',
+  name: '',
+  code: '',
+  type: '',
+  parent_id: '',
+  created_at: '',
+  updated_at: '',
+})
+
+// 编辑表单
+const editForm = reactive({
+  region_id: '',
+  name: '',
+  code: '',
+  type: '',
+  parent_id: null,
+})
+
+// 新增表单
+const addForm = reactive({
+  name: '',
+  code: '',
+  type: '',
+  parent_id: null,
+})
+
+// 父级选项数据
+const parentOptions = ref([])
+
+// 编辑表单验证规则
+const editRules = {
+  name: [{ required: true, message: '请输入地区名称', trigger: 'blur' }],
+  code: [{ required: true, message: '请输入地区编码', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择地区类型', trigger: 'change' }],
 }
 
-interface RegionForm {
-  region_id?: number;
-  parent_id: number;
-  type: 'province' | 'city' | 'district' | 'street' | 'town';
-  name: string;
-  code: string;
-  snum: number;
-  path?: string;
+// 新增表单验证规则
+const addRules = {
+  name: [{ required: true, message: '请输入地区名称', trigger: 'blur' }],
+  code: [{ required: true, message: '请输入地区编码', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择地区类型', trigger: 'change' }],
 }
 
-interface MergeParams {
-  target_region_id: number;
-  source_region_ids: number[];
-}
+// 添加一个变量来存储干净的原始数据
+const rawParentOptions = ref([])
 
-interface SplitParams {
-  parent_region_id: number;
-  new_regions: Array<{
-    key: number;
-    parent_id: number;
-    type: string;
-    name: string;
-    code: string;
-    snum: number;
-  }>;
-}
-
-// 表单引用
-const regionFormRef = ref<FormInstance>();
-const mergeFormRef = ref<FormInstance>();
-const splitFormRef = ref<FormInstance>();
-const proTable = ref<InstanceType<typeof ProTable>>();
-
-// 对话框状态和模式控制
-const dialogVisible = ref(false);
-const mergeDialogVisible = ref(false);
-const splitDialogVisible = ref(false);
-const mode = ref<'view' | 'edit' | 'create'>('create');
-
-// 原始地区数据
-const originalRegionData = ref<RegionItem[]>([]);
-// 筛选后的地区数据
-const filteredRegionData = ref<RegionItem[]>([]);
-// 已加载节点ID（避免重复请求）
-const loadedNodeIds = ref<Set<number>>(new Set());
-// 选中的地区ID（用于合并操作）
-const selectedRegionIds = ref<number[]>([]);
-// 当前选中的单个地区
-const selectedRegion = ref<RegionItem | null>(null);
-
-// 搜索参数
-const searchParams = reactive({
-  name: "",
-  code: "",
-  type: ""
-});
-
-// 地区表单数据
-const regionForm = ref<RegionForm>({
-  parent_id: 0,
-  type: 'province',
-  name: "",
-  code: "",
-  snum: 0
-});
-
-// 合并表单数据
-const mergeForm = ref<MergeParams>({
-  target_region_id: 0,
-  source_region_ids: []
-});
-
-// 拆分表单数据
-const splitForm = ref<SplitParams>({
-  parent_region_id: 0,
-  new_regions: []
-});
-
-// 拆分父地区名称
-const splitParentRegionName = ref("");
-
-// 级联选择器配置
-const cascadeProps = {
-  value: 'region_id',
-  label: 'name',
-  children: 'children',
-  hasChildren: 'hasChildren',
-  checkStrictly: true,
-  emitPath: false
-};
-
-// 表单验证规则
-const formRules = reactive<FormRules>({
-  name: [{ required: true, message: "地区名称不能为空", trigger: "blur" }],
-  type: [{ required: true, message: "请选择地区类型", trigger: "change" }],
-  code: [{ required: true, message: "地区编码不能为空", trigger: "blur" }],
-  snum: [{ required: true, message: "排序号不能为空", trigger: "blur" }],
-  parent_id: [{ required: false, message: "请选择父级地区", trigger: "change" }]
-});
-
-// 合并表单验证规则
-const mergeFormRules = reactive<FormRules>({
-  target_region_id: [
-    { required: true, message: "请选择目标地区", trigger: "change" }
-  ],
-  source_region_ids: [
-    {
-      required: true,
-      message: "请选择至少一个要合并的地区",
-      trigger: "change",
-      validator: (rule, value, callback) => {
-        if (selectedRegionIds.value.length === 0) {
-          callback(new Error("请选择至少一个要合并的地区"));
-        } else {
-          callback();
-        }
-      }
+const getRegionData = async () => {
+  try {
+    loading.value = true
+    
+    // 获取完整层级数据
+    const treeResponse = await getTreeApi({ level: 0 })
+    if (treeResponse.code === 200) {
+      tableData.value = treeResponse.data
     }
-  ]
-});
-
-// 拆分表单验证规则
-const splitFormRules = reactive<FormRules>({
-  parent_region_id: [
-    { required: true, message: "父级地区不能为空", trigger: "change" }
-  ],
-  new_regions: [
-    {
-      required: true,
-      message: "请添加至少一个子地区",
-      trigger: "change",
-      validator: (rule, value, callback) => {
-        if (splitForm.value.new_regions.length === 0) {
-          callback(new Error("请添加至少一个子地区"));
-        } else {
-          const hasError = splitForm.value.new_regions.some(region => {
-            return !region.name || !region.type || !region.code;
-          });
-          if (hasError) {
-            callback(new Error("请完善所有子地区的信息"));
-          } else {
-            callback();
-          }
-        }
-      }
+    
+    // 获取三级父级选项数据，存储为原始数据
+    const parentResponse = await getTreeApi({ level: 3 })
+    if (parentResponse.code === 200) {
+      // 保存干净的原始数据
+      rawParentOptions.value = JSON.parse(JSON.stringify(parentResponse.data))
+      // 应用过滤
+      parentOptions.value = filterParentOptions(rawParentOptions.value)
     }
-  ]
-});
-
-// 计算属性：是否可以合并
-const canMerge = computed(() => {
-  return selectedRegionIds.value.length >= 2;
-});
-
-// 计算属性：地区层级信息
-const regionLevel = computed(() => {
-  if (!regionForm.value.region_id) return "";
-  const region = findRegionById(regionForm.value.region_id);
-  return region ? `${region.level}级 (${region.path})` : "";
-});
-
-// 对话框标题计算属性
-const dialogTitle = computed(() => {
-  switch (mode.value) {
-    case 'view': return '地区详情';
-    case 'edit': return '编辑地区';
-    case 'create': return '新增地区';
+  } catch (error) {
+    console.error('获取地区数据失败:', error)
+    ElMessage.error('获取地区数据失败')
+  } finally {
+    loading.value = false
   }
-});
+}
 
-// 筛选的地区选项（用于合并选择）
-const filteredRegionOptions = computed(() => {
-  const flattenRegions = flattenTree(originalRegionData.value);
-  return flattenRegions.filter(region => !region.deleted_at);
-});
+// 添加操作
+const handleAdd = async () => {
+  try {
+    console.log("准备开启loading")
+    addButtonLoading.value = true // 开始loading
+    
+    // 等待UI更新，确保loading状态显示
+    await nextTick()
+    console.log("已经开启loading")
+    
+    // 重置表单
+    Object.assign(addForm, {
+      name: '',
+      code: '',
+      type: '',
+      parent_id: null,
+    })
+    
+    // 确保parentOptions数据已加载
+    if (rawParentOptions.value.length === 0) {
+      const parentResponse = await getTreeApi({ level: 3 })
+      rawParentOptions.value = parentResponse.data // 直接使用，避免深拷贝
+    }
+    
+    // 新增操作不需要过滤数据，直接使用原始数据
+    parentOptions.value = rawParentOptions.value
+    
+    // 让主线程有机会更新UI状态，确保loading显示
+    await new Promise(resolve => setTimeout(resolve, 0))
+    
+    addDialogVisible.value = true
+    
+    // 等待DOM更新
+    await nextTick()
+    addFormRef.value?.clearValidate()
+    
+    // 延迟关闭loading，确保用户能看到loading状态
+    setTimeout(() => {
+      addButtonLoading.value = false
+      console.log("关闭loading")
+    }, 500) // 延迟500ms关闭loading，确保用户能看到
+  } catch (error) {
+    console.error('准备添加地区失败:', error)
+    ElMessage.error('准备添加地区失败')
+    addButtonLoading.value = false // 确保异常时也关闭loading
+  }
+}
 
-// 表格列配置
-const columns: ColumnProps[] = [
-  { prop: "name", label: "地区名称", align: "left", width: 200 },
-  { prop: "type", label: "地区类型", width: 120 },
-  { prop: "code", label: "地区编码" },
-  { prop: "level", label: "层级", width: 80 },
-  { prop: "status", label: "状态", width: 100 },
-  { prop: "operation", label: "操作", width: 400, fixed: "right" }
-];
+// 新增提交
+const handleAddSubmit = async () => {
+  if (!addFormRef.value) return
+  
+  try {
+    await addFormRef.value.validate()
+    addLoading.value = true
+    
+    // 处理parent_id：将null转换回0，符合后端API要求
+    const submitData = {
+      ...addForm,
+      parent_id: addForm.parent_id === null ? 0 : addForm.parent_id
+    }
+    
+    await addRegionApi(submitData)
+    ElMessage.success('添加地区成功')
+    addDialogVisible.value = false
+    getRegionData() // 重新加载数据
+  } catch (error) {
+    if (error.message) {
+      ElMessage.error(error.message)
+    } else {
+      ElMessage.error('添加地区失败')
+    }
+  } finally {
+    addLoading.value = false
+  }
+}
 
-// 获取地区类型名称
-const getTypeName = (type: string) => {
-  const typeMap: Record<string, string> = {
-    'province': '省份',
+// 编辑操作
+const handleEdit = async (data) => {
+  try {
+    const response = await getRegionDetailApi(data.region_id)
+    const detailData = response.data
+    
+    // 处理parent_id：将0转换为null，使el-tree-select能正确显示
+    const formData = {
+      ...detailData,
+      parent_id: detailData.parent_id === 0 ? null : detailData.parent_id
+    }
+    
+    Object.assign(editForm, formData)
+    editDialogVisible.value = true
+    
+    // 等待DOM更新和数据加载完成
+    await nextTick()
+    
+    // 确保parentOptions数据已加载
+    if (rawParentOptions.value.length === 0) {
+      const parentResponse = await getTreeApi({ level: 3 })
+      // 保存干净的原始数据
+      rawParentOptions.value = JSON.parse(JSON.stringify(parentResponse.data))
+    }
+    
+    // 每次都从干净的原始数据重新应用过滤
+    parentOptions.value = filterParentOptions(rawParentOptions.value)
+    
+    editFormRef.value?.clearValidate()
+  } catch (error) {
+    ElMessage.error('获取地区信息失败')
+  }
+}
+
+const handleNodeClick = (data) => {
+  console.log('节点点击:', data)
+}
+
+// 将英文type转换为中文标签
+const getTypeLabel = (type) => {
+  const typeMap = {
+    'country': '国家',
+    'province': '省份', 
     'city': '城市',
-    'district': '区县',
+    'area': '区县',
     'street': '街道',
-    'town': '乡镇'
-  };
-  return typeMap[type] || type;
-};
+    'community': '社区'
+  }
+  return typeMap[type] || type
+}
 
-// 获取地区类型标签样式
-const getTypeTagType = (type: string) => {
-  const typeMap: Record<string, string> = {
-    'province': 'primary',
-    'city': 'success',
-    'district': 'warning',
-    'street': 'info',
-    'town': 'info'
-  };
-  return typeMap[type] || "info";
-};
+// 详情操作
+const handleDetail = async (data) => {
+  try {
+    const response = await getRegionDetailApi(data.region_id)
+    Object.assign(detailData, response.data)
+    detailDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取地区详情失败')
+  }
+}
 
-// 查找地区通过ID
-const findRegionById = (regionId: number): RegionItem | undefined => {
-  const flattenRegions = flattenTree(originalRegionData.value);
-  return flattenRegions.find(region => region.region_id === regionId);
-};
-
-// 获取地区名称通过ID
-const getRegionNameById = (regionId: number): string => {
-  const region = findRegionById(regionId);
-  return region ? region.name : `未知地区(${regionId})`;
-};
-
-// 检查地区是否已选择
-const isSelected = (regionId: number): boolean => {
-  return selectedRegionIds.value.includes(regionId);
-};
-
-// 辅助函数：平铺树结构
-const flattenTree = (nodes: RegionItem[], result: RegionItem[] = []) => {
-  for (const node of nodes) {
-    result.push(node);
-    if (node.children && node.children.length) {
-      flattenTree(node.children, result);
+// 编辑提交
+const handleEditSubmit = async () => {
+  if (!editFormRef.value) return
+  
+  try {
+    await editFormRef.value.validate()
+    editLoading.value = true
+    
+    // 处理parent_id：将null转换回0，符合后端API要求
+    const submitData = {
+      ...editForm,
+      parent_id: editForm.parent_id === null ? 0 : editForm.parent_id
     }
-  }
-  return result;
-};
-
-// 节点展开时加载子节点（核心修正：替代load属性）
-const handleNodeExpand = async (data: RegionItem) => {
-  const regionId = data.region_id;
-
-  // 避免重复加载
-  if (loadedNodeIds.value.has(regionId)) return;
-
-  try {
-    // 请求子节点数据
-    const res = await getTreeApi({ parent_id: regionId });
-    const children = res.data || [];
-
-    // 标记子节点是否有下一级
-    children.forEach((child: any) => {
-      child.hasChildren = !!child.hasChildren;
-    });
-
-    // 手动更新当前节点的children属性（触发视图更新）
-    data.children = children;
-    loadedNodeIds.value.add(regionId);
-
-    // 强制刷新表格确保视图更新
-    if (proTable.value?.refreshTable) {
-      proTable.value.refreshTable();
+    
+    await editRegionApi(submitData)
+    ElMessage.success('编辑地区成功')
+    editDialogVisible.value = false
+    getRegionData() // 重新加载数据
+  } catch (error) {
+    if (error.message) {
+      ElMessage.error(error.message)
+    } else {
+      ElMessage.error('编辑地区失败')
     }
-  } catch (error) {
-    console.error('加载子节点失败:', error);
-    ElMessage.error('加载子节点失败');
+  } finally {
+    editLoading.value = false
   }
-};
+}
 
-// 级联选择器加载子节点
-const loadCascadeChildren = async (node: any, resolve: any) => {
-  try {
-    const parentId = node.value === undefined ? 0 : node.value;
-    const res = await getTreeApi({ parent_id: parentId });
-    const children = res.data || [];
-
-    children.forEach((child: any) => {
-      child.hasChildren = child.hasChildren || false;
-    });
-
-    resolve(children);
-  } catch (error) {
-    console.error('级联选择器加载失败:', error);
-    ElMessage.error('加载地区列表失败');
-    resolve([]);
-  }
-};
-
-// 搜索处理
-const handleSearch = async () => {
-  try {
-    const res = await getTreeApi({ parent_id: 0 });
-    originalRegionData.value = res.data || [];
-
-    const allNodes = flattenTree(originalRegionData.value);
-    const matchedNodes = allNodes.filter(node => {
-      const matchName = searchParams.name ? (node.name || "").includes(searchParams.name) : true;
-      const matchCode = searchParams.code ? (node.code || "").includes(searchParams.code) : true;
-      const matchType = searchParams.type ? node.type === searchParams.type : true;
-      return matchName && matchCode && matchType;
-    });
-
-    const matchedIds = new Set(matchedNodes.map(node => node.region_id));
-    const buildFilteredTree = (nodes: RegionItem[]): RegionItem[] => {
-      return nodes.reduce((result, node) => {
-        const hasMatch = matchedIds.has(node.region_id) ||
-          (node.children && node.children.some(child => matchedIds.has(child.region_id)));
-
-        if (hasMatch) {
-          const children = node.children ? buildFilteredTree(node.children) : [];
-          if (children.length > 0) {
-            result.push({ ...node, children });
-          } else if (matchedIds.has(node.region_id)) {
-            result.push({ ...node, children: [] });
-          }
-        }
-        return result;
-      }, [] as RegionItem[]);
-    };
-
-    filteredRegionData.value = buildFilteredTree(originalRegionData.value);
-  } catch (error) {
-    console.error('搜索失败:', error);
-    ElMessage.error('搜索失败');
-  }
-};
-
-// 重置搜索
-const resetSearch = async () => {
-  searchParams.name = "";
-  searchParams.code = "";
-  searchParams.type = "";
-  await fetchRootRegionData();
-};
-
-// 获取根地区数据（顶级节点）
-const fetchRootRegionData = async () => {
-  try {
-    const res = await getTreeApi({ parent_id: 0 });
-    originalRegionData.value = res.data || [];
-    filteredRegionData.value = [...originalRegionData.value];
-    // 初始化根节点的hasChildren状态
-    filteredRegionData.value.forEach(region => {
-      region.hasChildren = !!region.hasChildren;
-    });
-    // 重置已加载节点缓存
-    loadedNodeIds.value.clear();
-  } catch (err) {
-    console.error("获取地区数据失败", err);
-    ElMessage.error("地区数据加载失败");
-  }
-};
-
-// 加载地区详情
-const loadRegionDetail = async (regionId: number) => {
-  try {
-    const res = await getReadApi(regionId);
-    regionForm.value = {
-      region_id: res.data.region_id,
-      parent_id: res.data.parent_id || 0,
-      type: res.data.type as any,
-      name: res.data.name,
-      code: res.data.code,
-      snum: res.data.snum || 0
-    };
-    (regionForm.value as any).path = res.data.path;
-    return res.data;
-  } catch (error) {
-    console.error("获取地区详情失败", error);
-    ElMessage.error("加载地区详情失败");
-    throw error;
-  }
-};
-
-// 新增地区
-const handleAdd = () => {
-  mode.value = 'create';
-  regionForm.value = {
-    parent_id: 0,
-    type: 'province',
-    name: "",
-    code: "",
-    snum: 0
-  };
-  dialogVisible.value = true;
-};
-
-// 查看地区
-const handleView = async (row: RegionItem) => {
-  mode.value = 'view';
-  await loadRegionDetail(row.region_id);
-  dialogVisible.value = true;
-};
-
-// 编辑地区
-const handleEdit = async (row: RegionItem) => {
-  mode.value = 'edit';
-  await loadRegionDetail(row.region_id);
-  dialogVisible.value = true;
-};
-
-// 删除地区
-const handleDelete = async (row: RegionItem) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除地区 "${row.name}" 吗? 其子地区也将被删除。`,
-      "提示",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning"
-      }
-    );
-
-    await deleteDeleteApi(row.region_id);
-    ElMessage.success("删除成功");
-
-    // 重新加载父节点数据
-    const parentId = row.parent_id || 0;
-    loadedNodeIds.value.delete(parentId);
-    await fetchRootRegionData();
-  } catch (error) {
-    // 取消操作不处理
-  }
-};
-
-// 恢复地区
-const handleRestore = async (row: RegionItem) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要恢复地区 "${row.name}" 吗?`,
-      "提示",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "info"
-      }
-    );
-
-    await postRestoreApi(row.region_id);
-    ElMessage.success("恢复成功");
-
-    // 重新加载父节点数据
-    const parentId = row.parent_id || 0;
-    loadedNodeIds.value.delete(parentId);
-    await fetchRootRegionData();
-  } catch (error) {
-    // 取消操作不处理
-  }
-};
-
-// 选择用于合并的地区
-const handleSelectForMerge = (row: RegionItem) => {
-  if (isSelected(row.region_id)) {
-    selectedRegionIds.value = selectedRegionIds.value.filter(id => id !== row.region_id);
-  } else {
-    selectedRegionIds.value.push(row.region_id);
-  }
-};
-
-// 从合并列表中移除
-const removeFromMerge = (regionId: number) => {
-  selectedRegionIds.value = selectedRegionIds.value.filter(id => id !== regionId);
-};
-
-// 打开合并对话框
-const handleMerge = () => {
-  mergeForm.value = {
-    target_region_id: 0,
-    source_region_ids: [...selectedRegionIds.value]
-  };
-  mergeDialogVisible.value = true;
-};
-
-// 打开拆分对话框
-const handleSplit = () => {
-  if (!selectedRegion.value) return;
-
-  splitForm.value = {
-    parent_region_id: selectedRegion.value.region_id,
-    new_regions: []
-  };
-  splitParentRegionName.value = selectedRegion.value.name;
-  addSplitRegion();
-  splitDialogVisible.value = true;
-};
-
-// 添加拆分地区
-const addSplitRegion = () => {
-  splitForm.value.new_regions.push({
-    key: Date.now(),
-    parent_id: splitForm.value.parent_region_id,
-    type: getDefaultSplitType(),
-    name: "",
-    code: "",
-    snum: 0
-  });
-};
-
-// 获取默认拆分类型
-const getDefaultSplitType = () => {
-  if (!selectedRegion.value) return 'district';
-
-  const typeMap: Record<string, string> = {
-    'province': 'city',
-    'city': 'district',
-    'district': 'street',
-    'street': 'town',
-    'town': 'town'
-  };
-
-  return typeMap[selectedRegion.value.type] || 'district';
-};
-
-// 移除拆分地区
-const removeSplitRegion = (index: number) => {
-  splitForm.value.new_regions.splice(index, 1);
-};
-
-// 提交地区表单
-const submitRegionForm = async () => {
-  if (!regionFormRef.value) return;
-
-  regionFormRef.value.validate(async (valid) => {
-    if (valid) {
+// 删除操作
+const handleDelete = (data) => {
+  ElMessageBox.confirm(
+    `确定要删除 ${data.name} 吗？此操作不可恢复。`,
+    '删除确认',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  )
+    .then(async () => {
       try {
-        const payload = {
-          parent_id: regionForm.value.parent_id,
-          type: regionForm.value.type,
-          name: regionForm.value.name,
-          code: regionForm.value.code,
-          snum: regionForm.value.snum
-        };
-
-        if (mode.value === 'edit' && regionForm.value.region_id) {
-          await putUpdateApi(regionForm.value.region_id, payload);
-          ElMessage.success("地区更新成功");
-        } else {
-          await postCreateApi(payload);
-          ElMessage.success("地区创建成功");
-        }
-
-        dialogVisible.value = false;
-        if (payload.parent_id) {
-          loadedNodeIds.value.delete(payload.parent_id);
-        } else {
-          await fetchRootRegionData();
-        }
+        await deleteRegionApi(data.region_id)
+        ElMessage.success(`删除 ${data.name} 成功`)
+        getRegionData() // 重新加载数据
       } catch (error) {
-        console.error("提交地区失败", error);
-        ElMessage.error("操作失败");
+        ElMessage.error('删除地区失败')
       }
+    })
+    .catch(() => {
+    })
+}
+
+// 清除缓存操作
+const handleClearCache = () => {
+  ElMessageBox.confirm(
+    '确定要清除所有地区缓存吗？此操作可能会影响系统性能。',
+    '清除缓存确认',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
     }
-  });
-};
-
-// 提交合并表单
-const submitMergeForm = async () => {
-  if (!mergeFormRef.value) return;
-
-  mergeFormRef.value.validate(async (valid) => {
-    if (valid) {
+  )
+    .then(async () => {
       try {
-        mergeForm.value.source_region_ids = selectedRegionIds.value;
-        await postMergeApi(mergeForm.value);
-        ElMessage.success("地区合并成功");
-
-        mergeDialogVisible.value = false;
-        selectedRegionIds.value = [];
-        const targetRegion = findRegionById(mergeForm.value.target_region_id);
-        if (targetRegion) {
-          loadedNodeIds.value.delete(targetRegion.parent_id || 0);
-        }
-        await fetchRootRegionData();
+        clearCacheLoading.value = true
+        await refreshCacheApi()
+        ElMessage.success('清除地区缓存成功')
       } catch (error) {
-        console.error("合并地区失败", error);
-        ElMessage.error("合并失败");
+        ElMessage.error('清除缓存失败')
+      } finally {
+        clearCacheLoading.value = false
+      }
+    })
+    .catch(() => {
+      ElMessage.info('已取消清除缓存')
+    })
+}
+
+// 获取默认展开的父级节点
+const getDefaultExpandedKeys = () => {
+  if (!editForm.parent_id) return []
+  
+  // 查找父级节点的所有父节点路径，用于自动展开
+  const findParentPath = (data, targetId, path = []) => {
+    for (const item of data) {
+      // 跳过当前编辑的节点
+      if (item.region_id === editForm.region_id) continue
+      
+      const currentPath = [...path, item.region_id]
+      if (item.region_id === targetId) {
+        return currentPath
+      }
+      if (item.children && item.children.length > 0) {
+        const found = findParentPath(item.children, targetId, currentPath)
+        if (found) return found
       }
     }
-  });
-};
+    return null
+  }
+  
+  const path = findParentPath(parentOptions.value, editForm.parent_id)
+  return path || [] // 返回完整的父节点路径
+}
 
-// 提交拆分表单
-const submitSplitForm = async () => {
-  if (!splitFormRef.value) return;
+// 过滤父级节点（只禁用自身及其子节点，不过滤）
+const filterParentNode = (value, data) => {
+  if (!value) return true
+  
+  // 不再根据disabled属性过滤，允许所有节点显示
+  // 只是在filterParentOptions中设置disabled属性来置灰
+  
+  const nameMatch = data.name.toLowerCase().includes(value.toLowerCase())
+  return nameMatch
+}
 
-  splitFormRef.value.validate(async (valid) => {
-    if (valid) {
-      try {
-        await postSplitApi(splitForm.value);
-        ElMessage.success("地区拆分成功");
+// 获取当前选中的节点值
+const getCurrentValue = () => {
+  return editForm.parent_id
+}
 
-        splitDialogVisible.value = false;
-        loadedNodeIds.value.delete(splitForm.value.parent_region_id);
-        await fetchRootRegionData();
-      } catch (error) {
-        console.error("拆分地区失败", error);
-        ElMessage.error("拆分失败");
+// 获取默认展开和选中的节点
+const getTreeSelectProps = () => {
+  const expandedKeys = getDefaultExpandedKeys()
+  const currentValue = getCurrentValue()
+  
+  return {
+    expandedKeys,
+    currentValue
+  }
+}
+
+// 过滤掉自身及其子节点的选项，并添加disabled属性
+const filterParentOptions = (options) => {
+  if (!editForm.region_id) return options
+  
+  // 使用更高效的方式标记节点，避免创建大量新对象
+  const markDisabledNodes = (nodes, targetId) => {
+    const targetNode = findNodeById(nodes, targetId)
+    if (!targetNode) return nodes
+    
+    // 收集需要禁用的所有节点ID
+    const disabledIds = new Set()
+    collectNodeIds(targetNode, disabledIds)
+    
+    // 只遍历一次，设置disabled属性
+    return nodes.map(node => {
+      if (disabledIds.has(node.region_id)) {
+        return { ...node, disabled: true }
+      }
+      return node
+    })
+  }
+  
+  // 查找指定ID的节点
+  const findNodeById = (nodes, id) => {
+    for (const node of nodes) {
+      if (node.region_id === id) {
+        return node
+      }
+      if (node.children) {
+        const found = findNodeById(node.children, id)
+        if (found) return found
       }
     }
-  });
-};
+    return null
+  }
+  
+  // 收集节点及其所有子节点的ID
+  const collectNodeIds = (node, idSet) => {
+    idSet.add(node.region_id)
+    if (node.children) {
+      node.children.forEach(child => collectNodeIds(child, idSet))
+    }
+  }
+  
+  // 使用优化后的函数
+  return markDisabledNodes(options, editForm.region_id)
+}
 
-// 处理表格选择事件
-const handleTableSelect = (selection: RegionItem[], row: RegionItem) => {
-  selectedRegion.value = selection.length ? selection[0] : null;
-};
-
-// 处理表格全选事件
-const handleTableSelectAll = (selection: RegionItem[]) => {
-  selectedRegion.value = selection.length ? selection[0] : null;
-};
-
-// 监听数据变化，清理无效选中
-watch(() => filteredRegionData.value, () => {
-  selectedRegionIds.value = selectedRegionIds.value.filter(id =>
-    findRegionById(id) !== undefined
-  );
-});
-
-// 初始化根节点数据
-onMounted(async () => {
-  await fetchRootRegionData();
-});
+getRegionData()
 </script>
 
 <style scoped>
-.search-box {
-  padding: 15px 0;
+.region-manage-container {
+  padding: 16px;
 }
 
-.readonly-input .el-input__inner {
-  background-color: #f5f7fa;
-  cursor: not-allowed;
+.toolbar {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
-:deep(.el-form--disabled .el-form-item__label) {
-  color: #606266;
+.custom-tree-node {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  padding-right: 8px;
+}
+
+.node-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.node-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  min-width: 80px;
+}
+
+.node-type {
+  font-size: 12px;
+  color: #409EFF;
+  background: #ecf5ff;
+  padding: 2px 6px;
+  border-radius: 3px;
   font-weight: 500;
 }
 
-:deep(.el-form--disabled .el-input__inner) {
-  background-color: #f9fafb;
-  color: #303133;
+.node-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
 }
 
-:deep(.el-tag) {
-  margin-right: 4px;
+.node-actions:hover {
+  opacity: 1;
+}
+
+/* 优化树节点内容样式 */
+:deep(.el-tree-node__content) {
+  height: 32px;
+  align-items: center;
 }
 </style>

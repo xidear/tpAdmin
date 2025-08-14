@@ -49,34 +49,35 @@
           />
 
           <!-- 文件上传（type:20） -->
-          <el-upload
-            v-else-if="field.type === 20"
-            :file-list="fileList[group.group_id]?.[field.key] || []"
-            :accept="field.accept"
-            :multiple="field.multiple"
-            :auto-upload="true"
-            :http-request="(uploadFile) => handleHttpUpload(uploadFile, field, group.group_id)"
-            class="upload-control"
-            @remove="(file) => handleFileRemove(file, field, group.group_id)"
-            @update:model-value="(val) => formData[group.group_id][field.key] = val"
-          >
-            <el-button size="small" type="primary">点击上传</el-button>
-          </el-upload>
+          <div v-else-if="field.type === 20">
+            <el-upload
+              :file-list="fileList[group.group_id]?.[field.key] || []"
+              :accept="field.accept"
+              :multiple="field.multiple"
+              :auto-upload="true"
+              :http-request="(uploadFile) => handleHttpUpload(uploadFile, field, group.group_id)"
+              class="upload-control"
+              @remove="(file) => handleFileRemove(file, field, group.group_id)"
+              @update:model-value="(val) => formData[group.group_id][field.key] = val"
+            >
+              <el-button size="small" type="primary">点击上传</el-button>
+            </el-upload>
 
-          <!-- 预览区域：模板层添加可选链保护 -->
-          <div class="preview-container" v-if="field.type === 20">
-            <el-image
-              v-if="field.accept?.includes('image') && formData[group.group_id]?.[field.key]"  
-              :src="formData[group.group_id][field.key]"
-              fit="contain"
-              style="width: 200px; height: 150px; margin-top: 10px"
-            />
-            <video
-              v-else-if="field.accept?.includes('video') && formData[group.group_id]?.[field.key]" 
-              :src="formData[group.group_id][field.key]"
-              controls
-              style="width: 200px; height: 150px; margin-top: 10px"
-            ></video>
+            <!-- 预览区域 -->
+            <div class="preview-container">
+              <el-image
+                v-if="field.accept?.includes('image') && formData[group.group_id]?.[field.key]"  
+                :src="formData[group.group_id][field.key]"
+                fit="contain"
+                style="width: 200px; height: 150px; margin-top: 10px"
+              />
+              <video
+                v-else-if="field.accept?.includes('video') && formData[group.group_id]?.[field.key]" 
+                :src="formData[group.group_id][field.key]"
+                controls
+                style="width: 200px; height: 150px; margin-top: 10px"
+              ></video>
+            </div>
           </div>
 
           <div v-else>不支持的字段类型</div>
@@ -201,7 +202,6 @@ const handleHttpUpload = async (
     }
   } catch (error) {
     uploadFile.onError(error);
-    ElMessage.error('文件上传失败');
   }
 };
 

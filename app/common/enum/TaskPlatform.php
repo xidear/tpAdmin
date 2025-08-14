@@ -6,7 +6,7 @@ use app\common\trait\EnumTrait;
 
 enum TaskPlatform: int
 {
-    case ALL = 0;       // 全部
+    case ALL = 3;       // 全部
     case LINUX = 1;     // Linux
     case WINDOWS = 2;   // Windows
 

@@ -6,10 +6,13 @@ use app\common\BaseModel;
 use app\common\enum\Status;
 use app\common\enum\TaskPlatform;
 use app\common\enum\TaskType;
+use app\common\enum\TaskExecuteMode;
+use Exception;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
 use think\facade\Cache;
+use think\Model;
 use think\model\concern\SoftDelete;
 use think\facade\Db;
 use think\model\contract\Modelable;
@@ -24,6 +27,8 @@ use think\model\relation\HasOne;
  * @property int $type
  * @property string $content
  * @property string $schedule
+ * @property int $execute_mode 执行模式：1=循环，2=一次性
+ * @property string $execute_at 一次性任务执行时间
  * @property int $status
  * @property int $platform
  * @property string $exec_user
@@ -43,6 +48,30 @@ class Task extends BaseModel
     protected $pk = 'task_id';
     protected string $deleteTime = 'deleted_at';
 
+    /**
+     * 重写create方法，在创建循环任务时自动计算next_exec_time
+     * @param array|object $data 创建数据
+     * @param array $allowField
+     * @param bool $replace
+     * @param string $suffix
+     * @return Modelable
+     * @throws Exception
+     */
+    public static function create(array|object $data, array $allowField = [], bool $replace = false, string $suffix = ''): Modelable
+    {
+        // 如果是循环执行模式且next_exec_time为空，自动计算下次执行时间
+        if (isset($data['execute_mode']) &&
+            $data['execute_mode'] == TaskExecuteMode::LOOP->value &&
+            (empty($data['next_exec_time'])) &&
+            !empty($data['schedule'])) {
+
+            // 使用TaskService中的方法计算下次执行时间
+            $parser = new \Cron\CronExpression($data['schedule']);
+            $data['next_exec_time'] = $parser->getNextRunDate()->format('Y-m-d H:i:s');
+        }
+
+        return parent::create($data);
+    }
 
     /**
      * 获取需要执行的任务
@@ -66,7 +95,17 @@ class Task extends BaseModel
                 $query->where('platform', TaskPlatform::ALL->value)
                     ->whereOr('platform', $platformId->value);
             })
-            ->where('next_exec_time', '<=', date('Y-m-d H:i:s'))
+            ->where(function($query) {
+                // 循环执行任务：检查next_exec_time
+                $query->where('execute_mode', TaskExecuteMode::LOOP->value)
+                    ->where('next_exec_time', '<=', date('Y-m-d H:i:s'));
+            })
+            ->whereOr(function($query) {
+                // 一次性执行任务：检查execute_at且未执行过
+                $query->where('execute_mode', TaskExecuteMode::ONCE->value)
+                    ->where('execute_at', '<=', date('Y-m-d H:i:s'))
+                    ->where('last_exec_time', 'null');
+            })
             ->order('sort', 'asc')
             ->select()
             ->toArray();
@@ -125,7 +164,6 @@ class Task extends BaseModel
      */
     public function getTypeTextAttr(): string
     {
-
         return TaskType::getValue($this->type);
     }
 
@@ -136,7 +174,6 @@ class Task extends BaseModel
     public function getPlatformTextAttr(): string
     {
         return TaskPlatform::getValue($this->platform);
-
     }
 
     /**
@@ -146,5 +183,14 @@ class Task extends BaseModel
     public function getStatusTextAttr(): string
     {
         return Status::getValue($this->status);
+    }
+
+    /**
+     * 获取执行模式文本
+     * @return string
+     */
+    public function getExecuteModeTextAttr(): string
+    {
+        return TaskExecuteMode::getValue($this->execute_mode);
     }
 }

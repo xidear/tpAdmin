@@ -2,39 +2,89 @@
 
 namespace app\controller\admin;
 
-use app\common\BaseController;
-use app\common\BaseRequest;
+use app\common\service\RegionCacheService;
 use app\model\Region as RegionModel;
-use Exception;
-use think\Response;
+use think\facade\Log;
 
-class Region extends BaseController
+class Region extends \app\common\BaseController
 {
-    /**
-     * 分级获取地区树形结构（支持懒加载）
-     * @param BaseRequest $request
-     * @return Response
-     */
-    public function tree(BaseRequest $request): Response
+    protected $regionCacheService;
+    
+    public function __construct(RegionCacheService $regionCacheService)
     {
-        // 获取父级ID参数，默认为0（顶级节点）
-        $parentId = $request->param('parent_id', 0, 'intval');
-        // 获取是否需要递归加载所有子节点（默认只加载直接子节点）
-        $recursive = $request->param('recursive', false, 'boolval');
+        parent::__construct(app());
+        $this->regionCacheService = $regionCacheService;
+    }
+    
+    /**
+     * 获取地区树形结构
+     * @param int $level 指定返回的层级深度，默认为0表示所有层级
+     * @param bool $force_refresh 是否强制刷新缓存
+     * @return \think\Response
+     */
+    public function tree()
+    {
+        $level = $this->request->get('level', 0); // 0表示所有层级，1-4表示指定层级
+        $forceRefresh = $this->request->get('force_refresh', 0) == 1;
+        
+        try {
+            if ($level == 0) {
+                // 获取所有层级
+                $data = $this->regionCacheService->getAllLevelRegions($forceRefresh);
+            } else {
+                // 获取指定层级
+                $data = $this->regionCacheService->getRegionsByLevel($level, $forceRefresh);
+            }
+            
+             return $this->success($data);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
+    }
 
-        // 调用模型方法，根据parent_id获取对应层级的树形结构
-        $regions = RegionModel::getRegionTreeByParentId($parentId, $recursive);
-        return $this->success($regions);
+    
+  
+    /**
+     * 刷新缓存（异步队列处理）
+     * @return \think\Response
+     */
+    public function refreshCache()
+    {
+        try {
+      
+
+
+
+            
+            // 使用Redis队列
+            $queue = \think\facade\Queue::push(\app\job\RefreshRegionCache::class, [], 'region_cache');
+            
+            if (!$queue) {
+                return $this->error('队列推送失败');
+            }
+            
+            return $this->success([
+                'job_id' => $queue,
+                'message' => '缓存刷新任务已提交到队列，正在异步处理中'
+            ], '缓存刷新任务已提交');
+            
+        } catch (\Exception $e) {
+            Log::error('提交缓存刷新队列任务失败：' . $e->getMessage());
+            return $this->error('提交缓存刷新任务失败');
+        }
     }
 
 
+    
+    
+ 
+    
     /**
      * 获取单个地区详情
      * @param int $region_id
-     * @param BaseRequest $request
-     * @return Response
+     * @return \think\Response
      */
-    public function read(int $region_id, BaseRequest $request): Response
+    public function read(int $region_id): \think\Response
     {
         $region = RegionModel::with('parentRegion')->findOrEmpty($region_id);
         if ($region->isEmpty()) {
@@ -42,15 +92,14 @@ class Region extends BaseController
         }
         return $this->success($region);
     }
-
+    
     /**
      * 创建新地区
-     * @param \app\request\admin\region\Create $request
-     * @return Response
+     * @return \think\Response
      */
-    public function create(\app\request\admin\region\Create $request): Response
+    public function create(): \think\Response
     {
-        $data = $request->param();
+        $data = $this->request->param();
         $region = new RegionModel();
 
         // 处理路径
@@ -71,21 +120,23 @@ class Region extends BaseController
             // 更新路径（使用实际ID）
             $region->path = str_replace("{$region->region_id}", $region->region_id, $region->path);
             $region->save();
+            
+            // 模型的afterSave方法会自动触发事件，这里不需要重复触发
+            
             return $this->success($region);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
     }
-
+    
     /**
-     * 更新地区信息（包括改名）
+     * 更新地区信息
      * @param int $region_id
-     * @param \app\request\admin\region\Update $request
-     * @return Response
+     * @return 	\think\Response
      */
-    public function update(int $region_id, \app\request\admin\region\Update $request): Response
+    public function update(int $region_id): 	\think\Response
     {
-        $data = $request->param();
+        $data = $this->request->param();
         $region = RegionModel::findOrEmpty($region_id);
 
         if ($region->isEmpty()) {
@@ -95,6 +146,20 @@ class Region extends BaseController
         // 如果父ID变更，需要更新路径
         $parentIdChanged = isset($data['parent_id']) && $data['parent_id'] != $region->parent_id;
 
+        // 验证父ID不能为自己或自己的子级
+        if ($parentIdChanged && isset($data['parent_id'])) {
+            // 不能选择自己作为父级
+            if ($data['parent_id'] == $region_id) {
+                return $this->error("不能选择自己作为父级地区");
+            }
+            
+            // 不能选择自己的子级作为父级
+            $allDescendantIds = $region->getAllDescendantIds($region_id);
+            if (in_array($data['parent_id'], $allDescendantIds)) {
+                return $this->error("不能选择自己的子级作为父级地区");
+            }
+        }
+
         try {
             $region->save($data);
 
@@ -102,20 +167,21 @@ class Region extends BaseController
             if ($parentIdChanged) {
                 $region->updateRegionPath($region_id);
             }
-
+            
+            // 模型的afterSave方法会自动触发事件，这里不需要重复触发
+            
             return $this->success($region);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
     }
-
+    
     /**
      * 删除地区
      * @param int $region_id
-     * @param \app\request\admin\region\Delete $request
-     * @return Response
+     * @return \think\Response
      */
-    public function delete(int $region_id, \app\request\admin\region\Delete $request): Response
+    public function delete(int $region_id): \think\Response
     {
         $region = RegionModel::findOrEmpty($region_id);
         if ($region->isEmpty()) {
@@ -125,17 +191,18 @@ class Region extends BaseController
         if (!$region->deleteRecursive()) {
             return $this->error($region->getError());
         }
-
+        
+        // 模型的deleteRecursive方法会自动触发事件，这里不需要重复触发
+        
         return $this->success([]);
     }
-
+    
     /**
-     * 撤销删除（恢复地区）
+     * 恢复地区
      * @param int $region_id
-     * @param BaseRequest $request
-     * @return Response
+     * @return \think\Response
      */
-    public function restore(int $region_id, BaseRequest $request): Response
+    public function restore(int $region_id): \think\Response
     {
         $region = new RegionModel();
         $result = $region->restoreRegion($region_id);
@@ -143,18 +210,19 @@ class Region extends BaseController
         if (!$result) {
             return $this->error($region->getError());
         }
-
+        
+        // 模型的restoreRegion方法会自动触发事件，这里不需要重复触发
+        
         return $this->success([]);
     }
-
+    
     /**
      * 合并地区
-     * @param \app\request\admin\region\Merge $request
-     * @return Response
+     * @return \think\Response
      */
-    public function merge(\app\request\admin\region\Merge $request): Response
+    public function merge(): \think\Response
     {
-        $data = $request->param();
+        $data = $this->request->param();
         $region = new RegionModel();
 
         $result = $region->mergeRegions($data['target_region_id'], $data['source_region_ids']);
@@ -162,18 +230,19 @@ class Region extends BaseController
         if (!$result) {
             return $this->error($region->getError());
         }
-
+        
+        // 模型的mergeRegions方法会自动触发事件，这里不需要重复触发
+        
         return $this->success([]);
     }
-
+    
     /**
      * 拆分地区
-     * @param \app\request\admin\region\Split $request
-     * @return Response
+     * @return \think\Response
      */
-    public function split(\app\request\admin\region\Split $request): Response
+    public function split(): \think\Response
     {
-        $data = $request->param();
+        $data = $this->request->param();
         $region = new RegionModel();
 
         $result = $region->splitRegion($data['parent_region_id'], $data['new_regions']);
@@ -181,22 +250,11 @@ class Region extends BaseController
         if (!$result) {
             return $this->error($region->getError());
         }
-
+        
+        // 模型的splitRegion方法会自动触发事件，这里不需要重复触发
+        
         return $this->success([]);
     }
-
-    /**
-     * 获取地区子列表
-     * @param int $parent_id
-     * @param BaseRequest $request
-     * @return Response
-     */
-    public function children(int $parent_id, BaseRequest $request): Response
-    {
-        $regions = RegionModel::where('parent_id', $parent_id)
-            ->order('snum asc')
-            ->select();
-
-        return $this->success($regions);
-    }
+    
+   
 }

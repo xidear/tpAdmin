@@ -39,7 +39,11 @@
       :data="processTableData"
       :border="border"
       :row-key="rowKey"
+      :tree-props="treeProps"
+      :lazy="lazy"
+      :load="load"
       @selection-change="selectionChange"
+      @node-expand="handleNodeExpand"  
     >
       <!-- 默认插槽 -->
       <slot />
@@ -131,6 +135,10 @@ export interface ProTableProps {
   toolButton?: ("refresh" | "setting" | "search")[] | boolean; // 是否显示表格功能按钮 ==> 非必传（默认为true）
   rowKey?: string; // 行数据的 Key，用来优化 Table 的渲染，当表格数据多选时，所指定的 id ==> 非必传（默认为 id）
   searchCol?: number | Record<BreakPoint, number>; // 表格搜索项 每列占比配置 ==> 非必传 { xs: 1, sm: 2, md: 2, lg: 3, xl: 4 }
+  // 树形结构支持
+  treeProps?: { children: string; hasChildren: string }; // 树形数据的配置项 ==> 非必传
+  lazy?: boolean; // 是否懒加载子节点数据 ==> 非必传（默认为false）
+  load?: (row: any, treeNode: any, resolve: Function) => void;
 }
 
 // 接受父组件参数，配置默认值
@@ -142,7 +150,10 @@ const props = withDefaults(defineProps<ProTableProps>(), {
   border: true,
   toolButton: true,
   rowKey: "id",
-  searchCol: () => ({ xs: 1, sm: 2, md: 2, lg: 3, xl: 4 })
+  searchCol: () => ({ xs: 1, sm: 2, md: 2, lg: 3, xl: 4 }),
+  // 树形结构默认值
+  treeProps: () => ({ children: 'children', hasChildren: 'hasChildren' }),
+  lazy: false
 });
 
 // table 实例
@@ -271,6 +282,7 @@ const emit = defineEmits<{
   search: [];
   reset: [];
   dragSort: [{ newIndex?: number; oldIndex?: number }];
+  nodeExpand: [row: any, expanded: boolean]; // 添加node-expand事件
 }>();
 
 const _search = () => {
@@ -318,4 +330,9 @@ defineExpose({
   clearSelection,
   enumMap
 });
+
+// 处理节点展开/折叠事件
+const handleNodeExpand = (row: any, expanded: boolean) => {
+  emit('nodeExpand', row, expanded);
+};
 </script>

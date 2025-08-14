@@ -84,6 +84,80 @@ class Tool
         return $result;
     }
 
+    /**
+     * 获取服务器IP地址
+     * @return string
+     */
+    public static function getServerIp(): string
+    {
+        // 尝试多种方式获取服务器IP
+        $ip = '';
+        
+        // 方式1：从服务器变量获取
+        if (isset($_SERVER['SERVER_ADDR'])) {
+            $ip = $_SERVER['SERVER_ADDR'];
+        }
+        // 方式2：从本地主机名获取
+        elseif (function_exists('gethostname')) {
+            $hostname = gethostname();
+            $ip = gethostbyname($hostname);
+        }
+        // 方式3：获取本地IP
+        else {
+            $ip = gethostbyname('localhost');
+        }
+        
+        // 如果获取到的是127.0.0.1或0.0.0.0，尝试获取真实的本地IP
+        if (in_array($ip, ['127.0.0.1', '0.0.0.0', ''])) {
+            $ip = self::getLocalIp();
+        }
+        
+        return $ip ?: '127.0.0.1';
+    }
+    
+    /**
+     * 获取本地真实IP地址
+     * @return string
+     */
+    public static function getLocalIp(): string
+    {
+        // 尝试获取真实的本地IP
+        $ip = '';
+        
+        // 在Windows系统上可以通过ipconfig命令获取
+        if (function_exists('shell_exec') && strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            // 尝试使用ipconfig命令获取本地IP
+            $output = shell_exec('ipconfig');
+            if ($output) {
+                // 匹配IPv4地址
+                if (preg_match('/IPv4 地址[\. ]+: ([0-9\.]+)/', $output, $matches)) {
+                    $ip = $matches[1];
+                }
+            }
+        }
+        // 在Linux系统上可以通过ifconfig或ip命令获取
+        elseif (function_exists('shell_exec')) {
+            // 尝试使用ip命令（Linux）
+            $output = shell_exec('ip route get 1 | awk \'{print $NF;exit}\'');
+            if ($output && trim($output) && filter_var(trim($output), FILTER_VALIDATE_IP)) {
+                return trim($output);
+            }
+            
+            // 尝试使用hostname -I命令（Linux）
+            $output = shell_exec('hostname -I');
+            if ($output && trim($output)) {
+                $ips = explode(' ', trim($output));
+                foreach ($ips as $ip) {
+                    if (filter_var($ip, FILTER_VALIDATE_IP) && !in_array($ip, ['127.0.0.1', '0.0.0.0'])) {
+                        return $ip;
+                    }
+                }
+            }
+        }
+        
+        // 如果以上方法都失败，返回127.0.0.1
+        return '127.0.0.1';
+    }
 
 
 }

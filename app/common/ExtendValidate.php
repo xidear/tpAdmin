@@ -340,6 +340,124 @@ protected function fieldPairExists($value, $rule, $data = [], $field = ''): bool
     return true;
 }
 
+/**
+ * 验证Crontab表达式格式
+ */
+protected function checkCrontab($value, $rule, $data = [], $field = ''): bool|string
+{
+    if (empty($value)) {
+        return true; // 让require规则处理空值
+    }
+    
+    // 基本格式验证：5个字段，用空格分隔
+    if (!preg_match('/^\S+(?:\s+\S+){4}$/', $value)) {
+        return "{$field}格式不正确，必须是5个字段用空格分隔";
+    }
+    
+    $parts = explode(' ', $value);
+    if (count($parts) !== 5) {
+        return "{$field}必须包含5个字段（分 时 日 月 周）";
+    }
+    
+    // 验证每个字段
+    $fieldNames = ['分钟', '小时', '日', '月', '周'];
+    foreach ($parts as $index => $part) {
+        $fieldName = $fieldNames[$index];
+        
+        // 验证字段格式
+        if (!$this->validateCronField($part, $index)) {
+            return "{$field}的{$fieldName}字段格式不正确：{$part}";
+        }
+    }
+    
+    // 尝试使用Cron库解析表达式
+    try {
+        $parser = new \Cron\CronExpression($value);
+        $parser->getNextRunDate(); // 如果表达式无效，这里会抛出异常
+    } catch (\Exception $e) {
+        return "{$field}不是有效的Cron表达式：".$e->getMessage();
+    }
+    
+    return true;
+}
+
+/**
+ * 验证单个Cron字段
+ */
+private function validateCronField($field, $fieldIndex): bool
+{
+    // 支持的格式：
+    // * (所有值)
+    // */n (步长)
+    // n (具体值)
+    // n-m (范围)
+    // n,m,o (列表)
+    // n-m/x (范围步长)
+    
+    // 分割逗号分隔的多值
+    $values = explode(',', $field);
+    
+    foreach ($values as $value) {
+        // 检查范围步长格式 (如 1-5/2)
+        if (strpos($value, '/') !== false) {
+            list($rangePart, $stepPart) = explode('/', $value, 2);
+            
+            // 验证步长部分
+            if (!is_numeric($stepPart) || $stepPart < 1) {
+                return false;
+            }
+            
+            // 验证范围部分
+            if (strpos($rangePart, '-') !== false) {
+                list($start, $end) = explode('-', $rangePart, 2);
+                if (!is_numeric($start) || !is_numeric($end) || $start > $end) {
+                    return false;
+                }
+            } elseif ($rangePart !== '*') {
+                if (!is_numeric($rangePart)) {
+                    return false;
+                }
+            }
+        } 
+        // 检查范围格式 (如 1-5)
+        elseif (strpos($value, '-') !== false) {
+            list($start, $end) = explode('-', $value, 2);
+            if (!is_numeric($start) || !is_numeric($end) || $start > $end) {
+                return false;
+            }
+        } 
+        // 检查星号或数字
+        elseif ($value !== '*' && !is_numeric($value)) {
+            return false;
+        }
+        
+        // 字段特定的范围验证
+        if ($value !== '*' && is_numeric($value)) {
+            $num = (int)$value;
+            switch ($fieldIndex) {
+                case 0: // 分钟 (0-59)
+                    if ($num < 0 || $num > 59) return false;
+                    break;
+                case 1: // 小时 (0-23)
+                    if ($num < 0 || $num > 23) return false;
+                    break;
+                case 2: // 日 (1-31)
+                    if ($num < 1 || $num > 31) return false;
+                    break;
+                case 3: // 月 (1-12)
+                    if ($num < 1 || $num > 12) return false;
+                    break;
+                case 4: // 周 (0-7)
+                    if ($num < 0 || $num > 7) return false;
+                    break;
+            }
+        }
+    }
+    
+    return true;
+}
 
 }
+
+
     

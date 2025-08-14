@@ -10,33 +10,7 @@ import type {
   OptionItem
 } from "@/typings/task";
 
-// 任务类型枚举
-export enum TaskType {
-  COMMAND = 1,      // 命令行任务
-  URL = 2,          // URL请求任务
-  PHP_METHOD = 3    // PHP方法调用任务
-}
 
-// 运行平台枚举
-export enum TaskPlatform {
-  ALL = 0,          // 所有平台
-  LINUX = 1,        // Linux平台
-  WINDOWS = 2       // Windows平台
-}
-
-// 任务状态枚举
-export enum TaskStatus {
-  DISABLED = 0,     // 禁用
-  ENABLED = 1       // 启用
-}
-
-// 日志状态枚举
-export enum LogStatus {
-  SUCCESS = 1,      // 成功
-  FAILED = 2,       // 失败
-  TIMEOUT = 3,      // 超时
-  CANCELED = 4      // 取消
-}
 
 /**
  * 获取任务列表

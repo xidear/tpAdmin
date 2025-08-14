@@ -2,7 +2,7 @@
 namespace app\controller;
 
 use app\common\BaseController;
-use app\common\job\ExportJob;
+use app\common\service\export\ExportJob;
 use app\model\Admin;
 use think\facade\Queue;
 
