@@ -3,6 +3,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
+use app\common\trait\TreeTrait;
 use app\event\RegionChanged;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
@@ -32,6 +33,30 @@ class Region extends BaseModel
     protected $pk = 'region_id';
     protected bool $autoWriteTimestamp = true;
     protected string $table='region';
+    
+    use SoftDelete, TreeTrait;
+
+    /**
+     * 初始化树形结构配置
+     */
+    protected function initialize()
+    {
+        parent::initialize();
+        
+        // 设置树形结构配置
+        $this->setTreeConfig([
+            'parentKey' => 'parent_id',
+            'primaryKey' => 'region_id',
+            'pathKey' => 'path',
+            'levelKey' => 'level',
+            'nameKey' => 'name',
+            'childrenKey' => 'children',
+            'pathSeparator' => '/',
+            'sortKey' => 'snum',
+            'statusKey' => 'status',
+            'deletedAtKey' => 'deleted_at',
+        ]);
+    }
     
     /**
      * 创建/更新地区后触发事件
@@ -186,7 +211,7 @@ class Region extends BaseModel
     }
 
     /**
-     * 按父ID获取地区树形结构（支持懒加载）
+     * 按父ID获取地区树形结构（支持懒加载）- 高性能方法，保留不合并
      * @param int $parentId 父级ID，默认为0（顶级）
      * @param bool $recursive 是否递归加载所有子节点
      * @return array
@@ -223,9 +248,8 @@ class Region extends BaseModel
         }
     }
 
-
     /**
-     * 获取树形结构
+     * 获取树形结构 - 高性能方法，保留不合并
      * @param int $level
      * @return array
      */
@@ -239,8 +263,6 @@ class Region extends BaseModel
             return [];
         }
     }
-
-
 
     /**
      * 获取父级地区
@@ -258,34 +280,6 @@ class Region extends BaseModel
     public function childrenRegions(): HasMany
     {
         return $this->hasMany(Region::class, 'parent_id', 'region_id');
-    }
-
-    /**
-     * 获取所有后代地区ID（包括自身）
-     * @param int $regionId
-     * @return array
-     */
-    public function getAllDescendantIds(int $regionId): array
-    {
-        $regionIds = [$regionId];
-        $this->collectChildIds($regionId, $regionIds);
-        return $regionIds;
-    }
-
-    /**
-     * 递归收集子地区ID
-     * @param int $parentId
-     * @param array $ids
-     */
-    private function collectChildIds(int $parentId, array &$ids): void
-    {
-        $children = $this->where('parent_id', $parentId)->column($this->getPk());
-        if (!empty($children)) {
-            foreach ($children as $childId) {
-                $ids[] = $childId;
-                $this->collectChildIds($childId, $ids);
-            }
-        }
     }
 
     /**
@@ -346,30 +340,6 @@ class Region extends BaseModel
      */
     public function updateRegionPath(int $regionId): bool
     {
-        $region = self::find($regionId);
-        if (!$region) {
-            return $this->false("地区不存在");
-        }
-
-        if ($region->parent_id == 0) {
-            $region->path = "/{$regionId}/";
-            return $region->save() !== false;
-        }
-
-        $parentRegion = self::find($region->parent_id);
-        if (!$parentRegion) {
-            return $this->false("父地区不存在");
-        }
-
-        $region->path = rtrim($parentRegion->path, '/') . "/{$regionId}/";
-        $result = $region->save();
-
-        // 递归更新子地区路径
-        $children = $this->where('parent_id', $regionId)->select();
-        foreach ($children as $child) {
-            $this->updateRegionPath($child->region_id);
-        }
-
-        return $result !== false;
+        return $this->updateNodePath($regionId);
     }
 }

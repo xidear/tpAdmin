@@ -48,31 +48,60 @@
             @update:model-value="(val) => formData[group.group_id][field.key] = val"
           />
 
-          <!-- 文件上传（type:20） -->
+          <!-- 单图上传（type:20，图片） -->
           <div v-else-if="field.type === 20">
+            <ImageSelector
+              :multiple="false"
+              @change="(images) => handleImageChange(images, field, group.group_id, false)"
+            />
+
+            <!-- 预览区域 -->
+            <div v-if="formData[group.group_id]?.[field.key]" class="preview-container">
+              <el-image
+                :src="formData[group.group_id][field.key]"
+                fit="contain"
+                style="width: 200px; height: 150px; margin-top: 10px"
+              />
+            </div>
+          </div>
+
+          <!-- 多图上传（type:21，图片） -->
+          <div v-else-if="field.type === 21">
+            <ImageSelector
+              :multiple="true"
+              @change="(images) => handleImageChange(images, field, group.group_id, true)"
+            />
+            <!-- 预览区域 -->
+            <div v-if="Array.isArray(formData[group.group_id]?.[field.key]) && formData[group.group_id][field.key].length" class="preview-container">
+              <div class="image-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+                <el-image
+                  v-for="(imgUrl, idx) in formData[group.group_id][field.key]"
+                  :key="idx"
+                  :src="imgUrl"
+                  fit="cover"
+                  style="width: 100px; height: 100px; border-radius: 4px;"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 视频上传（type:22，保持原生上传） -->
+          <div v-else-if="field.type === 22">
             <el-upload
               :file-list="fileList[group.group_id]?.[field.key] || []"
               :accept="field.accept"
-              :multiple="field.multiple"
+              :multiple="false"
               :auto-upload="true"
               :http-request="(uploadFile) => handleHttpUpload(uploadFile, field, group.group_id)"
               class="upload-control"
               @remove="(file) => handleFileRemove(file, field, group.group_id)"
               @update:model-value="(val) => formData[group.group_id][field.key] = val"
             >
-              <el-button size="small" type="primary">点击上传</el-button>
+              <el-button size="small" type="primary">点击上传视频</el-button>
             </el-upload>
-
             <!-- 预览区域 -->
-            <div class="preview-container">
-              <el-image
-                v-if="field.accept?.includes('image') && formData[group.group_id]?.[field.key]"  
-                :src="formData[group.group_id][field.key]"
-                fit="contain"
-                style="width: 200px; height: 150px; margin-top: 10px"
-              />
+            <div v-if="formData[group.group_id]?.[field.key]" class="preview-container">
               <video
-                v-else-if="field.accept?.includes('video') && formData[group.group_id]?.[field.key]" 
                 :src="formData[group.group_id][field.key]"
                 controls
                 style="width: 200px; height: 150px; margin-top: 10px"
@@ -98,6 +127,7 @@ import type { ConfigForm } from '@/typings/configForm';
 import { getConfigFormApi, saveConfigFormApi } from '@/api/modules/configForm';
 import { uploadImg, uploadVideo, uploadFile } from '@/api/modules/upload';
 import type { Upload } from '@/api/interface';
+import ImageSelector from '@/components/ImageSelector/index.vue';
 
 // 当前激活的分组ID
 const activeGroupId = ref<string>('1');
@@ -216,6 +246,26 @@ const handleFileRemove = (file: any, field: ConfigForm.ConfigField, groupId: num
   // 安全赋值（此时formData[groupId]必然是对象，不会报错）
   formData[groupId][field.key] = ''; 
   fileList[groupId][field.key] = [];
+};
+
+/**
+ * 处理图片选择器返回
+ * images: ImageSelector 返回的图片对象数组（包含url等）
+ * isMultiple: 是否多选
+ */
+const handleImageChange = (
+  images: any[],
+  field: ConfigForm.ConfigField,
+  groupId: number,
+  isMultiple: boolean
+) => {
+  if (!formData[groupId]) formData[groupId] = {};
+  if (isMultiple) {
+    formData[groupId][field.key] = (images || []).map((img: any) => img.url || img);
+  } else {
+    const first = Array.isArray(images) ? images[0] : images;
+    formData[groupId][field.key] = first ? (first.url || first) : '';
+  }
 };
 
 /**

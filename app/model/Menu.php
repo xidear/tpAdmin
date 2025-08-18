@@ -3,6 +3,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
+use app\common\trait\TreeTrait;
 use app\common\enum\MenuPermissionDependencies;
 use app\common\service\PermissionService;
 use app\Request;
@@ -17,6 +18,30 @@ use think\model\relation\HasMany;
 class Menu extends BaseModel
 {
     protected $pk = 'menu_id';
+
+    use TreeTrait;
+
+    /**
+     * 初始化树形结构配置
+     */
+    protected function initialize()
+    {
+        parent::initialize();
+        
+        // 设置树形结构配置
+        $this->setTreeConfig([
+            'parentKey' => 'parent_id',
+            'primaryKey' => 'menu_id',
+            'pathKey' => 'path',
+            'levelKey' => 'level',
+            'nameKey' => 'name',
+            'childrenKey' => 'children',
+            'pathSeparator' => ',',
+            'sortKey' => 'order_num',
+            'statusKey' => 'visible',
+            'deletedAtKey' => 'deleted_at',
+        ]);
+    }
 
     /**
      * 获取权限按钮
@@ -111,9 +136,6 @@ class Menu extends BaseModel
         return self::buildMenuTree(self::getUserMenus($adminId, $request));
     }
 
-
-
-
     /**
      * 将扁平的菜单数据转换为树形结构并生成路径
      * @param array $items 扁平的菜单数据数组
@@ -165,7 +187,6 @@ class Menu extends BaseModel
 
         return $tree;
     }
-
 
     /**
      * 获取用户可访问菜单
@@ -342,31 +363,6 @@ class Menu extends BaseModel
     }
 
     /**
-     * 获取所有后代菜单ID（包括自身）
-     */
-    private function getAllDescendantIds($menuId): array
-    {
-        $menuIds = [$menuId];
-        // 递归获取所有子菜单ID
-        $this->collectChildIds($menuId, $menuIds);
-        return $menuIds;
-    }
-
-    /**
-     * 递归收集子菜单ID
-     */
-    private function collectChildIds($parentId, array &$ids): void
-    {
-        $children = $this->where('parent_id', $parentId)->column($this->getPk());
-        if (!empty($children)) {
-            foreach ($children as $childId) {
-                $ids[] = $childId;
-                $this->collectChildIds($childId, $ids);
-            }
-        }
-    }
-
-    /**
      * 必备权限中间表
      * @return HasMany
      */
@@ -385,7 +381,6 @@ class Menu extends BaseModel
         return $this->belongsToMany(Permission::class, MenuPermissionDependency::class);
     }
 
-
     /**
      * 已有权限中间表
      * @return HasMany
@@ -403,7 +398,6 @@ class Menu extends BaseModel
     {
         return $this->hasMany(MenuPermissionDependency::class, 'menu_id')->where("type", MenuPermissionDependencies::Optional->value);
     }
-
 
     /**
      * 获取菜单meta数据
@@ -430,8 +424,6 @@ class Menu extends BaseModel
     {
         return $this->belongsToMany(Role::class, RoleMenu::class, 'menu_id', 'role_id');
     }
-
-
 
     /**
      * 删除依赖关系

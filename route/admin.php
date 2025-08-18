@@ -169,8 +169,39 @@ Route::group('adminapi', function () {
 //        文件
         Route::group('file', function () {
             Route::get('index', 'index')->name("文件列表")->option(["description"=>"获取已有文件"]);
-            Route::get('read/:admin_id', 'read')->name("读取文件")->option(["description"=>"显示某个文件"]);
+            Route::get('read/:file_id', 'read')->name("读取文件")->option(["description"=>"显示某个文件"]);
+            // 图片迁移相关
+            Route::get('get-migration-preview', 'getMigrationPreview')->name("获取迁移预览")->option(["description"=>"获取图片URL迁移预览"]);
+            Route::post('migrate-urls', 'migrateUrls')->name("执行迁移")->option(["description"=>"执行图片URL迁移"]);
         })->prefix("admin/File/");
+
+//        部门管理
+        Route::group('department', function () {
+            // 部门列表（树状结构）
+            Route::get('index', 'index')->name("部门列表")->option(["description"=>"获取部门树状结构数据"]);
+            // 部门列表（平铺结构）
+            Route::get('list', 'list')->name("部门平铺列表")->option(["description"=>"获取部门平铺列表，用于选择器"]);
+            // 部门详情
+            Route::get('read/:department_id', 'read')->name("部门详情")->option(["description"=>"获取单个部门详情"]);
+            // 创建部门
+            Route::post('create', 'create')->name("创建部门")->option(["description"=>"新增部门"]);
+            // 更新部门
+            Route::put('update/:department_id', 'update')->name("更新部门")->option(["description"=>"编辑部门信息"]);
+            // 删除部门
+            Route::delete('delete/:department_id', 'delete')->name("删除部门")->option(["description"=>"删除指定部门"]);
+            // 批量删除部门
+            Route::delete('batch-delete', 'batchDelete')->name("批量删除部门")->option(["description"=>"批量删除选中的部门"]);
+            // 更新部门状态
+            Route::put('update-status/:department_id', 'updateStatus')->name("更新部门状态")->option(["description"=>"启用或禁用部门"]);
+            // 导出部门数据
+            Route::get('export', 'export')->name("导出部门")->option(["description"=>"导出部门数据"]);
+            
+            // 部门职位相关
+            Route::get('positions/:department_id', 'positions')->name("部门职位列表")->option(["description"=>"获取指定部门的职位列表"]);
+            Route::post('position/create', 'createPosition')->name("创建职位")->option(["description"=>"新增部门职位"]);
+            Route::put('position/update/:position_id', 'updatePosition')->name("更新职位")->option(["description"=>"编辑部门职位"]);
+            Route::delete('position/delete/:position_id', 'deletePosition')->name("删除职位")->option(["description"=>"删除部门职位"]);
+        })->prefix("admin/Department/");
 
 
 //        管理员角色
