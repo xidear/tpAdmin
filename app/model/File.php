@@ -2,6 +2,10 @@
 namespace app\model;
 
 use app\common\BaseModel;
+use app\common\enum\file\FileStorageType;
+use app\common\enum\file\FileStatus;
+use app\common\enum\file\FileStoragePermission;
+use app\common\enum\file\FileUploaderType;
 use think\Model;
 use think\model\concern\SoftDelete;
 
@@ -25,29 +29,6 @@ class File extends BaseModel
     // 软删除字段
     protected string $deleteTime = 'deleted_at';
 
-    // 存储类型常量
-    const string STORAGE_LOCAL = 'local';
-    const string STORAGE_ALIYUN_OSS = 'aliyun_oss';
-    const string STORAGE_QCLOUD_COS = 'qcloud_cos';
-    const string STORAGE_AWS_S3 = 'aws_s3';
-
-    // 文件状态常量
-    const string STATUS_ACTIVE = 'active';
-    const string STATUS_DELETED = 'deleted';
-    const string STATUS_UPLOADING = 'uploading';
-    const string STATUS_EXPIRED = 'expired';
-
-    // 存储权限常量
-    const string PERMISSION_PUBLIC = 'public';
-    const string PERMISSION_PRIVATE = 'private';
-
-    // 上传者类型常量
-    const string UPLOADER_USER = 'user';
-    const string UPLOADER_SYSTEM = 'system';
-    const string UPLOADER_ADMIN = 'admin';
-
-
-
     /**
      * 检查文件是否为图片
      * @return bool
@@ -63,7 +44,7 @@ class File extends BaseModel
      */
     public function isPrivate(): bool
     {
-        return $this->storage_permission === self::PERMISSION_PRIVATE;
+        return $this->storage_permission === FileStoragePermission::Private->value;
     }
 
     /**

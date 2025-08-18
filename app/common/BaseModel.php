@@ -10,7 +10,8 @@ use app\common\trait\RewriteCollectionTrait;
 use Closure;
 use ReflectionClass;
 use ReflectionMethod;
-use think\{Collection,
+use think\{
+    Collection,
     db\Query,
     db\Where,
     facade\Log,
@@ -18,7 +19,8 @@ use think\{Collection,
     Model,
     model\contract\Modelable,
     model\relation\BelongsToMany,
-    model\relation\HasMany};
+    model\relation\HasMany
+};
 use think\db\exception\{DataNotFoundException, DbException, ModelNotFoundException};
 use Throwable;
 
@@ -47,7 +49,7 @@ class BaseModel extends Model
 
         // 估算数据量
         $exportService = new ExportService();
-        $estimatedCount = $exportService->estimateCount(function() use ($query) {
+        $estimatedCount = $exportService->estimateCount(function () use ($query) {
             return clone $query;
         });
 
@@ -140,12 +142,12 @@ class BaseModel extends Model
 
 
 
-    public function getByKey($id){
+    public function getByKey($id)
+    {
 
-        $pk=$this->getPk();
-        $string="getBy".Str::studly($pk);
+        $pk = $this->getPk();
+        $string = "getBy" . Str::studly($pk);
         return self::$string($id);
-
     }
 
     public function columnToString(Collection|HasMany|BelongsToMany|Query $collection, $columnName, $sep = ",")
@@ -154,25 +156,22 @@ class BaseModel extends Model
             $array = array_column($collection->toArray(), $columnName);
             return implode($sep, $array);
         } else {
-            return implode($sep,$collection->column( $columnName));
+            return implode($sep, $collection->column($columnName));
         }
     }
 
-    public function fetchData(array $conditions=[],array $config=[]): \think\Collection|array
+    public function fetchData(mixed $conditions = [], array $config = []): \think\Collection|array
     {
-        if (request()->has("page","get")||request()->has("list_rows","get")||isset($config['pageNum'])||isset($config['pageSize'])) {
-            if (request()->has("page","get",true)){
-                $config['pageNum']=request()->get("page",1);
+        if (request()->has("page", "get") || request()->has("list_rows", "get") || isset($config['pageNum']) || isset($config['pageSize'])) {
+            if (request()->has("page", "get", true)) {
+                $config['pageNum'] = request()->get("page", 1);
             }
-            if (request()->has("list_rows","get",true)){
-                $config['pageSize']=request()->get("list_rows",15);
+            if (request()->has("list_rows", "get", true)) {
+                $config['pageSize'] = request()->get("list_rows", 15);
             }
-            return $this->fetchPaginated($conditions,$config);
+            return $this->fetchPaginated($conditions, $config);
         }
-        return $this->fetchAll($conditions,$config,true);
-
-
-
+        return $this->fetchAll($conditions, $config, true);
     }
 
     /**
@@ -181,8 +180,7 @@ class BaseModel extends Model
     public function fetchPaginated(
         $conditions = [],
         array $config = []
-    ): array
-    {
+    ): array {
         // 处理配置参数
         $config = $this->prepareConfig($config);
 
@@ -199,12 +197,12 @@ class BaseModel extends Model
                 $page,
                 $pageSize
             )->select()->toArray();
-        } catch (DataNotFoundException|ModelNotFoundException|DbException $e) {
-//            这里写入错误日志
-//            Log::error(文件名,方法,前端传参,方法传参,报错信息,用户(如果已登录)$e->getMessage());
+        } catch (DataNotFoundException | ModelNotFoundException | DbException $e) {
+            //            这里写入错误日志
+            //            Log::error(文件名,方法,前端传参,方法传参,报错信息,用户(如果已登录)$e->getMessage());
             $list = [];
         }
-        return ['total' => $total, 'list' => $list,'current_page' => $page,'per_page' => $pageSize];
+        return ['total' => $total, 'list' => $list, 'current_page' => $page, 'per_page' => $pageSize];
     }
 
     /**
@@ -214,8 +212,7 @@ class BaseModel extends Model
         $conditions = [],
         array $config = [],
         bool $force = false
-    ): Collection
-    {
+    ): Collection {
         // 处理配置参数
         $config = $this->prepareConfig($config);
 
@@ -326,8 +323,6 @@ class BaseModel extends Model
         if (is_string($conditions)) {
             $query->whereRaw($conditions);
         }
-
-
     }
 
 
@@ -484,11 +479,10 @@ class BaseModel extends Model
     public static function createJoinParams(
         string $table,
         string $on,
-               $fields = [],
+        $fields = [],
         string $type = 'INNER',
         string $alias = ''
-    ): array
-    {
+    ): array {
         return [
             'table' => $table,
             'on' => $on,
@@ -615,7 +609,6 @@ class BaseModel extends Model
 
             $this->commit();
             return true;
-
         } catch (Throwable $e) {
             $this->rollback();
             Log::error('智能更新失败: ' . $e->getMessage());
@@ -760,7 +753,6 @@ class BaseModel extends Model
 
             $this->commit();
             return true;
-
         } catch (Throwable $e) {
             $this->rollback();
             Log::error('批量删除失败: ' . $e->getMessage());
@@ -824,5 +816,4 @@ class BaseModel extends Model
         $cache[$className] = $relations;
         return $relations;
     }
-
 }

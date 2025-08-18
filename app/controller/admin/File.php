@@ -3,7 +3,11 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
+use app\common\enum\file\FileStorageType;
+use app\common\enum\file\FileStoragePermission;
+use app\common\enum\file\FileUploaderType;
 use app\model\File as FileModel;
+use app\model\SystemConfig;
 use app\request\admin\file\Upload;
 use think\facade\Filesystem;
 use think\Response;
@@ -44,7 +48,7 @@ class File extends BaseController
         // 获取上传的文件
         $file = $this->request->file('file');
         if (!$file) {
-            return $this->error('请选择上传的文件1');
+            return $this->error('请选择上传的文件');
         }
 
         try {
@@ -55,52 +59,39 @@ class File extends BaseController
                 return $this->error($this->getFileTypeErrorMessage($fileType));
             }
 
-            // 1. 存储配置：读取磁盘配置，避免硬编码磁盘名称
-            $storageType = $this->request->param('storage_type', FileModel::STORAGE_LOCAL);
-            // 根据存储类型映射到对应的磁盘（结合现有配置中的磁盘）
-            $disk = $storageType === FileModel::STORAGE_LOCAL ? 'public' : $storageType;
-            // 从配置中获取当前磁盘的信息（用于后续路径处理）
+            // 从系统配置表获取当前存储方式，而不是从配置文件
+            $storageType = $this->getCurrentStorageType();
+
+            // 根据存储类型映射到对应的磁盘
+            $disk = $storageType === FileStorageType::Local->value ? 'public' : $storageType;
+
+            // 从配置中获取当前磁盘的信息
             $diskConfig = config("filesystem.disks.{$disk}");
 
-            // 2. 上传目录：使用磁盘默认根目录下的"uploads"（不硬编码，可根据磁盘动态调整）
-            // 注：若需自定义子目录，可从配置或参数获取，这里保持与原逻辑一致用"uploads"
+            // 上传目录
             $uploadSubDir = 'uploads';
 
-            // 3. 上传文件（路径基于磁盘配置的root，无需硬编码绝对路径）
+            // 上传文件
             $path = Filesystem::disk($disk)->putFile($uploadSubDir, $file);
             if (!$path) {
                 return $this->error('文件上传失败');
             }
 
-            // 4. 获取上传者信息
-            $uploaderType = $this->request->param('uploader_type', FileModel::UPLOADER_ADMIN);
-            $uploaderId = 0;
-            switch ($uploaderType) {
-                case FileModel::UPLOADER_USER:
-                    return $this->error('无法以用户身份上传');
-                case FileModel::UPLOADER_ADMIN:
-                    $uploaderId = request()->adminId;
-                    if (!$uploaderId) {
-                        return $this->error('管理员未登录，无法以管理员身份上传');
-                    }
-                    break;
-                case FileModel::UPLOADER_SYSTEM:
-                    $uploaderId = config('system.uploader_id', (new \app\model\Admin())->getSuperAdminId());
-                    break;
-            }
+            // 安全获取上传者信息，不依赖请求参数
+            $uploaderType = $this->getSecureUploaderType();
+            $uploaderId = $this->getSecureUploaderId($uploaderType);
 
-            // 5. 构建文件信息（URL基于磁盘的url配置，避免硬编码/storage）
+            // 构建文件信息
             $fileInfo = [
                 'origin_name' => $file->getOriginalName(),
-                'file_name' => basename($path), // 存储后文件名
+                'file_name' => basename($path),
                 'size' => $file->getSize(),
                 'mime_type' => $file->getOriginalMime(),
                 'storage_type' => $storageType,
-                'storage_path' => $path, // 相对磁盘root的路径（与配置一致）
-                // URL = 域名 + 磁盘的url配置 + 相对路径（例如：domain + /storage + /uploads/xxx.jpg）
+                'storage_path' => $path,
                 'url' => $this->generateFileUrl($disk, $diskConfig, $path),
                 'access_domain' => $this->getAccessDomain($storageType),
-                'storage_permission' => $this->request->param('permission', FileModel::PERMISSION_PUBLIC),
+                'storage_permission' => $this->getSecureStoragePermission(),
                 'uploader_type' => $uploaderType,
                 'uploader_id' => $uploaderId
             ];
@@ -108,7 +99,6 @@ class File extends BaseController
             // 保存到数据库
             $fileModel = FileModel::create($fileInfo);
             return $this->success(['url' => $fileModel->url], '文件上传成功');
-
         } catch (\Exception $e) {
             return $this->error('文件上传失败: ' . $e->getMessage());
         }
@@ -123,7 +113,7 @@ class File extends BaseController
      */
     private function generateFileUrl(string $disk, array $diskConfig, string $path): string
     {
-        $domain = $this->getAccessDomain(FileModel::STORAGE_LOCAL); // 本地域名
+        $domain = $this->getAccessDomain(FileStorageType::Local->value); // 本地域名
 
         // 本地存储（public磁盘）：使用配置中的url（即/storage）
         if ($disk === 'public') {
@@ -148,7 +138,7 @@ class File extends BaseController
             return $domainConfig[$storageType];
         }
         // 本地存储默认使用当前请求域名
-        if ($storageType === FileModel::STORAGE_LOCAL) {
+        if ($storageType === FileStorageType::Local->value) {
             return request()->domain();
         }
         return '';
@@ -185,6 +175,81 @@ class File extends BaseController
     }
 
     /**
+     * 从系统配置表获取当前存储方式
+     * @return string
+     */
+    private function getCurrentStorageType(): string
+    {
+        try {
+            // 从系统配置表获取存储方式，如果没有配置则默认使用本地存储
+            $storageType = SystemConfig::getCacheValue('upload_storage_type', FileStorageType::Local->value);
+
+            // 验证存储类型是否有效
+            $validTypes = [
+                FileStorageType::Local->value,
+                FileStorageType::AliyunOss->value,
+                FileStorageType::QcloudCos->value,
+                FileStorageType::AwsS3->value
+            ];
+
+            if (!in_array($storageType, $validTypes)) {
+                return FileStorageType::Local->value;
+            }
+
+            return $storageType;
+        } catch (\Exception $e) {
+            // 如果获取配置失败，默认使用本地存储
+            return FileStorageType::Local->value;
+        }
+    }
+
+    /**
+     * 安全获取上传者类型，不依赖请求参数
+     * @return string
+     */
+    private function getSecureUploaderType(): string
+    {
+        // 默认使用管理员身份，确保安全性
+        return FileUploaderType::Admin->value;
+    }
+
+    /**
+     * 安全获取上传者ID，基于当前登录状态
+     * @param string $uploaderType
+     * @return int
+     */
+    private function getSecureUploaderId(string $uploaderType): int
+    {
+        switch ($uploaderType) {
+            case FileUploaderType::User->value:
+                // 用户上传暂时不允许
+                throw new \Exception('无法以用户身份上传');
+            case FileUploaderType::Admin->value:
+                // 从当前请求获取管理员ID，确保已登录
+                $uploaderId = request()->adminId;
+                if (!$uploaderId) {
+                    throw new \Exception('管理员未登录，无法以管理员身份上传');
+                }
+                return $uploaderId;
+            case FileUploaderType::System->value:
+                // 系统上传使用配置中的系统上传者ID
+                return config('system.uploader_id', (new \app\model\Admin())->getSuperAdminId());
+            default:
+                throw new \Exception('无效的上传者类型');
+        }
+    }
+
+    /**
+     * 安全获取存储权限，不依赖请求参数
+     * @return string
+     */
+    private function getSecureStoragePermission(): string
+    {
+        // 默认使用公开权限，确保安全性
+        return FileStoragePermission::Public->value;
+    }
+
+    /**
      * 获取图片迁移预览
      * @return Response
      */
@@ -193,10 +258,10 @@ class File extends BaseController
         $oldDomain = trim(request()->param('old_domain', ''));
         $newDomain = trim(request()->param('new_domain', ''));
         $page = (int)request()->param('page', 1);
-        
+
         // 兼容性处理：同时支持list_rows和limit参数
         $listRows = (int)request()->param('list_rows', request()->param('limit', 15));
-        
+
         // 调试日志
         \think\facade\Log::info("迁移预览请求参数", [
             'old_domain' => $oldDomain,
@@ -206,11 +271,11 @@ class File extends BaseController
             'limit' => request()->param('limit'),
             'all_params' => request()->param()
         ]);
-        
+
         if (empty($oldDomain) || empty($newDomain)) {
             return $this->error('请提供旧域名和新域名');
         }
-        
+
         try {
             $preview = $this->generateMigrationPreview($oldDomain, $newDomain, $page, $listRows);
             return $this->success($preview, '迁移预览生成完成');
@@ -229,11 +294,11 @@ class File extends BaseController
         $newDomain = trim(request()->param('new_domain', ''));
         $batchSize = (int)request()->param('batch_size', 1000); // 每批处理1000条
         $maxBatches = (int)request()->param('max_batches', 10); // 最多处理10批
-        
+
         if (empty($oldDomain) || empty($newDomain)) {
             return $this->error('请提供旧域名和新域名');
         }
-        
+
         try {
             $result = $this->performUrlMigration($oldDomain, $newDomain, $batchSize, $maxBatches);
             return $this->success($result, '图片地址迁移完成');
@@ -263,38 +328,38 @@ class File extends BaseController
             'list_rows' => $listRows,
             'has_more' => false
         ];
-        
+
         try {
             // 使用BaseModel的fetchData方法，自动处理分页
             $fileModel = new FileModel();
-            
+
             // 构建查询条件 - 使用闭包函数来构建OR逻辑
-            $conditions = function($query) use ($oldDomain) {
+            $conditions = function ($query) use ($oldDomain) {
                 $query->where('url', 'like', "%{$oldDomain}%")
-                      ->whereOr('storage_path', 'like', "%{$oldDomain}%");
+                    ->whereOr('storage_path', 'like', "%{$oldDomain}%");
             };
-            
+
             // 使用TP内置的分页查询
             $result = $fileModel->fetchData($conditions, [
                 'pageNum' => $page,
                 'pageSize' => $listRows
             ]);
-            
+
             // 如果返回的是分页数据
             if (isset($result['total'])) {
                 $preview['total_count'] = $result['total'];
                 $preview['has_more'] = ($page * $listRows) < $result['total'];
-                
+
                 // 处理文件列表
                 if (isset($result['list']) && is_array($result['list'])) {
                     $localCount = 0;
                     $otherCount = 0;
-                    
+
                     foreach ($result['list'] as $file) {
                         // 分页数据是数组格式，使用数组访问
                         $isLocal = \app\common\service\ImageUrlService::isLocalStorage($file['url']);
                         $newUrl = \app\common\service\ImageUrlService::generateNewUrl($file['url'], $oldDomain, $newDomain);
-                        
+
                         $preview['affected_files'][] = [
                             'table' => 'file',
                             'id' => $file['file_id'],
@@ -304,14 +369,14 @@ class File extends BaseController
                             'storage_type' => $file['storage_type'],
                             'is_local' => $isLocal
                         ];
-                        
+
                         if ($isLocal) {
                             $localCount++;
                         } else {
                             $otherCount++;
                         }
                     }
-                    
+
                     $preview['local_count'] = $localCount;
                     $preview['other_count'] = $otherCount;
                     $preview['current_page_count'] = count($preview['affected_files']);
@@ -319,21 +384,21 @@ class File extends BaseController
             } else {
                 // 如果没有分页参数，返回所有数据（但限制数量）
                 // 使用原生查询确保OR逻辑正确
-                $files = $fileModel->where(function($query) use ($oldDomain) {
+                $files = $fileModel->where(function ($query) use ($oldDomain) {
                     $query->where('url', 'like', "%{$oldDomain}%")
-                          ->whereOr('storage_path', 'like', "%{$oldDomain}%");
+                        ->whereOr('storage_path', 'like', "%{$oldDomain}%");
                 })->limit($listRows)->select();
-                
+
                 $preview['total_count'] = $files->count();
                 $preview['has_more'] = false;
-                
+
                 $localCount = 0;
                 $otherCount = 0;
-                
+
                 foreach ($files as $file) {
                     $isLocal = \app\common\service\ImageUrlService::isLocalStorage($file->url);
                     $newUrl = \app\common\service\ImageUrlService::generateNewUrl($file->url, $oldDomain, $newDomain);
-                    
+
                     $preview['affected_files'][] = [
                         'table' => 'file',
                         'id' => $file->file_id,
@@ -343,24 +408,23 @@ class File extends BaseController
                         'storage_type' => $file->storage_type,
                         'is_local' => $isLocal
                     ];
-                    
+
                     if ($isLocal) {
                         $localCount++;
                     } else {
                         $otherCount++;
                     }
                 }
-                
+
                 $preview['local_count'] = $localCount;
                 $preview['other_count'] = $otherCount;
                 $preview['current_page_count'] = count($preview['affected_files']);
             }
-            
+
             // 如果总数超过限制，添加警告
             if ($preview['total_count'] > $listRows * 10) {
                 $preview['warning'] = "数据量较大（{$preview['total_count']}条），建议分批迁移。当前显示第{$page}页，每页{$listRows}条。";
             }
-            
         } catch (\Exception $e) {
             // 记录错误日志
             \think\facade\Log::error("生成迁移预览失败: " . $e->getMessage(), [
@@ -369,11 +433,11 @@ class File extends BaseController
                 'page' => $page,
                 'list_rows' => $listRows
             ]);
-            
+
             // 返回空结果
             $preview['error'] = '生成预览失败：' . $e->getMessage();
         }
-        
+
         return $preview;
     }
 
@@ -395,10 +459,10 @@ class File extends BaseController
             'batches_processed' => 0,
             'current_batch' => 0
         ];
-        
+
         try {
             $fileModel = new FileModel();
-            
+
             // 调试日志
             \think\facade\Log::info("开始执行URL迁移", [
                 'old_domain' => $oldDomain,
@@ -406,75 +470,73 @@ class File extends BaseController
                 'batch_size' => $batchSize,
                 'max_batches' => $maxBatches
             ]);
-            
+
             // 先统计总数
-            $totalCount = $fileModel->where(function($query) use ($oldDomain) {
+            $totalCount = $fileModel->where(function ($query) use ($oldDomain) {
                 $query->where('url', 'like', "%{$oldDomain}%")
-                      ->whereOr('storage_path', 'like', "%{$oldDomain}%");
+                    ->whereOr('storage_path', 'like', "%{$oldDomain}%");
             })->count();
-            
+
             // 调试日志
             \think\facade\Log::info("查询到的文件总数", [
                 'total_count' => $totalCount,
                 'old_domain' => $oldDomain
             ]);
-            
+
             $stats['total_files'] = $totalCount;
-            
+
             if ($totalCount === 0) {
                 return $stats;
             }
-            
+
             // 使用TP的chunk方法进行分批处理，更高效
             $batchCount = 0;
             $processedCount = 0;
-            
-            $fileModel->where(function($query) use ($oldDomain) {
+
+            $fileModel->where(function ($query) use ($oldDomain) {
                 $query->where('url', 'like', "%{$oldDomain}%")
-                      ->whereOr('storage_path', 'like', "%{$oldDomain}%");
+                    ->whereOr('storage_path', 'like', "%{$oldDomain}%");
             })->chunk($batchSize, function ($files) use (&$stats, &$batchCount, &$processedCount, $oldDomain, $newDomain, $maxBatches) {
-                    
-                    // 检查是否达到最大批次数限制
-                    if ($batchCount >= $maxBatches) {
-                        return false; // 停止chunk
-                    }
-                    
-                    $batchCount++;
-                    $stats['current_batch'] = $batchCount;
-                    
-                    // 处理当前批次
-                    foreach ($files as $file) {
-                        try {
-                            $migrated = $this->migrateFileUrl($file, $oldDomain, $newDomain);
-                            
-                            if ($migrated) {
-                                $stats['migrated_files']++;
-                            } else {
-                                $stats['skipped_files']++;
-                            }
-                            
-                            $processedCount++;
-                            
-                        } catch (\Exception $e) {
-                            $stats['errors'][] = "文件ID {$file->file_id}: " . $e->getMessage();
+
+                // 检查是否达到最大批次数限制
+                if ($batchCount >= $maxBatches) {
+                    return false; // 停止chunk
+                }
+
+                $batchCount++;
+                $stats['current_batch'] = $batchCount;
+
+                // 处理当前批次
+                foreach ($files as $file) {
+                    try {
+                        $migrated = $this->migrateFileUrl($file, $oldDomain, $newDomain);
+
+                        if ($migrated) {
+                            $stats['migrated_files']++;
+                        } else {
+                            $stats['skipped_files']++;
                         }
+
+                        $processedCount++;
+                    } catch (\Exception $e) {
+                        $stats['errors'][] = "文件ID {$file->file_id}: " . $e->getMessage();
                     }
-                    
-                    $stats['batches_processed'] = $batchCount;
-                    
-                    // 如果还有更多数据但已达到最大批次数，添加提示
-                    if ($processedCount < $stats['total_files'] && $batchCount >= $maxBatches) {
-                        $stats['warning'] = "已达到最大批次数限制（{$maxBatches}批），还有 " . ($stats['total_files'] - $processedCount) . " 条数据未处理。请分批执行迁移。";
-                        return false; // 停止chunk
-                    }
-                });
-            
+                }
+
+                $stats['batches_processed'] = $batchCount;
+
+                // 如果还有更多数据但已达到最大批次数，添加提示
+                if ($processedCount < $stats['total_files'] && $batchCount >= $maxBatches) {
+                    $stats['warning'] = "已达到最大批次数限制（{$maxBatches}批），还有 " . ($stats['total_files'] - $processedCount) . " 条数据未处理。请分批执行迁移。";
+                    return false; // 停止chunk
+                }
+            });
+
             // 迁移其他表中的图片URL
             $this->migrateOtherTables($oldDomain, $newDomain, $stats);
-            
+
             // 更新配置文件
             \app\common\service\ImageUrlService::updateLocalImageDomain($newDomain);
-            
         } catch (\Exception $e) {
             // 记录错误日志
             \think\facade\Log::error("执行URL迁移失败: " . $e->getMessage(), [
@@ -483,13 +545,13 @@ class File extends BaseController
                 'batch_size' => $batchSize,
                 'max_batches' => $maxBatches
             ]);
-            
+
             $stats['errors'][] = "迁移执行失败: " . $e->getMessage();
         }
-        
+
         return $stats;
     }
-    
+
     /**
      * 迁移单个文件的URL
      * @param \think\Model $file
@@ -501,7 +563,7 @@ class File extends BaseController
     {
         // 迁移所有类型的文件URL，不限制存储类型
         $migrated = false;
-        
+
         // 调试日志
         \think\facade\Log::info("检查文件是否需要迁移", [
             'id' => $file->file_id,
@@ -510,7 +572,7 @@ class File extends BaseController
             'old_domain' => $oldDomain,
             'new_domain' => $newDomain
         ]);
-        
+
         // 迁移URL字段
         if (!empty($file->url) && str_contains($file->url, $oldDomain)) {
             $file->url = \app\common\service\ImageUrlService::generateNewUrl($file->url, $oldDomain, $newDomain);
@@ -521,7 +583,7 @@ class File extends BaseController
                 'new_url' => $file->url
             ]);
         }
-        
+
         // 迁移storage_path字段（如果是完整URL）
         if (!empty($file->storage_path) && filter_var($file->storage_path, FILTER_VALIDATE_URL)) {
             if (str_contains($file->storage_path, $oldDomain)) {
@@ -534,11 +596,11 @@ class File extends BaseController
                 ]);
             }
         }
-        
+
         if ($migrated) {
             $file->save();
         }
-        
+
         return $migrated;
     }
 
@@ -556,13 +618,13 @@ class File extends BaseController
             'system_config' => ['config_value'],
             'menu' => ['icon'],
         ];
-        
+
         foreach ($imageFields as $table => $fields) {
             try {
                 $this->migrateTableUrls($table, $fields, $oldDomain, $newDomain, $stats);
             } catch (\Exception $e) {
                 $stats['errors'][] = "表 {$table}: " . $e->getMessage();
-                
+
                 // 记录错误日志
                 \think\facade\Log::error("迁移表 {$table} 失败: " . $e->getMessage(), [
                     'table' => $table,
@@ -587,18 +649,18 @@ class File extends BaseController
         if (!class_exists($modelClass)) {
             return;
         }
-        
+
         $model = new $modelClass();
-        
+
         // 使用chunk方法分批处理，避免内存溢出
-        $model->chunk(1000, function ($records) use ($fields, $oldDomain, $newDomain, &$stats) {
+        $model->chunk(1000, function ($records) use ($table, $fields, $oldDomain, $newDomain, &$stats) {
             foreach ($records as $record) {
                 $updated = false;
-                
+
                 foreach ($fields as $field) {
                     if (isset($record->$field) && !empty($record->$field)) {
                         $value = $record->$field;
-                        
+
                         // 检查是否为URL且需要迁移（不限制文件类型）
                         if (is_string($value) && filter_var($value, FILTER_VALIDATE_URL)) {
                             if (\app\common\service\ImageUrlService::needsMigration($value, $oldDomain)) {
@@ -608,7 +670,7 @@ class File extends BaseController
                         }
                     }
                 }
-                
+
                 if ($updated) {
                     try {
                         $record->save();
@@ -632,13 +694,13 @@ class File extends BaseController
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
             return false;
         }
-        
+
         // 获取文件扩展名
         $extension = strtolower(pathinfo($url, PATHINFO_EXTENSION));
-        
+
         // 图片文件扩展名
         $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-        
+
         return in_array($extension, $imageExtensions);
     }
 }
