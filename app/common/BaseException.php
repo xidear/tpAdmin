@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace app\common;
 
-use app\common\enum\Code;
+use app\common\enum\task\Code;
 use Exception;
 use think\exception\HttpException;
 

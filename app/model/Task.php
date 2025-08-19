@@ -4,9 +4,9 @@ namespace app\model;
 
 use app\common\BaseModel;
 use app\common\enum\Status;
-use app\common\enum\TaskPlatform;
-use app\common\enum\TaskType;
-use app\common\enum\TaskExecuteMode;
+use app\common\enum\task\TaskPlatform;
+use app\common\enum\task\TaskType;
+use app\common\enum\task\TaskExecuteMode;
 use Exception;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;

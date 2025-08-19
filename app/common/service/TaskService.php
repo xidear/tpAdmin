@@ -3,9 +3,9 @@
 namespace app\common\service;
 
 use app\common\enum\SuccessOrFail;
-use app\common\enum\TaskPlatform;
-use app\common\enum\TaskExecuteMode;
-use app\common\enum\TaskType;
+use app\common\enum\task\TaskPlatform;
+use app\common\enum\task\TaskExecuteMode;
+use app\common\enum\task\TaskType;
 use app\common\enum\Status;
 use app\model\Task;
 use app\model\TaskLog;
@@ -56,7 +56,7 @@ class TaskService extends BaseService
                 // 一次性任务：设置为null表示不再执行
                 $task->next_exec_time = null;
                 // 可选：自动禁用任务
-                $task->status = Status::Disabled->value;
+                $task->status = Status::DISABLED->value;
             } else {
                 // 循环任务：计算下次执行时间
                 $task->next_exec_time = $this->calculateNextExecTime($task->schedule);

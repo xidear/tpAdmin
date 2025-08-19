@@ -4,7 +4,7 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
-use app\common\enum\Status;
+use app\common\enum\task\Status;
 use app\model\Admin as AdminModel;
 use app\request\admin\admin\BatchDelete;
 use app\request\admin\admin\Create;
@@ -77,7 +77,7 @@ class Admin extends BaseController
             return $this->error("未找到指定数据");
         }
 
-        if ($params['status'] == Status::Disabled->value) {
+        if ($params['status'] == Status::DISABLED->value) {
             if ($info->getKey() == request()->adminId) {
                 return $this->error("不能禁用自己");
             }

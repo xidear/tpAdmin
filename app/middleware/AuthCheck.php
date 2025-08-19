@@ -1,8 +1,8 @@
 <?php
 namespace app\middleware;
 
-use app\common\enum\Code;
-use app\common\enum\Status;
+use app\common\enum\task\Code;
+use app\common\enum\task\Status;
 use app\common\service\JwtService;
 use app\model\Admin;
 
@@ -46,7 +46,7 @@ class AuthCheck
 
             $admin=Admin::getInfoFromCache($adminId);
 
-            if ($admin->status!=Status::Normal->value){
+            if ($admin->status!=Status::ENABLED->value){
                 return $this->unauthorized("账号不可用");
             }
 

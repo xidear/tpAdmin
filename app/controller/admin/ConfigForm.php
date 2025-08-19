@@ -5,7 +5,7 @@ namespace app\controller\admin;
 use app\common\BaseController;
 use app\model\SystemConfig;
 use app\model\SystemConfigGroup;
-use app\common\enum\ConfigType;
+use app\common\enum\config\ConfigType;
 use app\common\enum\YesOrNo;
 use app\request\admin\config_form\SaveByGroup;
 use think\db\exception\DataNotFoundException;

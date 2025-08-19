@@ -1,6 +1,6 @@
 <?php
 
-namespace app\common\enum;
+namespace app\common\enum\task;
 
 use app\common\trait\EnumTrait;
 

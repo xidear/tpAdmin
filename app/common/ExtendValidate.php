@@ -2,8 +2,8 @@
 
 namespace app\common;
 
-use app\common\enum\MenuPermissionDependenciesType;
-use app\common\enum\MenuPermissionPermissionType;
+use app\common\enum\menu\MenuPermissionDependenciesType;
+use app\common\enum\menu\MenuPermissionPermissionType;
 use think\facade\Db;
 use think\Validate;
 

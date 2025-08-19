@@ -1,5 +1,5 @@
 <?php
-namespace app\common\enum;
+namespace app\common\enum\menu;
 
 use app\common\trait\EnumTrait;
 

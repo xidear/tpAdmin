@@ -8,6 +8,12 @@ use app\model\DepartmentPosition as DepartmentPositionModel;
 use app\model\DepartmentAdmin as DepartmentAdminModel;
 use app\model\Admin as AdminModel;
 use app\common\service\export\ExportService;
+use app\request\admin\department\Create as CreateRequest;
+use app\request\admin\department\Update as UpdateRequest;
+use app\request\admin\department\BatchDelete as BatchDeleteRequest;
+use app\request\admin\department\UpdateStatus as UpdateStatusRequest;
+use app\request\admin\department\CreatePosition as CreatePositionRequest;
+use app\request\admin\department\UpdatePosition as UpdatePositionRequest;
 use think\Response;
 
 class Department extends BaseController
@@ -50,34 +56,13 @@ class Department extends BaseController
 
     /**
      * 创建部门
+     * @param CreateRequest $request
      * @return Response
      */
-    public function create(): Response
+    public function create(CreateRequest $request): Response
     {
-        $data = request()->post();
+        $data = $request->post();
         
-        // 验证数据
-        $validate = validate([
-            'name' => 'require|max:100',
-            'code' => 'max:50',
-            'parent_id' => 'integer|egt:0',
-            'sort' => 'integer|egt:0',
-            'status' => 'in:0,1',
-        ], [
-            'name.require' => '部门名称不能为空',
-            'name.max' => '部门名称不能超过100个字符',
-            'code.max' => '部门编码不能超过50个字符',
-            'parent_id.integer' => '父部门ID必须是整数',
-            'parent_id.egt' => '父部门ID不能小于0',
-            'sort.integer' => '排序必须是整数',
-            'sort.egt' => '排序不能小于0',
-            'status.in' => '状态值无效',
-        ]);
-
-        if (!$validate->check($data)) {
-            return $this->error($validate->getError());
-        }
-
         // 检查部门编码唯一性
         if (!empty($data['code'])) {
             $exists = DepartmentModel::where('code', $data['code'])->find();
@@ -106,39 +91,18 @@ class Department extends BaseController
     /**
      * 更新部门
      * @param int $department_id
+     * @param UpdateRequest $request
      * @return Response
      */
-    public function update(int $department_id): Response
+    public function update(int $department_id, UpdateRequest $request): Response
     {
         $department = DepartmentModel::find($department_id);
         if (!$department) {
             return $this->error('部门不存在');
         }
 
-        $data = request()->put();
+        $data = $request->put();
         
-        // 验证数据
-        $validate = validate([
-            'name' => 'require|max:100',
-            'code' => 'max:50',
-            'parent_id' => 'integer|egt:0',
-            'sort' => 'integer|egt:0',
-            'status' => 'in:0,1',
-        ], [
-            'name.require' => '部门名称不能为空',
-            'name.max' => '部门名称不能超过100个字符',
-            'code.max' => '部门编码不能超过50个字符',
-            'parent_id.integer' => '父部门ID必须是整数',
-            'parent_id.egt' => '父部门ID不能小于0',
-            'sort.integer' => '排序必须是整数',
-            'sort.egt' => '排序不能小于0',
-            'status.in' => '状态值无效',
-        ]);
-
-        if (!$validate->check($data)) {
-            return $this->error($validate->getError());
-        }
-
         // 检查部门编码唯一性
         if (!empty($data['code']) && $data['code'] !== $department->code) {
             $exists = DepartmentModel::where('code', $data['code'])->where('department_id', '<>', $department_id)->find();
@@ -198,15 +162,13 @@ class Department extends BaseController
 
     /**
      * 批量删除部门
+     * @param BatchDeleteRequest $request
      * @return Response
      */
-    public function batchDelete(): Response
+    public function batchDelete(BatchDeleteRequest $request): Response
     {
-        $ids = request()->post('ids');
-        if (empty($ids) || !is_array($ids)) {
-            return $this->error('请选择要删除的部门');
-        }
-
+        $ids = $request->post('ids');
+        
         $departments = DepartmentModel::whereIn('department_id', $ids)->select();
         $canDeleteIds = [];
         $cannotDeleteNames = [];
@@ -233,20 +195,17 @@ class Department extends BaseController
     /**
      * 更新部门状态
      * @param int $department_id
+     * @param UpdateStatusRequest $request
      * @return Response
      */
-    public function updateStatus(int $department_id): Response
+    public function updateStatus(int $department_id, UpdateStatusRequest $request): Response
     {
         $department = DepartmentModel::find($department_id);
         if (!$department) {
             return $this->error('部门不存在');
         }
 
-        $status = request()->put('status');
-        if (!in_array($status, [0, 1])) {
-            return $this->error('状态值无效');
-        }
-
+        $status = $request->put('status');
         $department->status = $status;
         $department->save();
 
@@ -270,24 +229,13 @@ class Department extends BaseController
 
     /**
      * 创建部门职位
+     * @param CreatePositionRequest $request
      * @return Response
      */
-    public function createPosition(): Response
+    public function createPosition(CreatePositionRequest $request): Response
     {
-        $data = request()->post();
+        $data = $request->post();
         
-        $validate = validate([
-            'department_id' => 'require|integer|gt:0',
-            'name' => 'require|max:100',
-            'code' => 'max:50',
-            'sort' => 'integer|egt:0',
-            'status' => 'in:0,1',
-        ]);
-
-        if (!$validate->check($data)) {
-            return $this->error($validate->getError());
-        }
-
         // 检查部门是否存在
         $department = DepartmentModel::find($data['department_id']);
         if (!$department) {
@@ -313,28 +261,18 @@ class Department extends BaseController
     /**
      * 更新部门职位
      * @param int $position_id
+     * @param UpdatePositionRequest $request
      * @return Response
      */
-    public function updatePosition(int $position_id): Response
+    public function updatePosition(int $position_id, UpdatePositionRequest $request): Response
     {
         $position = DepartmentPositionModel::find($position_id);
         if (!$position) {
             return $this->error('职位不存在');
         }
 
-        $data = request()->put();
+        $data = $request->put();
         
-        $validate = validate([
-            'name' => 'require|max:100',
-            'code' => 'max:50',
-            'sort' => 'integer|egt:0',
-            'status' => 'in:0,1',
-        ]);
-
-        if (!$validate->check($data)) {
-            return $this->error($validate->getError());
-        }
-
         // 检查职位编码唯一性
         if (!empty($data['code']) && $data['code'] !== $position->code) {
             $exists = DepartmentPositionModel::where('code', $data['code'])

@@ -1,7 +1,7 @@
 <?php
 namespace app\controller\admin;
 use app\common\BaseController;
-use app\common\enum\Status;
+use app\common\enum\task\Status;
 use app\common\service\JwtService;
 use app\request\admin\login\Delete;
 use app\request\admin\login\DoLogin;
@@ -19,7 +19,7 @@ class Login extends BaseController{
     public function index(): Response
     {
         return $this->success([
-            'need_captcha'=>Status::Disabled->value
+            'need_captcha'=>Status::DISABLED->value
         ]);
     }
 
@@ -45,7 +45,7 @@ class Login extends BaseController{
         if ( !password_verify($data['password'], $admin->getData("password"))){
             return $this->error('密码错误');
         }
-        if ($admin->status!=Status::Normal->value) {
+        if ($admin->status!=Status::ENABLED->value) {
             return $this->error('账号不可用');
         }
 

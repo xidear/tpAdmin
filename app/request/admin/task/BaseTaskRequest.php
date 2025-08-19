@@ -4,8 +4,8 @@ namespace app\request\admin\task;
 
 use app\common\BaseRequest;
 use app\common\enum\Status;
-use app\common\enum\TaskType;
-use app\common\enum\TaskPlatform;
+use app\common\enum\task\TaskType;
+use app\common\enum\task\TaskPlatform;
 
 class BaseTaskRequest extends BaseRequest
 {

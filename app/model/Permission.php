@@ -4,7 +4,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
-use app\common\enum\MenuPermissionDependencies;
+use app\common\enum\menu\MenuPermissionDependencies;
 use app\model\MenuPermissionDependency;
 use think\model\relation\BelongsToMany;
 use think\model\relation\HasMany;

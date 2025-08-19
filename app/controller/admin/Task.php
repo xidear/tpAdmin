@@ -4,8 +4,8 @@ namespace app\controller\admin;
 
 use app\common\BaseController;
 use app\common\enum\Status;
-use app\common\enum\TaskPlatform;
-use app\common\enum\TaskType;
+use app\common\enum\task\TaskPlatform;
+use app\common\enum\task\TaskType;
 use app\model\Task as TaskModel;
 use app\model\TaskLog as TaskLogModel;
 use app\request\admin\BatchDelete;
@@ -194,9 +194,9 @@ class Task extends BaseController
         }
 
         // 使用通用状态枚举切换状态
-        $newStatus = $task->status == Status::Normal->value
-            ? Status::Disabled->value
-            : Status::Normal->value;
+        $newStatus = $task->status == Status::ENABLED->value
+            ? Status::DISABLED->value
+            : Status::ENABLED->value;
 
         $task->status = $newStatus;
         $task->updated_by = request()->adminId;
@@ -205,7 +205,7 @@ class Task extends BaseController
             // 清除缓存
             return $this->success([
                 'status' => $newStatus
-            ], $newStatus == Status::Normal->value ? "任务已开启" : "任务已停止");
+            ], $newStatus == Status::ENABLED->value ? "任务已开启" : "任务已停止");
         }
 
         return $this->error("状态切换失败");
@@ -225,7 +225,7 @@ class Task extends BaseController
         }
 
         // 检查任务是否已禁用（使用通用状态枚举）
-        if ($task->status == Status::Disabled->value) {
+        if ($task->status == Status::DISABLED->value) {
             return $this->error("任务已禁用，无法执行");
         }
 

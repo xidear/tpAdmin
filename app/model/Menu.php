@@ -4,7 +4,7 @@ namespace app\model;
 
 use app\common\BaseModel;
 use app\common\trait\TreeTrait;
-use app\common\enum\MenuPermissionDependencies;
+use app\common\enum\menu\MenuPermissionDependencies;
 use app\common\service\PermissionService;
 use app\Request;
 use think\db\exception\DataNotFoundException;

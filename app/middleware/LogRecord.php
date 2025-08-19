@@ -1,9 +1,9 @@
 <?php
 namespace app\middleware;
 
-use app\common\enum\Code;
-use app\common\enum\Status;
-use app\common\enum\YesOrNo;
+use app\common\enum\task\Code;
+use app\common\enum\task\Status;
+use app\common\enum\task\YesOrNo;
 use app\model\SystemLog;
 use think\facade\Config;
 use think\Response;

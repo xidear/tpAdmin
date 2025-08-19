@@ -3,7 +3,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
-use app\common\enum\ConfigType;
+use app\common\enum\config\ConfigType;
 use app\common\enum\YesOrNo;
 use think\facade\Cache;
 use think\model\relation\BelongsTo;

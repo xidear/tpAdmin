@@ -13,6 +13,11 @@ use Exception;
 use think\response\Json;
 use think\Validate;
 
+/**
+ *   BaseRequest class
+  * @method array message() 
+  * @method array rules() 
+  */
 class BaseRequest extends Request
 {
     public ?int $adminId = null;

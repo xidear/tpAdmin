@@ -2,7 +2,7 @@
 
 namespace app\common;
 
-use app\common\enum\Code;
+use enum\config\Code;
 use app\common\trait\BaseTrait;
 use think\App;
 use think\db\exception\DbException;

@@ -3,7 +3,7 @@
 namespace app\model;
 
 use app\common\BaseModel;
-use app\common\enum\YesOrNo;
+use app\common\enum\task\YesOrNo;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;

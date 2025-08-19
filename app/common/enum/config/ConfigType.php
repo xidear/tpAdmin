@@ -1,6 +1,6 @@
 <?php
 
-namespace app\common\enum;
+namespace app\common\enum\config;
 
 use app\common\trait\EnumTrait;
 
