@@ -23,7 +23,7 @@ Route::group('adminapi', function () {
 
         Route::group('enum', function () {
             // 获取指定枚举数据（免权限）
-            Route::post('read/:enum_code', 'getEnum')
+            Route::get('read/:enum_code', 'getEnum')
                 ->name('获取枚举列表')
                 ->option(['description' => '传入枚举名称，返回枚举数组']);
 

@@ -106,9 +106,24 @@ class EnumService
         foreach ($iterator as $file) {
             // 只处理PHP文件
             if ($file->isFile() && $file->getExtension() === 'php') {
-                // 获取相对路径（相对于枚举根目录）
-                $relativePath = str_replace($this->enumDir, '', $file->getPathname());
-                $relativePath = str_replace('\\', '/', $relativePath);
+                // 跨平台路径处理：Windows使用\，Linux使用/，需要统一处理
+                // 使用realpath获取标准化的绝对路径，自动解决路径分隔符问题
+                $enumDirReal = realpath($this->enumDir);
+                $filePathReal = realpath($file->getPathname());
+                
+                // 如果realpath失败，回退到手动规范化（适用于符号链接等特殊情况）
+                if ($enumDirReal === false || $filePathReal === false) {
+                    // 手动统一路径分隔符为当前系统的标准分隔符
+                    $enumDirNormalized = rtrim(str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $this->enumDir), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                    $filePathNormalized = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $file->getPathname());
+                    $relativePath = str_replace($enumDirNormalized, '', $filePathNormalized);
+                } else {
+                    // 使用realpath结果计算相对路径（最可靠的方法）
+                    $relativePath = str_replace($enumDirReal . DIRECTORY_SEPARATOR, '', $filePathReal);
+                }
+                
+                // 统一转换为正斜杠，因为PHP命名空间使用反斜杠，而文件路径用正斜杠便于处理
+                $relativePath = str_replace(DIRECTORY_SEPARATOR, '/', $relativePath);
 
                 // 获取文件名（不含扩展名）作为类名
                 $fileName = $file->getBasename('.php');

@@ -31,7 +31,7 @@ export const getEnumDataApi = async (enumName: string, forceRefresh = false): Pr
   }
 
   // 缓存不存在或强制刷新时，请求接口
-  const res = await http.post<BaseResponse<EnumItem[]>>(
+  const res = await http.get<BaseResponse<EnumItem[]>>(
     PORT1 + `/enum/read/${enumName}`, // 对应路由enum/read/:enum_code
     {},
     { loading: false }
