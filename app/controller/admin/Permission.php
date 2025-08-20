@@ -25,8 +25,14 @@ class Permission extends BaseController
      */
     public function index(): Response
     {
+        $conditions = [];
+        
+        // 处理 keyword 参数，转换为 name 和 node 字段的模糊查询条件
+        if (request()->has('keyword', 'get', true)) {
+            $conditions[] = ['name|node', 'like', "%" . request()->get('keyword') . "%"];
+        }
 
-        $list = (new PermissionModel())->fetchData();
+        $list = (new PermissionModel())->fetchData($conditions);
         return $this->success($list);
     }
 

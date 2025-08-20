@@ -425,35 +425,26 @@
         <el-form-item label="选择权限" prop="permission_id">
           <el-select
             v-model="addPermissionForm.permission_id"
-            placeholder="选择权限"
+            placeholder="请输入关键字搜索权限"
             filterable
+            remote
+            :remote-method="searchPermissions"
+            :loading="searchingPermissions"
             clearable
             @change="handlePermissionSelected"
-            @visible-change="handlePermissionSelectOpen"
             style="width: 100%"
           >
-            <el-scrollbar style="max-height: 250px; overflow-y: auto">
-              <div @scroll.passive="onPermissionScroll" style="overflow-y: auto; height: 100%">
-                <el-option
-                  v-for="perm in filteredPermissions"
-                  :key="perm.permission_id"
-                  :label="perm.name + '(' + perm.node + ')'"
-                  :value="perm.permission_id"
-                  :disabled="isPermissionAdded(perm.permission_id)"
-                />
-
-                <div v-if="loadingPermissions" class="loading-text">加载中...</div>
-
-                <div
-                  v-else-if="!loadingPermissions && hasMorePermissions"
-                  class="loading-text clickable"
-                  @click="loadMorePermissions"
-                >
-                  滚动或点击加载更多
-                </div>
-              </div>
-            </el-scrollbar>
+            <el-option
+              v-for="perm in searchPermissionResults"
+              :key="perm.permission_id"
+              :label="perm.name + '(' + perm.node + ')'"
+              :value="perm.permission_id"
+              :disabled="isPermissionAdded(perm.permission_id)"
+            />
           </el-select>
+          <div class="text-gray-500 text-xs mt-1">
+            输入权限名称或节点进行搜索
+          </div>
         </el-form-item>
         <el-form-item label="权限类型" prop="permission_type">
           <el-select v-model="addPermissionForm.permission_type" placeholder="选择权限类型">
@@ -526,49 +517,40 @@ Object.keys(Icons).forEach(key => {
   }
 });
 
-// 权限分页数据
-const permissionPage = ref(1);
-const permissionPageSize = ref(10);
-const hasMorePermissions = ref(true);
-const loadingPermissions = ref(false);
+// 远程搜索权限相关数据
+const searchPermissionResults = ref<any[]>([]);
+const searchingPermissions = ref(false);
 
-// 获取权限列表（分页）
-const fetchPermissionsByPage = async (page = 1, append = false) => {
-  if (loadingPermissions.value || !hasMorePermissions.value) return;
+// 远程搜索权限方法
+const searchPermissions = async (query: string) => {
+  if (!query || query.trim().length < 2) {
+    searchPermissionResults.value = [];
+    return;
+  }
 
-  loadingPermissions.value = true;
-
+  searchingPermissions.value = true;
   try {
-    const res = await getListApi({ list_rows: permissionPageSize.value, page });
-
-    const newPermissions = res.data.list || [];
-
-    if (append) {
-      allPermissions.value = [...allPermissions.value, ...newPermissions];
-    } else {
-      allPermissions.value = newPermissions;
-    }
-
-    hasMorePermissions.value = newPermissions.length >= permissionPageSize.value;
-    permissionPage.value = page;
+    const res = await getListApi({ 
+      list_rows: 20, 
+      page: 1,
+      keyword: query.trim() 
+    });
+    
+    searchPermissionResults.value = res.data.list || [];
   } catch (error) {
-    console.error("获取权限列表失败", error);
-    ElMessage.error("获取权限列表失败");
+    console.error("搜索权限失败", error);
+    ElMessage.error("搜索权限失败");
+    searchPermissionResults.value = [];
   } finally {
-    loadingPermissions.value = false;
+    searchingPermissions.value = false;
   }
 };
 
-// 权限选择器打开时加载第一页
-const handlePermissionSelectOpen = (visible: boolean) => {
-  if (visible && allPermissions.value.length === 0) {
-    fetchPermissionsByPage(1);
-  }
-};
-
-const handlePermissionSelected = (permissionId: number) => {
+const handlePermissionSelected = (permissionId: number | undefined) => {
+  if (!permissionId) return;
+  
   // 找到选中的权限对象
-  const selectedPermission = allPermissions.value.find(
+  const selectedPermission = searchPermissionResults.value.find(
     perm => perm.permission_id === permissionId
   );
 
@@ -577,18 +559,6 @@ const handlePermissionSelected = (permissionId: number) => {
     addPermissionForm.value.description = selectedPermission.description || '';
   } else {
     addPermissionForm.value.description = '';
-  }
-};
-
-// 手动加载更多
-const loadMorePermissions = () => {
-  fetchPermissionsByPage(permissionPage.value + 1, true);
-};
-
-const onPermissionScroll = (event: Event) => {
-  const target = event.target as HTMLElement;
-  if (target.scrollTop + target.clientHeight >= target.scrollHeight - 10) {
-    loadMorePermissions();
   }
 };
 
@@ -657,7 +627,7 @@ const formRules = reactive<FormRules>({
 
 // 权限表单验证规则
 const permissionFormRules = reactive<FormRules>({
-  permission_id: [{ required: true, message: "请选择权限", trigger: "change",type: 'number' }],
+  permission_id: [{ required: true, message: "请选择权限", trigger: "change" }],
   permission_type: [{ required: true, message: "请选择权限类型", trigger: "change" }],
   type: [{ required: true, message: "请选择依赖类型", trigger: "change" }]
 });
@@ -699,11 +669,6 @@ const menuForm = ref<MenuForm>({
   is_full: 2,
   is_affix: 2,
   is_keep_alive: 1
-});
-
-// 过滤掉ID为0的权限
-const filteredPermissions = computed(() => {
-  return allPermissions.value.filter(perm => perm.permission_id !== 0);
 });
 
 // 更新路径预览
@@ -778,12 +743,12 @@ const allPermissions = ref<any[]>([]);
 
 // 新增权限表单
 const addPermissionForm = ref<{
-  permission_id: number|string;
+  permission_id: number | undefined;
   permission_type: 'button' | 'data' | 'filter';
   type: 'REQUIRED' | 'OPTIONAL';
   description: string; 
 }>({
-  permission_id: "",
+  permission_id: undefined,
   permission_type: 'button',
   type: 'OPTIONAL',
   description: '' 
@@ -797,7 +762,7 @@ const isPermissionAdded = (permissionId: number) => {
 // 获取权限列表
 const fetchAllPermissions = async () => {
   try {
-    const res = await getListApi({ list_rows: permissionPageSize.value });
+    const res = await getListApi({ list_rows: 100 });
     allPermissions.value = res.data.list || [];
   } catch (error) {
     console.error("获取权限列表失败", error);
@@ -807,12 +772,12 @@ const fetchAllPermissions = async () => {
 
 // 添加权限
 const confirmAddPermission = async () => {
-  if (!addPermissionFormRef.value) return;
-  
-  addPermissionFormRef.value.validate(async (valid) => {
+          if (!addPermissionFormRef.value) return;
+        
+        addPermissionFormRef.value!.validate(async (valid) => {
     if (valid) {
       // 检查权限是否已添加
-      if (isPermissionAdded(addPermissionForm.value.permission_id)) {
+      if (addPermissionForm.value.permission_id && isPermissionAdded(addPermissionForm.value.permission_id)) {
         ElMessage.warning("该权限已添加");
         return;
       }
@@ -822,7 +787,7 @@ const confirmAddPermission = async () => {
         item => item.permission_id === addPermissionForm.value.permission_id
       );
       
-      if (permissionInfo) {
+      if (permissionInfo && addPermissionForm.value.permission_id) {
         // 添加到权限列表
         menuPermissions.value.push({
           permission_id: addPermissionForm.value.permission_id,
@@ -841,12 +806,12 @@ const confirmAddPermission = async () => {
         // 关闭对话框并重置表单
         showAddPermissionDialog.value = false;
         addPermissionForm.value = {
-          permission_id: "",
+          permission_id: undefined,
           permission_type: 'button',
           type: 'OPTIONAL',
           description: ''
         };
-        addPermissionFormRef.value.resetFields();
+        addPermissionFormRef.value!.resetFields();
       }
     }
   });
