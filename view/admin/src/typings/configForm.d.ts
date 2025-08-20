@@ -8,7 +8,10 @@ export declare namespace ConfigForm {
     label: string; // 字段名称
     type: number; // 字段类型（1:文本 3:数字 7:手机号 10:开关 20:文件上传）
     value: any[]; // 字段值（后端返回数组形式）
-    options: EnumItem[]; // 下拉选项（如开关的开启/关闭）
+    options: Array<{
+      key: string | number; // 选项键值（后端返回的key）
+      value: string; // 选项显示文本（后端返回的value）
+    }>; // 下拉选项（如开关的开启/关闭）
     required: boolean; // 是否必填
     placeholder: string; // 占位提示
     rules: {

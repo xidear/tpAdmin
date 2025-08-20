@@ -166,6 +166,39 @@ class ConfigForm extends BaseController
             case ConfigType::COLOR->value:
                 $field['format'] = 'hex';
                 break;
+            case ConfigType::SELECT->value:
+                // 为特定字段自动生成选项
+                $field = $this->generateOptionsForSelect($field);
+                break;
+        }
+
+        return $field;
+    }
+
+    /**
+     * 为 SELECT 类型字段生成选项
+     * @param array $field
+     * @return array
+     */
+    private function generateOptionsForSelect(array $field): array
+    {
+        // 如果字段已经有选项，则不覆盖
+        if (!empty($field['options'])) {
+            return $field;
+        }
+
+        // 为特定字段生成选项
+        switch ($field['key']) {
+            case 'upload_storage_type':
+                $field['options'] = [
+                    ['key' => 'local', 'value' => '本地存储'],
+                    ['key' => 'qiniu', 'value' => '七牛云'],
+                    ['key' => 'aliyun_oss', 'value' => '阿里云OSS'],
+                    ['key' => 'qcloud_cos', 'value' => '腾讯云COS'],
+                    ['key' => 'aws_s3', 'value' => 'AWS S3']
+                ];
+                break;
+            // 可以在这里添加更多字段的选项生成逻辑
         }
 
         return $field;

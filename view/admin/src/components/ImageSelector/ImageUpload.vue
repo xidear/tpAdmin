@@ -1,6 +1,7 @@
 <template>
   <el-dialog
-    v-model="visible"
+    :model-value="visible"
+    @update:model-value="emit('update:visible', $event)"
     title="上传图片"
     width="600px"
     :close-on-click-modal="false"

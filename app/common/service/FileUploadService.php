@@ -48,10 +48,10 @@ class FileUploadService
 
         // 构建文件信息
         $fileInfo = [
-            'origin_name' => $file->getOriginalName(),
+            'origin_name' => $file->getFilename(),
             'file_name' => basename($path),
             'size' => $file->getSize(),
-            'mime_type' => $file->getOriginalMime(),
+            'mime_type' => 'application/octet-stream',
             'storage_type' => $storageType,
             'storage_path' => $path,
             'url' => $this->generateFileUrl($disk, $diskConfig, $path),
@@ -65,7 +65,7 @@ class FileUploadService
         $fileModel = FileModel::create($fileInfo);
         
         return [
-            'file_id' => $fileModel->getKey(),
+            'file_id' => $fileModel->id,
             'url' => $fileModel->url,
             'file_name' => $fileModel->file_name,
             'size' => $fileModel->size,
@@ -85,10 +85,86 @@ class FileUploadService
             throw new \Exception('请选择上传的文件');
         }
 
+        // 验证文件大小
+        $this->validateFileSize($file);
+
         $fileType = $options['file_type'] ?? 'all';
         if (!$this->validateFileType($file, $fileType)) {
             throw new \Exception($this->getFileTypeErrorMessage($fileType));
         }
+    }
+
+    /**
+     * 验证文件大小
+     * @param File $file
+     * @throws \Exception
+     */
+    protected function validateFileSize(File $file): void
+    {
+        $maxFileSize = $this->getMaxFileSize();
+        
+        if ($file->getSize() > $maxFileSize) {
+            $maxSizeMB = $maxFileSize / 1024 / 1024;
+            throw new \Exception("文件大小不能超过{$maxSizeMB}MB");
+        }
+    }
+
+    /**
+     * 获取最大文件大小限制
+     * 优先级：数据库配置 > .env 配置 > 默认值
+     * @return int
+     */
+    protected function getMaxFileSize(): int
+    {
+        try {
+            // 1. 优先从数据库配置获取
+            $commonConfig = SystemConfig::getCacheValue('upload_common_config', '{}');
+            $config = json_decode($commonConfig, true);
+            
+            if (isset($config['max_file_size']) && is_numeric($config['max_file_size'])) {
+                return (int)$config['max_file_size'];
+            }
+        } catch (\Exception $e) {
+            // 忽略错误，继续使用兜底配置
+        }
+
+        // 2. 兜底使用 .env 配置
+        $envMaxSize = env('MAX_FILE_SIZE');
+        if ($envMaxSize && is_numeric($envMaxSize)) {
+            return (int)$envMaxSize;
+        }
+
+        // 3. 最终兜底值：10MB
+        return 10 * 1024 * 1024;
+    }
+
+    /**
+     * 获取允许的文件扩展名
+     * 优先级：数据库配置 > .env 配置 > 默认值
+     * @return array
+     */
+    protected function getAllowedExtensions(): array
+    {
+        try {
+            // 1. 优先从数据库配置获取
+            $commonConfig = SystemConfig::getCacheValue('upload_common_config', '{}');
+            $config = json_decode($commonConfig, true);
+            
+            if (isset($config['allowed_extensions']) && !empty($config['allowed_extensions'])) {
+                return explode(',', $config['allowed_extensions']);
+            }
+        } catch (\Exception $e) {
+            // 忽略错误，继续使用兜底配置
+        }
+
+        // 2. 兜底使用 .env 配置（如果有的话）
+        $envExtensions = env('ALLOWED_FILE_EXTENSIONS');
+        if ($envExtensions) {
+            return explode(',', $envExtensions);
+        }
+
+        // 3. 最终兜底值
+        return ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'mp4', 'zip', 'rar'];
     }
 
     /**
@@ -221,7 +297,7 @@ class FileUploadService
             return true;
         }
         
-        $extension = strtolower(pathinfo($file->getOriginalName(), PATHINFO_EXTENSION));
+        $extension = strtolower(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
         return in_array($extension, $allowedTypes[$fileType]);
     }
 

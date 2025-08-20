@@ -1,24 +1,24 @@
-import request from '@/utils/request'
+import http from '@/api'
 
 // 文件相关接口
 export const fileApi = {
   // 获取文件列表
-  getList: (params?: any) => request.get('/adminapi/file/index', { params }),
+  getList: (params?: any) => http.get('/adminapi/file/index', { params }),
   
   // 获取文件详情
-  getDetail: (id: string) => request.get(`/adminapi/file/read/${id}`),
+  getDetail: (id: string) => http.get(`/adminapi/file/read/${id}`),
   
   // 上传文件
-  upload: (data: FormData, config?: any) => request.post('/adminapi/upload/file', data, config),
+  upload: (data: FormData, config?: any) => http.post('/adminapi/upload/file', data, config),
   
   // 上传图片
-  uploadImage: (data: FormData, config?: any) => request.post('/adminapi/upload/image', data, config),
+  uploadImage: (data: FormData, config?: any) => http.post('/adminapi/upload/image', data, config),
   
   // 获取图片迁移预览
-  getMigrationPreview: (params: any) => request.get('/adminapi/file/get-migration-preview', { params }),
+  getMigrationPreview: (params: any) => http.get('/adminapi/file/get-migration-preview', { params }),
   
   // 执行图片地址迁移
-  migrateUrls: (data: any) => request.post('/adminapi/file/migrate-urls', data)
+  migrateUrls: (data: any) => http.post('/adminapi/file/migrate-urls', data)
 }
 
 // 导出单个方法，方便使用

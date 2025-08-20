@@ -1,51 +1,51 @@
-import request from '@/utils/request'
+import http from '@/api'
 
 // 图片相关接口
 export const imageApi = {
   // 获取图片列表
-  getList: (params?: any) => request.get('/adminapi/image/index', { params }),
+  getList: (params?: any) => http.get('/adminapi/image/index', { params }),
   
   // 获取图片详情
-  getDetail: (id: string) => request.get(`/adminapi/image/read/${id}`),
+  getDetail: (id: string) => http.get(`/adminapi/image/read/${id}`),
   
   // 上传图片
-  upload: (data: FormData, config?: any) => request.post('/adminapi/upload/image', data, config),
+  upload: (data: FormData, config?: any) => http.post('/adminapi/upload/image', data, config),
   
   // 删除图片
-  delete: (id: string) => request.delete(`/adminapi/image/delete/${id}`),
+  delete: (id: string) => http.delete(`/adminapi/image/delete/${id}`),
   
   // 批量删除图片
-  batchDelete: (ids: string[]) => request.delete('/adminapi/image/batch-delete', { data: { ids } }),
+  batchDelete: (ids: string[]) => http.batchDelete('/adminapi/image/batch-delete', { data: { ids } }),
   
   // 更新图片信息
-  update: (id: string, data: any) => request.put(`/adminapi/image/update/${id}`, data),
+  update: (id: string, data: any) => http.put(`/adminapi/image/update/${id}`, data),
   
   // 移动图片到其他分类
-  moveToCategory: (ids: string[], categoryId: number) => request.post('/adminapi/image/move-category', {
+  moveToCategory: (ids: string[], categoryId: number) => http.post('/adminapi/image/move-category', {
     ids,
     category_id: categoryId
   }),
   
   // 获取图片分类列表
-  getCategories: () => request.get('/adminapi/image/categories'),
+  getCategories: () => http.get('/adminapi/image/categories'),
   
   // 创建图片分类
-  createCategory: (data: any) => request.post('/adminapi/image/category/create', data),
+  createCategory: (data: any) => http.post('/adminapi/image/category/create', data),
   
   // 更新图片分类
-  updateCategory: (id: number, data: any) => request.put(`/adminapi/image/category/update/${id}`, data),
+  updateCategory: (id: number, data: any) => http.put(`/adminapi/image/category/update/${id}`, data),
   
   // 删除图片分类
-  deleteCategory: (id: number) => request.delete(`/adminapi/image/category/delete/${id}`),
+  deleteCategory: (id: number) => http.delete(`/adminapi/image/category/delete/${id}`),
   
   // 获取图片标签列表
-  getTags: () => request.get('/adminapi/image/tags'),
+  getTags: () => http.get('/adminapi/image/tags'),
   
   // 创建图片标签
-  createTag: (data: any) => request.post('/adminapi/image/tag/create', data),
+  createTag: (data: any) => http.post('/adminapi/image/tag/create', data),
   
   // 删除图片标签
-  deleteTag: (id: number) => request.delete(`/adminapi/image/tag/delete/${id}`)
+  deleteTag: (id: number) => http.delete(`/adminapi/image/tag/delete/${id}`)
 }
 
 // 导出单个方法，方便使用

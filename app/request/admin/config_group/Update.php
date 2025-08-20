@@ -8,8 +8,11 @@ class Update extends Create
 {
     public function rules(): array
     {
+        // 从路由参数获取group_id
+        $groupId = request()->route('group_id') ?? 0;
+        
         return [
-            'group_name' => 'require|max:255|unique:system_config_group,group_name,' . $this->param('group_id') . ',system_config_group_id',
+            'group_name' => 'require|max:255|unique:system_config_group,group_name,' . $groupId . ',system_config_group_id',
             'sort' => 'integer'
         ];
     }

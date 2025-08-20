@@ -1,6 +1,7 @@
 <template>
   <el-dialog
-    v-model="visible"
+    :model-value="visible"
+    @update:model-value="emit('update:visible', $event)"
     title="管理图片分类"
     width="600px"
     :close-on-click-modal="false"
@@ -156,6 +157,7 @@ const emit = defineEmits<{
 }>()
 
 // 响应式数据
+const formRef = ref()
 const formVisible = ref(false)
 const submitting = ref(false)
 const categoryList = ref([])

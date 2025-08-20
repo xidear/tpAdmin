@@ -138,8 +138,8 @@ enum ConfigType: int
 
             // 选择类规则
             self::SELECT->value, self::RADIO->value => [
-                ['label' => 'required', 'value' => 'true', 'message' => '请选择选项'],
-                ['label' => 'type', 'value' => 'number', 'message' => '选择值格式错误']
+                ['label' => 'required', 'value' => 'true', 'message' => '请选择选项']
+                // 移除 type: 'number' 限制，允许字符串和数字值
             ],
             self::CHECKBOX->value, self::MULTI_SELECT->value, self::CASCADER->value => [
                 ['label' => 'type', 'value' => 'array', 'message' => '选择值必须为数组格式']
@@ -203,7 +203,7 @@ enum ConfigType: int
 
             // 4. 选择类（对应前端array/number类型验证）
             self::SWITCH => self::validateSwitchValue($value),
-            self::RADIO, self::SELECT => !is_array($value), // 单选值不能是数组（对应前端number类型）
+            self::RADIO, self::SELECT => is_string($value) || is_numeric($value) || is_null($value), // 单选值可以是字符串或数字
             self::CHECKBOX, self::MULTI_SELECT, self::CASCADER =>
                 is_array($value) || is_null($value), // 多选值必须是数组（对应前端array类型）
 
