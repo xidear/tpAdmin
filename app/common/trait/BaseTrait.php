@@ -2,14 +2,14 @@
 
 namespace app\common\trait;
 
-use app\common\enum\task\Code;
+use app\common\enum\Code;
 use think\Collection;
 use think\contract\Arrayable;
 
 trait BaseTrait
 {
     public string $msg = "";
-    public int $code = \app\common\enum\task\Code::SUCCESS->value;
+    public int $code = \app\common\enum\Code::SUCCESS->value;
 
     public mixed $data = null;
 

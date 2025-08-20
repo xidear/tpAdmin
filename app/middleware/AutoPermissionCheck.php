@@ -3,9 +3,10 @@
 namespace app\middleware;
 
 use app\common\BaseRequest;
-use app\common\enum\task\Code;
+use app\common\enum\Code;
 use app\common\service\PermissionService;
 use Closure;
+use think\App;
 use think\response\Json;
 
 class AutoPermissionCheck
@@ -23,7 +24,7 @@ class AutoPermissionCheck
         $action = $request->action();
         $nodeName = $controller . "/" . $action;
         $method = strtoupper($request->method());
-        $permissionService = new PermissionService();
+        $permissionService = new PermissionService(new  App());
         if (!$permissionService->check($request?->adminId, $nodeName, $method)) {
             return $this->denyResponse($permissionService->getMessage());
         }

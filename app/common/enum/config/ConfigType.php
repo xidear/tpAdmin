@@ -2,6 +2,7 @@
 
 namespace app\common\enum\config;
 
+use app\common\enum\YesOrNo;
 use app\common\trait\EnumTrait;
 
 enum ConfigType: int

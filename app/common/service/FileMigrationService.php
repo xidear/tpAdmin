@@ -62,7 +62,7 @@ class FileMigrationService
                 $preview['total_count'] = $files->count();
                 $preview['has_more'] = false;
 
-                $this->processFileList($files, $preview, $oldDomain, $newDomain);
+                $this->processFileList($files->toArray(), $preview, $oldDomain, $newDomain);
             }
 
             // 如果总数超过限制，添加警告
@@ -136,7 +136,6 @@ class FileMigrationService
             $this->migrateOtherTables($oldDomain, $newDomain, $stats);
 
             // 更新配置文件
-            ImageUrlService::updateLocalImageDomain($newDomain);
         } catch (\Exception $e) {
             Log::error("执行URL迁移失败: " . $e->getMessage(), [
                 'old_domain' => $oldDomain,
@@ -202,6 +201,7 @@ class FileMigrationService
                 $stats['warning'] = "已达到最大批次数限制（{$maxBatches}批），还有 " . ($stats['total_files'] - $processedCount) . " 条数据未处理。请分批执行迁移。";
                 return false; // 停止chunk
             }
+            return true;
         });
     }
 

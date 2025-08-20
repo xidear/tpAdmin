@@ -6,6 +6,7 @@ use app\common\BaseController;
 use app\common\enum\Status;
 use app\common\enum\task\TaskPlatform;
 use app\common\enum\task\TaskType;
+use app\common\service\TaskService;
 use app\model\Task as TaskModel;
 use app\model\TaskLog as TaskLogModel;
 use app\request\admin\BatchDelete;
@@ -230,7 +231,7 @@ class Task extends BaseController
         }
 
         // 调用任务执行服务
-        $result = app()->make(\app\service\TaskService::class)->executeTask($task);
+        $result = app()->make(TaskService::class)->executeTask($task);
 
         if ($result['success']) {
             return $this->success($result['data'], "任务已触发执行");

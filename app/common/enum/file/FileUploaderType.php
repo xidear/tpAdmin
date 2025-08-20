@@ -1,5 +1,5 @@
 <?php
-namespace app\common\enum\admin\admin\file;
+namespace app\common\enum\file;
 
 use app\common\trait\EnumTrait;
 

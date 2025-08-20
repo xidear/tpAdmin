@@ -2,9 +2,9 @@
 
 namespace app\common\service;
 
-use app\common\enum\admin\admin\file\FileStorageType;
-use app\common\enum\admin\admin\file\FileStoragePermission;
-use app\common\enum\admin\admin\file\FileUploaderType;
+use app\common\enum\file\FileStorageType;
+use app\common\enum\file\FileStoragePermission;
+use app\common\enum\file\FileUploaderType;
 use app\model\File as FileModel;
 use app\model\SystemConfig;
 use think\facade\Filesystem;
@@ -65,7 +65,7 @@ class FileUploadService
         $fileModel = FileModel::create($fileInfo);
         
         return [
-            'file_id' => $fileModel->file_id,
+            'file_id' => $fileModel->getKey(),
             'url' => $fileModel->url,
             'file_name' => $fileModel->file_name,
             'size' => $fileModel->size,

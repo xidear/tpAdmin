@@ -7,6 +7,7 @@ use app\common\service\FileUploadService;
 use app\common\service\FileMigrationService;
 use app\model\File as FileModel;
 use app\request\admin\file\Upload;
+use think\App;
 use think\Response;
 
 class File extends BaseController
@@ -14,9 +15,9 @@ class File extends BaseController
     protected FileUploadService $fileUploadService;
     protected FileMigrationService $fileMigrationService;
 
-    public function __construct()
+    public function __construct(App $app)
     {
-        parent::__construct();
+        parent::__construct($app);
         $this->fileUploadService = new FileUploadService();
         $this->fileMigrationService = new FileMigrationService();
     }

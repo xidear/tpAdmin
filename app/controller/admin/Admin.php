@@ -4,7 +4,7 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
-use app\common\enum\task\Status;
+use app\common\enum\Status;
 use app\model\Admin as AdminModel;
 use app\request\admin\admin\BatchDelete;
 use app\request\admin\admin\Create;

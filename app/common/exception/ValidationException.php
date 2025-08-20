@@ -3,7 +3,7 @@
 namespace app\common\exception;
 
 use app\common\BaseException;
-use app\common\enum\task\Code;
+use app\common\enum\Code;
 use think\Exception;
 
 class ValidationException extends BaseException

@@ -352,7 +352,7 @@ class Department extends BaseController
                 
                 return $this->success($result, $result['message']);
             } else {
-                return $exportService->directExport(
+                 $exportService->directExport(
                     clone $query,
                     $headers,
                     '部门数据',

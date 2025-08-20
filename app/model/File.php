@@ -2,15 +2,19 @@
 namespace app\model;
 
 use app\common\BaseModel;
-use app\common\enum\admin\admin\file\FileStorageType;
-use app\common\enum\admin\admin\file\FileStatus;
-use app\common\enum\admin\admin\file\FileStoragePermission;
-use app\common\enum\admin\admin\file\FileUploaderType;
+use app\common\enum\file\FileStorageType;
+use app\common\enum\file\FileStatus;
+use app\common\enum\file\FileStoragePermission;
+use app\common\enum\file\FileUploaderType;
 use think\Model;
 use think\model\concern\SoftDelete;
 
 /**
+ * @property int $file_id
  * @property string $mime_type
+ * @property   string $file_name
+ * @property string $url
+ * @property int $size
  * @property string  $storage_permission
  */
 class File extends BaseModel

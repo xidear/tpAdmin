@@ -5,8 +5,8 @@ namespace app\controller\admin;
 
 use app\common\BaseController;
 use app\common\BaseRequest;
-use app\common\enum\task\Status;
-use app\common\enum\task\YesOrNo;
+use app\common\enum\Status;
+use app\common\enum\YesOrNo;
 use app\model\SystemConfig;
 use app\request\admin\my\changePassword;
 use think\db\exception\DataNotFoundException;

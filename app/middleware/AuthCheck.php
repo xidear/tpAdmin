@@ -1,8 +1,8 @@
 <?php
 namespace app\middleware;
 
-use app\common\enum\task\Code;
-use app\common\enum\task\Status;
+use app\common\enum\Code;
+use app\common\enum\Status;
 use app\common\service\JwtService;
 use app\model\Admin;
 

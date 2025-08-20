@@ -3,7 +3,7 @@
 namespace app\controller\admin;
 
 use app\common\BaseController;
-use app\common\enum\task\YesOrNo;
+use app\common\enum\YesOrNo;
 use app\model\SystemConfig;
 use app\request\admin\config\CreateConfig;
 use app\request\admin\config\UpdateConfig;

@@ -2,7 +2,7 @@
 
 namespace app\common\trait;
 
-use app\common\enum\task\Code;
+use app\common\enum\Code;
 use think\exception\ValidateException;
 use think\Response;
 

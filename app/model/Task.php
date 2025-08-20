@@ -90,7 +90,7 @@ class Task extends BaseModel
 
         $platformId = $platformMap[$platform] ?? TaskPlatform::ALL;
 
-        return (new Task)->where('status', Status::Normal->value)
+        return (new Task)->where('status', Status::ENABLED->value)
             ->where(function($query) use ($platformId) {
                 $query->where('platform', TaskPlatform::ALL->value)
                     ->whereOr('platform', $platformId->value);

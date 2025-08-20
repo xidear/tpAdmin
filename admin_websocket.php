@@ -18,8 +18,8 @@ if (!function_exists('go')) {
 }
 
 use app\common\enum\Status;
-use app\common\enum\TaskPlatform;
-use app\common\enum\TaskExecuteMode;
+use app\common\enum\task\TaskPlatform;
+use app\common\enum\task\TaskExecuteMode;
 use think\App;
 use think\facade\Queue;
 use app\common\service\TaskService;

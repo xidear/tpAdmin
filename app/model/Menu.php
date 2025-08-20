@@ -7,6 +7,7 @@ use app\common\trait\TreeTrait;
 use app\common\enum\menu\MenuPermissionDependencies;
 use app\common\service\PermissionService;
 use app\Request;
+use think\App;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
@@ -72,7 +73,7 @@ class Menu extends BaseModel
             if (empty($menuIds)) {
                 return [];
             }
-            $permissionIds = (new PermissionService)->getAdminPermissions($adminId);
+            $permissionIds = (new PermissionService(new App()))->getAdminPermissions($adminId);
 
             if (empty($permissionIds)) {
                 return [];
