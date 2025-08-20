@@ -1,45 +1,46 @@
-import request from '@/utils/request'
+import { PORT1 } from "@/api/config/servicePort";
+import http from "@/api";
 
 // 部门相关接口
 export const departmentApi = {
   // 获取部门树形结构
-  getTree: () => request.get('/adminapi/department/index'),
+  getTree: (params?: any) => http.get(PORT1 + `/department/index`, params),
   
   // 获取部门平铺列表
-  getList: (params?: any) => request.get('/adminapi/department/list', { params }),
+  getList: (params?: any) => http.get(PORT1 + `/department/list`, params),
   
   // 获取部门详情
-  getDetail: (id: number) => request.get(`/adminapi/department/read/${id}`),
+  getDetail: (id: number) => http.get(PORT1 + `/department/read/${id}`),
   
   // 创建部门
-  create: (data: any) => request.post('/adminapi/department/create', data),
+  create: (data: any) => http.post(PORT1 + `/department/create`, data),
   
   // 更新部门
-  update: (id: number, data: any) => request.put(`/adminapi/department/update/${id}`, data),
+  update: (id: number, data: any) => http.put(PORT1 + `/department/update/${id}`, data),
   
   // 删除部门
-  delete: (id: number) => request.delete(`/adminapi/department/delete/${id}`),
+  delete: (id: number) => http.delete(PORT1 + `/department/delete/${id}`),
   
   // 批量删除部门
-  batchDelete: (ids: number[]) => request.delete('/adminapi/department/batch-delete', { data: { ids } }),
+  batchDelete: (ids: number[]) => http.batchDelete(PORT1 + `/department/batch-delete`, { data: { ids } }),
   
   // 更新部门状态
-  updateStatus: (id: number, status: number) => request.put(`/adminapi/department/update-status/${id}`, { status }),
+  updateStatus: (id: number, status: number) => http.put(PORT1 + `/department/update-status/${id}`, { status }),
   
   // 导出部门数据
-  export: (params?: any) => request.get('/adminapi/department/export', { params }),
+  export: (params?: any) => http.download(PORT1 + `/department/export`, params),
   
   // 获取部门职位列表
-  getPositions: (departmentId: number) => request.get(`/adminapi/department/positions/${departmentId}`),
+  getPositions: (departmentId: number) => http.get(PORT1 + `/department/positions/${departmentId}`),
   
   // 创建职位
-  createPosition: (data: any) => request.post('/adminapi/department/position/create', data),
+  createPosition: (data: any) => http.post(PORT1 + `/department/position/create`, data),
   
   // 更新职位
-  updatePosition: (id: number, data: any) => request.put(`/adminapi/department/position/update/${id}`, data),
+  updatePosition: (id: number, data: any) => http.put(PORT1 + `/department/position/update/${id}`, data),
   
   // 删除职位
-  deletePosition: (id: number) => request.delete(`/adminapi/department/position/delete/${id}`)
+  deletePosition: (id: number) => http.delete(PORT1 + `/department/position/delete/${id}`)
 }
 
 // 导出单个方法，方便使用

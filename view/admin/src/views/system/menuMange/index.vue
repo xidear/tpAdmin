@@ -464,8 +464,8 @@
         </el-form-item>
         <el-form-item label="依赖类型" prop="type">
           <el-select v-model="addPermissionForm.type" placeholder="选择依赖类型">
-            <el-option label="可选" value="OPTIONAL" />
             <el-option label="必选" value="REQUIRED" />
+            <el-option label="可选" value="OPTIONAL" />
           </el-select>
         </el-form-item>
         <el-form-item label="权限描述">
@@ -785,7 +785,7 @@ const addPermissionForm = ref<{
 }>({
   permission_id: "",
   permission_type: 'button',
-  type: 'REQUIRED',
+  type: 'OPTIONAL',
   description: '' 
 });
 
@@ -843,7 +843,7 @@ const confirmAddPermission = async () => {
         addPermissionForm.value = {
           permission_id: "",
           permission_type: 'button',
-          type: 'REQUIRED',
+          type: 'OPTIONAL',
           description: ''
         };
         addPermissionFormRef.value.resetFields();

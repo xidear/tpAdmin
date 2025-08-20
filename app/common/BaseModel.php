@@ -23,7 +23,10 @@ use think\{
 };
 use think\db\exception\{DataNotFoundException, DbException, ModelNotFoundException};
 use Throwable;
-
+/**
+ * 
+ * @method mixed getTableFields()
+ */ 
 class BaseModel extends Model
 {
     use BaseTrait;

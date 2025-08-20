@@ -3,13 +3,14 @@
 namespace app\request\admin\department;
 
 use app\common\BaseRequest;
+use app\common\enum\Status;
 
 class UpdateStatus extends BaseRequest
 {
     public function rules(): array
     {
         return [
-            'status' => 'require|in:0,1',
+            'status' => 'require|in:' . Status::getKeyListString(),
         ];
     }
 
@@ -17,7 +18,7 @@ class UpdateStatus extends BaseRequest
     {
         return [
             'status.require' => '状态值不能为空',
-            'status.in' => '状态值无效，只能是0或1',
+            'status.in' => '状态值无效',
         ];
     }
 }

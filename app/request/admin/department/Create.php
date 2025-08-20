@@ -3,6 +3,7 @@
 namespace app\request\admin\department;
 
 use app\common\BaseRequest;
+use app\common\enum\Status;
 
 class Create extends BaseRequest
 {
@@ -13,7 +14,7 @@ class Create extends BaseRequest
             'code' => 'max:50',
             'parent_id' => 'integer|egt:0',
             'sort' => 'integer|egt:0',
-            'status' => 'in:0,1',
+            'status' => 'in:' . Status::getKeyListString(),
             'description' => 'max:500',
         ];
     }
