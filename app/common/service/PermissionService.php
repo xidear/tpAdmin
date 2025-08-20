@@ -20,8 +20,9 @@ use think\Exception;
 use think\facade\Db;
 use think\facade\Route;
 
-class PermissionService extends BaseService
+class PermissionService
 {
+    use BaseTrait;
 
     /**
      * 同步指定前缀的路由到权限表（适配TP框架）

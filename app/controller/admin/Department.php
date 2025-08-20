@@ -7,7 +7,6 @@ use app\model\Department as DepartmentModel;
 use app\model\DepartmentPosition as DepartmentPositionModel;
 use app\model\DepartmentAdmin as DepartmentAdminModel;
 use app\model\Admin as AdminModel;
-use app\common\service\export\ExportService;
 use app\request\admin\department\Create as CreateRequest;
 use app\request\admin\department\Update as UpdateRequest;
 use app\request\admin\department\BatchDelete as BatchDeleteRequest;
@@ -317,51 +316,26 @@ class Department extends BaseController
      */
     public function export(): Response
     {
-        try {
-            $conditions = $this->buildConditions();
-            $query = DepartmentModel::with(['leader', 'parentDepartment'])->where($conditions);
+        // 构建查询条件
+        $conditions = $this->buildConditions();
+        $model = DepartmentModel::with(['leader', 'parentDepartment'])->where($conditions);
 
-            $headers = [
-                ['label' => 'ID', 'field' => 'department_id'],
-                ['label' => '部门名称', 'field' => 'name'],
-                ['label' => '部门编码', 'field' => 'code'],
-                ['label' => '父部门', 'field' => 'parent_name'],
-                ['label' => '部门层级', 'field' => 'level'],
-                ['label' => '排序', 'field' => 'sort'],
-                ['label' => '状态', 'field' => 'status', 'format' => 'boolean', 'format_options' => ['true' => '启用', 'false' => '禁用']],
-                ['label' => '部门主管', 'field' => 'leader_name'],
-                ['label' => '描述', 'field' => 'description'],
-                ['label' => '创建时间', 'field' => 'created_at', 'format' => 'datetime', 'format_options' => ['format' => 'Y-m-d H:i:s']],
-            ];
+        // 定义导出表头
+        $headers = [
+            ['label' => 'ID', 'field' => 'department_id'],
+            ['label' => '部门名称', 'field' => 'name'],
+            ['label' => '部门编码', 'field' => 'code'],
+            ['label' => '父部门', 'field' => 'parent_name'],
+            ['label' => '部门层级', 'field' => 'level'],
+            ['label' => '排序', 'field' => 'sort'],
+            ['label' => '状态', 'field' => 'status', 'format' => 'boolean', 'format_options' => ['true' => '启用', 'false' => '禁用']],
+            ['label' => '部门主管', 'field' => 'leader_name'],
+            ['label' => '描述', 'field' => 'description'],
+            ['label' => '创建时间', 'field' => 'created_at', 'format' => 'datetime', 'format_options' => ['format' => 'Y-m-d H:i:s']],
+        ];
 
-            $exportService = new ExportService();
-            $estimatedCount = $exportService->estimateCount(function() use ($query) {
-                return clone $query;
-            });
-
-            $threshold = config('export.large_data_threshold', 10000);
-            
-            if ($estimatedCount > $threshold) {
-                $result = $exportService->createQueueTask(
-                    DepartmentModel::class,
-                    $query,
-                    $headers,
-                    '部门数据',
-                    'xlsx'
-                );
-                
-                return $this->success($result, $result['message']);
-            } else {
-                 $exportService->directExport(
-                    clone $query,
-                    $headers,
-                    '部门数据',
-                    'xlsx'
-                );
-            }
-        } catch (\Exception $e) {
-            return $this->error('导出失败：' . $e->getMessage());
-        }
+        // 调用父级的统一导出方法
+        return $this->doExport($model, $headers, '部门数据', 'xlsx');
     }
 
     /**

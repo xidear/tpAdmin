@@ -19,7 +19,7 @@ class TpCollection extends Collection
      * 默认需要隐藏的字段
      * @var array
      */
-    protected $defaultHidden = ['delete_time', 'password', 'salt'];
+    protected array $defaultHidden = ['deleted_at', 'password', 'salt'];
 
     /**
      * 转换为树形结构

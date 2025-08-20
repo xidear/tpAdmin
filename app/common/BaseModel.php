@@ -36,6 +36,7 @@ class BaseModel extends Model
     protected int $defaultPageSize = 15;
     protected int $maxResults = 1000;
 
+    protected string $deleteTime="deleted_at";
 
 
     /**

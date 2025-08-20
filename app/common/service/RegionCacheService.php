@@ -3,13 +3,16 @@
 namespace app\common\service;
 
 use app\common\BaseService;
+use app\common\trait\BaseTrait;
 use app\model\Region;
 use think\facade\Cache;
 use think\facade\Log;
 use think\facade\Queue;
 
-class RegionCacheService extends BaseService
+class RegionCacheService
 {
+
+    use BaseTrait;
     // 分层缓存键名前缀
     const string CACHE_KEY_PREFIX = 'region_level_';
     
@@ -29,7 +32,7 @@ class RegionCacheService extends BaseService
     {
         $cacheKey = self::CACHE_KEY_PREFIX . $parentId;
         
-        try {
+//        try {
             if (!$forceRefresh) {
                 $cachedData = Cache::get($cacheKey);
                 if ($cachedData !== null) {
@@ -54,10 +57,10 @@ class RegionCacheService extends BaseService
             
             return $regions;
             
-        } catch (\Exception $e) {
-            Log::error('获取地区数据失败：' . $e->getMessage());
-            return [];
-        }
+//        } catch (\Exception $e) {
+//            Log::error('获取地区数据失败：' . $e->getMessage());
+//            return [];
+//        }
     }
     
     /**
@@ -163,10 +166,10 @@ class RegionCacheService extends BaseService
             return false;
         }
     }
-    
+
     /**
      * 清除指定层级的缓存
-     * @param int $parentId 父级ID，为null时清除所有缓存
+     * @param int|null $parentId 父级ID，为null时清除所有缓存
      * @return bool
      */
     public function clearCache(?int $parentId = null): bool
@@ -176,16 +179,14 @@ class RegionCacheService extends BaseService
                 // 清除所有地区缓存
                 Cache::tag('region_cache')->clear();
                 // 清除3层缓存
-                Cache::delete(self::THREE_LEVEL_CACHE_KEY);
-                return true;
             } else {
                 // 清除指定层级的缓存
                 $cacheKey = self::CACHE_KEY_PREFIX . $parentId;
                 Cache::delete($cacheKey);
                 // 清除3层缓存（因为可能影响结构）
-                Cache::delete(self::THREE_LEVEL_CACHE_KEY);
-                return true;
             }
+            Cache::delete(self::THREE_LEVEL_CACHE_KEY);
+            return true;
         } catch (\Exception $e) {
             Log::error('清除缓存失败：' . $e->getMessage());
             return false;
@@ -221,7 +222,7 @@ class RegionCacheService extends BaseService
             ];
         }
     }
-    
+
     /**
      * 重新生成缓存（兼容旧接口）
      * @param bool $async 是否异步（此参数在新方案中已无意义）
@@ -231,7 +232,7 @@ class RegionCacheService extends BaseService
     {
         // 清除所有缓存
         $this->clearCache();
-        
+
         // 返回顶级地区数据
         return $this->getRegionsByParent(0);
     }
@@ -281,10 +282,10 @@ class RegionCacheService extends BaseService
         try {
             // 清除所有缓存
             $this->clearAllCache();
-            
+
             // 生成所有层级缓存
             $this->generateAllLevelsCache();
-            
+
             return true;
         } catch (\Exception $e) {
             Log::error('执行缓存刷新失败：' . $e->getMessage());
@@ -295,7 +296,7 @@ class RegionCacheService extends BaseService
     /**
      * 清除所有地区缓存
      */
-    private function clearAllCache()
+    private function clearAllCache(): void
     {
         Cache::delete('region_all_levels');
         Cache::delete('region_level_3');
@@ -305,9 +306,10 @@ class RegionCacheService extends BaseService
     }
     
     /**
+     *
      * 生成所有层级的缓存 - 高效算法，避免使用toTree
      */
-    private function generateAllLevelsCache()
+    private function generateAllLevelsCache(): void
     {
         // 一次性获取所有地区数据，避免多次查询
         $allRegions = Region::where('deleted_at', null)
@@ -321,7 +323,7 @@ class RegionCacheService extends BaseService
         foreach ($allRegions as $region) {
             $regionIndex[$region['region_id']] = $region;
         }
-        
+
         // 高效构建树形结构
         $treeData = $this->buildTreeEfficiently($allRegions, $regionIndex);
         
@@ -371,7 +373,7 @@ class RegionCacheService extends BaseService
      * @param array $allRegions 所有地区数据
      * @param array $regionIndex 地区索引
      */
-    private function buildChildren(array &$parentNode, array $allRegions, array $regionIndex)
+    private function buildChildren(array &$parentNode, array $allRegions, array $regionIndex): void
     {
         $parentNode['children'] = [];
         
@@ -388,7 +390,7 @@ class RegionCacheService extends BaseService
      * 批量设置hasChildren属性
      * @param array &$treeData 树形数据
      */
-    private function batchSetHasChildren(array &$treeData)
+    private function batchSetHasChildren(array &$treeData): void
     {
         foreach ($treeData as &$node) {
             $node['hasChildren'] = !empty($node['children']);
