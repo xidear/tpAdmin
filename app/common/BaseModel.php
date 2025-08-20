@@ -288,7 +288,7 @@ class BaseModel extends Model
     /**
      * 应用查询条件
      */
-    protected function applyQueryConditions(Query $query, $conditions): void
+    protected function applyQueryConditions(Query|Model $query, $conditions): void
     {
 
         // 1. 空条件返回
@@ -351,7 +351,7 @@ class BaseModel extends Model
     /**
      * 应用查询字段
      */
-    protected function applyQueryFields(Query $query, $fields = null): void
+    protected function applyQueryFields(Query|Model $query, $fields = null): void
     {
         // 未指定字段时使用默认
         if (!$fields) return;
@@ -362,7 +362,7 @@ class BaseModel extends Model
     /**
      * 应用查询关联
      */
-    protected function applyQueryRelations(Query $query, $relations = []): void
+    protected function applyQueryRelations(Query|Model $query, $relations = []): void
     {
         if (!$relations) return;
 
@@ -372,7 +372,7 @@ class BaseModel extends Model
     /**
      * 应用查询连接
      */
-    protected function applyQueryJoins(Query $query, array $joins = []): void
+    protected function applyQueryJoins(Query|Model $query, array $joins = []): void
     {
         if (!$joins) return;
 
@@ -397,7 +397,7 @@ class BaseModel extends Model
     /**
      * 应用查询排序
      */
-    protected function applyQueryOrder(Query $query, $field = '', $direction = ''): void
+    protected function applyQueryOrder(Query|Model $query, $field = '', $direction = ''): void
     {
         // 排序字段默认主键
         $field = $field ?: $this->getPk();
@@ -413,7 +413,7 @@ class BaseModel extends Model
     /**
      * 应用模型属性
      */
-    protected function applyModelAttributes(Query $query, array $append = [], array $hidden = []): void
+    protected function applyModelAttributes(Query|Model $query, array $append = [], array $hidden = []): void
     {
         if ($append) {
             $query->append($append);
