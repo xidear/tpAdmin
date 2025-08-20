@@ -1,71 +1,77 @@
 import { PORT1 } from "@/api/config/servicePort";
 import http from "@/api";
 
-// 部门相关接口
-export const departmentApi = {
-  // 获取部门树形结构
-  getTree: (params?: any) => http.get(PORT1 + `/department/index`, params),
-  
-  // 获取部门平铺列表
-  getList: (params?: any) => http.get(PORT1 + `/department/list`, params),
-  
-  // 获取部门详情
-  getDetail: (id: number) => http.get(PORT1 + `/department/read/${id}`),
-  
-  // 创建部门
-  create: (data: any) => http.post(PORT1 + `/department/create`, data),
-  
-  // 更新部门
-  update: (id: number, data: any) => http.put(PORT1 + `/department/update/${id}`, data),
-  
-  // 删除部门
-  delete: (id: number) => http.delete(PORT1 + `/department/delete/${id}`),
-  
-  // 批量删除部门
-  batchDelete: (ids: number[]) => http.batchDelete(PORT1 + `/department/batch-delete`, { data: { ids } }),
-  
-  // 更新部门状态
-  updateStatus: (id: number, status: number) => http.put(PORT1 + `/department/update-status/${id}`, { status }),
-  
-  // 导出部门数据
-  export: (params?: any) => http.download(PORT1 + `/department/export`, params),
-  
-  // 获取部门职位列表
-  getPositions: (departmentId: number) => http.get(PORT1 + `/department/positions/${departmentId}`),
-  
-  // 创建职位
-  createPosition: (data: any) => http.post(PORT1 + `/department/position/create`, data),
-  
-  // 更新职位
-  updatePosition: (id: number, data: any) => http.put(PORT1 + `/department/position/update/${id}`, data),
-  
-  // 删除职位
-  deletePosition: (id: number) => http.delete(PORT1 + `/department/position/delete/${id}`)
-}
+// * 获取部门树形结构
+export const getDepartmentTreeApi = (params?: any) => {
+  return http.get(PORT1 + `/department/index`, params);
+};
 
-// 导出单个方法，方便使用
-export const {
-  getTree: getDepartmentTree,
-  getList: getDepartmentList,
-  getDetail: getDepartmentDetail,
-  create: createDepartment,
-  update: updateDepartment,
-  delete: deleteDepartment,
-  batchDelete: batchDeleteDepartment,
-  updateStatus: updateDepartmentStatus,
-  export: exportDepartment,
-  getPositions: getDepartmentPositions,
-  createPosition,
-  updatePosition,
-  deletePosition
-} = departmentApi
+// * 获取部门平铺列表
+export const getDepartmentListApi = (params?: any) => {
+  return http.get(PORT1 + `/department/list`, params);
+};
+
+// * 获取部门详情
+export const getDepartmentDetailApi = (id: number) => {
+  return http.get(PORT1 + `/department/read/${id}`);
+};
+
+// * 创建部门
+export const postDepartmentCreateApi = (data: any) => {
+  return http.post(PORT1 + `/department/create`, data);
+};
+
+// * 更新部门
+export const putDepartmentUpdateApi = (id: number, data: any) => {
+  return http.put(PORT1 + `/department/update/${id}`, data);
+};
+
+// * 删除部门
+export const deleteDepartmentApi = (id: number) => {
+  return http.delete(PORT1 + `/department/delete/${id}`);
+};
+
+// * 批量删除部门
+export const postDepartmentBatchDeleteApi = (ids: number[]) => {
+  return http.batchDelete(PORT1 + `/department/batch-delete`, { data: { ids } });
+};
+
+// * 更新部门状态
+export const putDepartmentUpdateStatusApi = (id: number, status: number) => {
+  return http.put(PORT1 + `/department/update-status/${id}`, { status });
+};
+
+// * 导出部门数据
+export const getDepartmentExportApi = (params?: any) => {
+  return http.download(PORT1 + `/department/export`, params);
+};
+
+// * 获取部门职位列表
+export const getDepartmentPositionsApi = (departmentId: number) => {
+  return http.get(PORT1 + `/department/positions/${departmentId}`);
+};
+
+// * 创建职位
+export const postPositionCreateApi = (data: any) => {
+  return http.post(PORT1 + `/department/position/create`, data);
+};
+
+// * 更新职位
+export const putPositionUpdateApi = (id: number, data: any) => {
+  return http.put(PORT1 + `/department/position/update/${id}`, data);
+};
+
+// * 删除职位
+export const deletePositionApi = (id: number) => {
+  return http.delete(PORT1 + `/department/position/delete/${id}`);
+};
 
 // 类型定义
 export interface Department {
   department_id: number
   name: string
   code?: string
-  parent_id: number
+  parent_id: number | null
   level: number
   path?: string
   sort: number
@@ -102,7 +108,7 @@ export interface DepartmentPosition {
 export interface CreateDepartmentRequest {
   name: string
   code?: string
-  parent_id: number
+  parent_id: number | null
   sort?: number
   status: number
   description?: string

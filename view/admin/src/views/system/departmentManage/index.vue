@@ -68,10 +68,10 @@
                 {{ row.status === 1 ? '启用' : '禁用' }}
               </el-tag>
                              <el-switch
-                 v-model="row.status"
+                 :model-value="row.status || 1"
                  :active-value="1"
                  :inactive-value="2"
-                 @change="changeStatus(row)"
+                 @update:model-value="(val) => { row.status = val; changeStatus(row); }"
                  style="margin-left: 8px"
                  v-auth="'updateStatus'"
                />
@@ -79,7 +79,7 @@
           </el-table-column>
           <el-table-column prop="leader" label="部门主管" width="120" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ row.leader?.real_name || row.leader?.username || '无' }}
+              {{ row.leader?.username || '无' }}
             </template>
           </el-table-column>
           <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
@@ -186,7 +186,7 @@
                              <el-option
                  v-for="admin in adminOptions"
                  :key="admin.admin_id"
-                 :label="admin.real_name || admin.username"
+                 :label="admin.username"
                  :value="admin.admin_id"
                />
             </el-select>
@@ -333,7 +333,22 @@ import {
 } from "@element-plus/icons-vue"
 import { useHandleData } from "@/hooks/useHandleData"
 import { useDownload } from "@/hooks/useDownload"
-import { departmentApi, type Department, type DepartmentPosition } from "@/api/department"
+import { 
+  getDepartmentTreeApi, 
+  getDepartmentListApi, 
+  postDepartmentCreateApi, 
+  putDepartmentUpdateApi, 
+  deleteDepartmentApi, 
+  postDepartmentBatchDeleteApi, 
+  putDepartmentUpdateStatusApi, 
+  getDepartmentExportApi, 
+  getDepartmentPositionsApi, 
+  postPositionCreateApi, 
+  putPositionUpdateApi, 
+  deletePositionApi,
+  type Department, 
+  type DepartmentPosition 
+} from "@/api/department"
 import { getListApi } from "@/api/modules/account"
 import { getEnumDataApi } from "@/api/modules/enum"
 
@@ -415,7 +430,7 @@ const getTableList = async () => {
     }
     
     console.log('查询参数:', params)
-    const { data } = await departmentApi.getTree(params)
+    const { data } = await getDepartmentTreeApi(params)
     tableData.value = data as Department[]
   } catch (error) {
     console.error("获取部门列表失败:", error)
@@ -427,7 +442,7 @@ const getTableList = async () => {
 // 获取父部门选项
 const getParentDeptOptions = async () => {
   try {
-    const { data } = await departmentApi.getList()
+    const { data } = await getDepartmentListApi()
     // 不添加顶级部门选项，留空表示顶级部门
     parentDeptOptions.value = data as Department[]
   } catch (error) {
@@ -540,10 +555,10 @@ const handleSubmit = () => {
     try {
       const params = { ...drawerProps.value.row }
       if (drawerProps.value.title === "新增") {
-        await departmentApi.create(params)
+        await postDepartmentCreateApi(params)
         ElMessage.success("新增成功！")
       } else {
-        await departmentApi.update(params.department_id!, params)
+        await putDepartmentUpdateApi(params.department_id!, params)
         ElMessage.success("编辑成功！")
       }
       drawerVisible.value = false
@@ -557,28 +572,28 @@ const handleSubmit = () => {
 // 删除部门
 const deleteAccount = async (row: Department) => {
   await useHandleData(
-    () => departmentApi.delete(row.department_id),
-    `删除【${row.name}】部门`,
-    "删除成功！",
-    getTableList
+    () => deleteDepartmentApi(row.department_id),
+    {},
+    `删除【${row.name}】部门`
   )
+  getTableList()
 }
 
 // 批量删除
 const batchDelete = async () => {
   const ids = selectData.value.map(item => item.department_id)
   await useHandleData(
-    () => departmentApi.batchDelete(ids),
-    "批量删除部门",
-    "删除成功！",
-    getTableList
+    () => postDepartmentBatchDeleteApi(ids),
+    {},
+    "批量删除部门"
   )
+  getTableList()
 }
 
 // 切换状态
 const changeStatus = async (row: Department) => {
   try {
-    await departmentApi.updateStatus(row.department_id, row.status)
+    await putDepartmentUpdateStatusApi(row.department_id, row.status)
     const statusText = row.status === 1 ? '启用' : '禁用'
     ElMessage.success(`${statusText}成功！`)
   } catch (error) {
@@ -591,7 +606,7 @@ const changeStatus = async (row: Department) => {
 // 导出数据
 const downloadFile = async () => {
   ElMessageBox.confirm("确认导出部门数据?", "温馨提示", { type: "warning" })
-    .then(() => useDownload(() => departmentApi.export(searchParam), "部门数据", searchParam))
+    .then(() => useDownload(() => getDepartmentExportApi(searchParam), "部门数据", searchParam))
     .catch(() => {})
 }
 
@@ -606,7 +621,7 @@ const getPositionList = async () => {
   if (!currentDepartment.value) return
   positionLoading.value = true
   try {
-    const { data } = await departmentApi.getPositions(currentDepartment.value.department_id)
+    const { data } = await getDepartmentPositionsApi(currentDepartment.value.department_id)
     positionList.value = data as DepartmentPosition[]
   } catch (error) {
     console.error("获取职位列表失败:", error)
@@ -638,10 +653,10 @@ const handlePositionSubmit = () => {
     try {
       const params = { ...positionDrawerProps.value.row }
       if (positionDrawerProps.value.title === "新增") {
-        await departmentApi.createPosition(params)
+        await postPositionCreateApi(params)
         ElMessage.success("新增成功！")
       } else {
-        await departmentApi.updatePosition(params.position_id!, params)
+        await putPositionUpdateApi(params.position_id!, params)
         ElMessage.success("编辑成功！")
       }
       positionDrawerVisible.value = false
@@ -654,11 +669,11 @@ const handlePositionSubmit = () => {
 
 const deletePosition = async (row: DepartmentPosition) => {
   await useHandleData(
-    () => departmentApi.deletePosition(row.position_id),
-    `删除【${row.name}】职位`,
-    "删除成功！",
-    getPositionList
+    () => deletePositionApi(row.position_id),
+    {},
+    `删除【${row.name}】职位`
   )
+  getPositionList()
 }
 
 // 页面挂载
