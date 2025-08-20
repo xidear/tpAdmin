@@ -197,57 +197,13 @@
 
           <!-- JSON编辑器（type:32） -->
           <div v-else-if="field.type === 32">
-            <div class="json-editor-container">
-              <div class="json-editor-header">
-                <span class="json-editor-title">JSON 配置编辑器</span>
-                <div class="json-editor-actions">
-                  <el-dropdown @command="(template) => applyJsonTemplate(template, field, group.group_id)">
-                    <el-button size="small" type="info" icon="Document">
-                      模板
-                    </el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item command="watermark">水印配置模板</el-dropdown-item>
-                        <el-dropdown-item command="storage">存储配置模板</el-dropdown-item>
-                        <el-dropdown-item command="upload">上传配置模板</el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                  <el-button 
-                    size="small" 
-                    type="primary" 
-                    @click="formatJson(field, group.group_id)"
-                    icon="MagicStick"
-                  >
-                    格式化
-                  </el-button>
-                  <el-button 
-                    size="small" 
-                    @click="validateJson(field, group.group_id)"
-                    icon="Check"
-                  >
-                    验证
-                  </el-button>
-                </div>
-              </div>
-              <el-input
-                v-model="formData[group.group_id][field.key]"
-                :placeholder="field.placeholder || `请输入${field.label}的JSON配置`"
-                type="textarea"
-                :rows="12"
-                clearable
-                class="json-textarea"
-                @update:model-value="(val) => handleJsonChange(val, field, group.group_id)"
-              />
-              <div class="json-editor-footer">
-                <el-text type="info" size="small">
-                  💡 支持 JSON 格式，点击"格式化"按钮可自动美化代码
-                </el-text>
-                <el-text v-if="jsonErrors[`${group.group_id}-${field.key}`]" type="danger" size="small">
-                  ❌ {{ jsonErrors[`${group.group_id}-${field.key}`] }}
-                </el-text>
-              </div>
-            </div>
+            <JsonEditor
+              v-model="formData[group.group_id][field.key]"
+              :options="jsonEditorOptions"
+              :plus="false"
+              :expandedOnStart="true"
+              @change="(val) => handleJsonChange(val, field, group.group_id)"
+            />
           </div>
 
           <!-- 键值对配置（type:40） -->
@@ -313,6 +269,7 @@ import { getConfigFormApi, saveConfigFormApi } from '@/api/modules/configForm';
 import { uploadImg, uploadVideo, uploadFile } from '@/api/modules/upload';
 import type { Upload } from '@/api/interface';
 import ImageSelector from '@/components/ImageSelector/index.vue';
+import JsonEditor from '@/components/JsonEditor/index.vue'; // 导入 JsonEditor 组件
 
 // 当前激活的分组ID
 const activeGroupId = ref<string>('1');
@@ -330,6 +287,25 @@ const fileList = reactive<Record<number, Record<string, any[]>>>({});
 const keyValueData = reactive<Record<string, Array<{key: string, value: string}>>>({});
 // JSON 格式化错误信息
 const jsonErrors = reactive<Record<string, string>>({});
+
+// JsonEditor 组件的配置选项
+const jsonEditorOptions = reactive({
+  mode: 'code', // 编辑模式
+  theme: 'light', // 主题
+  mainMenuBar: true, // 是否显示主菜单栏
+});
+
+/**
+ * 处理JSON编辑器变更
+ */
+const handleJsonChange = (value: any, field: ConfigForm.ConfigField, groupId: number) => {
+  if (!formData[groupId]) formData[groupId] = {};
+  formData[groupId][field.key] = value;
+  
+  // 清除错误信息
+  const dataKey = `${groupId}-${field.key}`;
+  jsonErrors[dataKey] = '';
+};
 
 /**
  * 初始化表单数据：强化分组对象初始化
@@ -467,124 +443,6 @@ const handleImageChange = (
     const first = Array.isArray(images) ? images[0] : images;
     formData[groupId][field.key] = first ? (first.url || first) : '';
   }
-};
-
-/**
- * 处理JSON编辑器变更
- */
-const handleJsonChange = (value: string, field: any, groupId: number) => {
-  if (!formData[groupId]) formData[groupId] = {};
-  formData[groupId][field.key] = value;
-  
-  // 可以添加JSON格式验证
-  try {
-    if (value.trim()) {
-      JSON.parse(value);
-    }
-  } catch (error) {
-    // JSON格式错误，可以显示提示
-    console.warn('JSON格式错误:', error);
-  }
-};
-
-/**
- * 格式化JSON
- */
-const formatJson = (field: ConfigForm.ConfigField, groupId: number) => {
-  const dataKey = `${groupId}-${field.key}`;
-  if (!formData[groupId]) formData[groupId] = {};
-  const jsonString = formData[groupId][field.key];
-
-  if (jsonString.trim()) {
-    try {
-      const parsed = JSON.parse(jsonString);
-      formData[groupId][field.key] = JSON.stringify(parsed, null, 2);
-      jsonErrors[dataKey] = ''; // 清除错误
-    } catch (error) {
-      jsonErrors[dataKey] = `JSON 格式错误: ${error.message}`;
-    }
-  }
-};
-
-/**
- * 验证JSON
- */
-const validateJson = (field: ConfigForm.ConfigField, groupId: number) => {
-  const dataKey = `${groupId}-${field.key}`;
-  if (!formData[groupId]) formData[groupId] = {};
-  const jsonString = formData[groupId][field.key];
-
-  if (jsonString.trim()) {
-    try {
-      JSON.parse(jsonString);
-      jsonErrors[dataKey] = ''; // 清除错误
-      ElMessage.success('JSON 格式正确');
-    } catch (error) {
-      jsonErrors[dataKey] = `JSON 格式错误: ${error.message}`;
-      ElMessage.error('JSON 格式错误');
-    }
-  } else {
-    jsonErrors[dataKey] = ''; // 清除错误
-  }
-};
-
-/**
- * 应用JSON模板
- */
-const applyJsonTemplate = (template: string, field: ConfigForm.ConfigField, groupId: number) => {
-  const dataKey = `${groupId}-${field.key}`;
-  if (!formData[groupId]) formData[groupId] = {};
-
-  let templateJson: any;
-  
-  // 根据模板类型生成不同的JSON
-  switch (template) {
-    case 'watermark':
-      templateJson = {
-        "text": "水印文字",
-        "image": "/path/to/watermark.png",
-        "position": "bottom-right",
-        "opacity": 0.8,
-        "fontSize": 16,
-        "fontColor": "#ffffff",
-        "backgroundColor": "#000000"
-      };
-      break;
-    case 'storage':
-      templateJson = {
-        "type": "local",
-        "path": "/storage/uploads",
-        "url": "/uploads",
-        "maxSize": "10485760",
-        "allowedTypes": ["jpg", "png", "gif", "pdf"],
-        "compression": {
-          "enabled": true,
-          "quality": 80
-        }
-      };
-      break;
-    case 'upload':
-      templateJson = {
-        "maxFileSize": "10485760",
-        "allowedExtensions": "jpg,jpeg,png,gif,pdf,doc,docx",
-        "imageQuality": 80,
-        "watermarkEnabled": false,
-        "watermarkConfig": {
-          "text": "",
-          "image": "",
-          "position": "bottom-right"
-        }
-      };
-      break;
-    default:
-      ElMessage.error('未知的模板类型');
-      return;
-  }
-
-  // 应用模板到当前字段
-  formData[groupId][field.key] = JSON.stringify(templateJson, null, 2);
-  jsonErrors[dataKey] = ''; // 清除错误
-  ElMessage.success('模板已应用');
 };
 
 /**
