@@ -64,9 +64,6 @@ class TaskLog extends BaseModel
      * @param string $output
      * @param string $error
      * @return bool
-     * @throws DataNotFoundException
-     * @throws DbException
-     * @throws ModelNotFoundException
      */
     public static function recordEnd(int $logId, int $status, string $output = '', string $error = ''): bool
     {
@@ -76,7 +73,7 @@ class TaskLog extends BaseModel
         // 将毫秒时间戳转换为年月日时分秒格式
         $endTime = date('Y-m-d H:i:s', (int)$endTimeMs);
         
-        $log = self::find($logId);
+        $log = (new TaskLog)->findOrEmpty($logId);
 
         if (!$log) {
             return false;

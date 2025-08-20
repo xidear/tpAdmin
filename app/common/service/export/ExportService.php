@@ -123,8 +123,12 @@ class ExportService
 
     /**
      * 解析表头（兼容多级和一级）
+     * @param array $headers
+     * @param int $currentRow
+     * @param int $currentCol
+     * @return array
      */
-    public function parseHeaders(array $headers, $currentRow = 1, $currentCol = 1)
+    public function parseHeaders(array $headers, int $currentRow = 1, int $currentCol = 1): array
     {
         $result = [
             'headers' => [],

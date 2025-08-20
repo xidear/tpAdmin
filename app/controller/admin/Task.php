@@ -14,6 +14,9 @@ use app\request\admin\task\Create;
 use app\request\admin\Delete;
 use app\request\admin\task\Edit;
 use app\request\admin\Read;
+use think\db\exception\DataNotFoundException;
+use think\db\exception\DbException;
+use think\db\exception\ModelNotFoundException;
 use think\facade\Request;
 use think\Response;
 
@@ -230,13 +233,13 @@ class Task extends BaseController
             return $this->error("任务已禁用，无法执行");
         }
 
-        // 调用任务执行服务
-        $result = app()->make(TaskService::class)->executeTask($task);
+            $service =app()->make(TaskService::class);
+            $result = $service->executeTask($task);
 
-        if ($result['success']) {
-            return $this->success($result['data'], "任务已触发执行");
+        if ($result) {
+            return $this->success($service->getReturnData, "任务已触发执行");
         } else {
-            return $this->error($result['message']);
+            return $this->error($service->getMessage());
         }
     }
 

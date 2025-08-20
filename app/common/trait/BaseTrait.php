@@ -11,12 +11,17 @@ trait BaseTrait
     public string $msg = "";
     public int $code = \app\common\enum\Code::SUCCESS->value;
 
-    public mixed $data = null;
+    public mixed $returnData = null;
 
 
     public function getCode(): int
     {
         return $this->code;
+    }
+
+    public function getReturnData(): int
+    {
+        return $this->returnData;
     }
 
     /**返回提示信息*/
@@ -25,30 +30,34 @@ trait BaseTrait
         return $this->msg;
     }
 
-    /**返回正确
+    /**
+     * 返回正确
      * @param string $msg
      * @param int $code
+     * @param mixed|null $returnData
      * @return bool
      */
-    public function true(string $msg = "成功", int $code = Code::SUCCESS->value, mixed $data = null): bool
+    public function true(string $msg = "成功", int $code = Code::SUCCESS->value, mixed $returnData = null): bool
     {
         $this->msg = $msg;
         $this->code = $code;
-        $this->data = $data;
+        $this->returnData = $returnData;
         return true;
     }
 
 
-    /**返回错误
+    /**
+     * 返回错误
      * @param string $msg
      * @param int $code
+     * @param mixed|null $returnData
      * @return bool
      */
-    public function false(string $msg = "发生错误", int $code = Code::ERROR->value, mixed $data = null): bool
+    public function false(string $msg = "发生错误", int $code = Code::ERROR->value, mixed $returnData = null): bool
     {
         $this->msg = $msg;
         $this->code = $code;
-        $this->data = $data;
+        $this->returnData = $returnData;
         return false;
     }
 

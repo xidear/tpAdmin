@@ -20,13 +20,10 @@ class TaskService extends BaseService
 {
     /**
      * 执行任务
-     * @param Task $task
-     * @return array
-     * @throws DataNotFoundException
-     * @throws DbException
-     * @throws ModelNotFoundException
+     * @param $task
+     * @return bool
      */
-    public function executeTask(Task $task): array
+    public function executeTask( $task): bool
     {
         // 记录任务开始日志
         $logId = TaskLog::recordStart(
@@ -70,11 +67,11 @@ class TaskService extends BaseService
                 SuccessOrFail::Success->value,
                 $output
             );
-
-            return $this->success([
+            return $this->true(returnData:[
                 'log_id' => $logId,
                 'output' => $output
-            ], '任务执行成功');
+            ]);
+
         } catch (\Exception $e) {
             // 记录失败日志
             TaskLog::recordEnd(
@@ -94,9 +91,7 @@ class TaskService extends BaseService
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return $this->error($e->getMessage(), [
-                'log_id' => $logId
-            ]);
+            return $this->false($e->getMessage(),returnData:['log_id' => $logId]);
         }
     }
 

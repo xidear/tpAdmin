@@ -232,7 +232,7 @@ function getTasksHashFromDatabase(): string
         $currentPlatform = PHP_OS === 'Linux' ? TaskPlatform::LINUX->value : TaskPlatform::WINDOWS->value;
         
         // 使用数据库函数直接计算哈希值
-        $result = Task::where('status', Status::Normal->value)
+        $result = Task::where('status', Status::ENABLED->value)
             ->where(function($query) use ($currentPlatform) {
                 $query->where('platform', TaskPlatform::ALL->value)
                     ->whereOr('platform', $currentPlatform);
@@ -292,7 +292,7 @@ function loadAllTasksForPreciseScheduler(int $maxTasks): void
         $currentPlatform = PHP_OS === 'Linux' ? TaskPlatform::LINUX->value : TaskPlatform::WINDOWS->value;
         
         // 查询所有活跃任务
-        $tasks = Task::where('status', Status::Normal->value)
+        $tasks = Task::where('status', Status::ENABLED->value)
             ->where(function($query) use ($currentPlatform) {
                 $query->where('platform', TaskPlatform::ALL->value)
                     ->whereOr('platform', $currentPlatform);
@@ -484,7 +484,7 @@ function checkAndExecuteTasks(): void
         $currentPlatform = PHP_OS === 'Linux' ? TaskPlatform::LINUX->value : TaskPlatform::WINDOWS->value;
 
         // 4. 查询符合条件的任务
-        $tasks = Task::where('status', Status::Normal->value)
+        $tasks = Task::where('status', Status::ENABLED->value)
             ->where(function($query) use ($currentPlatform) {
                 $query->where('platform', TaskPlatform::ALL->value)
                     ->whereOr('platform', $currentPlatform);
@@ -519,14 +519,14 @@ function checkAndExecuteTasks(): void
             go(function () use ($service, $task) {
                 try {
                     $result = $service->executeTask($task);
-                    if ($result['success']) {
+                    if ($result) {
                         echo "【定时任务】任务 ID:{$task->getKey()} 执行成功\n";
 
                         Log::info("【定时任务】任务 ID:{$task->getKey()} 执行成功");
                     } else {
-                        echo "【定时任务】任务 ID:{$task->getKey()} 执行失败：{$result['message']}\n";
+                        echo "【定时任务】任务 ID:{$task->getKey()} 执行失败：{$service->getMessage()}\n";
 
-                        Log::error("【定时任务】任务 ID:{$task->getKey()} 执行失败：{$result['message']}");
+                        Log::error("【定时任务】任务 ID:{$task->getKey()} 执行失败：{$service->getMessage()}");
                     }
                 } catch (Exception $e) {
                     echo "【定时任务】任务 ID:{$task->getKey()} 异常：{$e->getMessage()}\n";
