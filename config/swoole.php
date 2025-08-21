@@ -9,7 +9,7 @@ return [
         'options'    => [],
     ],
     'websocket'  => [
-        'enable'        => false,
+        'enable'        => true,
         'route' => true,
         'handler'       => \think\swoole\websocket\Handler::class,
         'ping_interval' => 25000,
@@ -44,7 +44,7 @@ return [
     ],
     //队列
     'queue'      => [
-        'enable'  => false,
+        'enable'  => true,
         'workers' => [],
     ],
     'hot_update' => [
@@ -78,7 +78,7 @@ return [
     ],
     //锁
     'lock'       => [
-        'enable' => false,
+        'enable' => true,
         'type'   => 'table',
         'redis'  => [
             'host' => '127.0.0.1',
