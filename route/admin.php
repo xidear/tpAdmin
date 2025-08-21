@@ -45,23 +45,25 @@ Route::group('adminapi', function () {
         Route::get('get_menu', 'My/getMenu')->name("菜单")->option(["description"=>"获取左侧树状菜单"]);
         Route::get('get_buttons', 'My/getButtons')->name("权限按钮")->option(["description"=>"获取左侧树状菜单匹配的权限按钮"]);
 
-        // 通用文件上传（支持传参指定存储类型和文件类型）
-        Route::post('upload/file', 'File/upload')->name("上传文件")->option(["description"=>"上传doc zip 等文件"])
-            ->allowCrossDomain()
-            ->append([
-                'storage_type' => 'local', // 默认本地存储
-                'file_type' => 'all' ,      // 默认允许所有类型
-                'uploader_type' => 'admin'       // 默认允许所有类型
-            ]);
+        // 文件上传（支持传参指定文件类型和权限）
+        Route::post('upload/file', 'File/upload')->name("上传文件")->option(["description"=>"上传文件，支持图片、视频、文档等类型"])
+            ->allowCrossDomain();
 
-        // 图片专用上传（限制文件类型为图片，默认本地存储）
-        Route::post('upload/image', 'File/upload')->name("上传图片")->option(["description"=>"上传 png jpg 等图片"])
-            ->append([
-                'storage_type' => 'local',
-                'file_type' => 'image',
-                'uploader_type' => 'admin'
-            ]);
+        // 图片专用上传（限制文件类型为图片）
+        Route::post('upload/image', 'File/upload')->name("上传图片")->option(["description"=>"上传图片文件，自动限制为图片类型"])
+            ->allowCrossDomain();
 
+        // 视频专用上传（限制文件类型为视频）
+        Route::post('upload/video', 'File/upload')->name("上传视频")->option(["description"=>"上传视频文件，自动限制为视频类型"])
+            ->allowCrossDomain();
+
+        // 通用文件选择器基础功能 - 登录即可使用（不需要特殊权限）
+        Route::group('file', function () {
+            Route::get('index', 'index')->name("文件列表")->option(["description"=>"获取文件列表，支持类型筛选"]);
+            Route::get('read/:id', 'read')->name("文件详情")->option(["description"=>"获取文件详情"]);
+            Route::get('categories', 'categories')->name("文件分类列表")->option(["description"=>"获取文件分类树形结构"]);
+            Route::get('tags', 'tags')->name("文件标签列表")->option(["description"=>"获取文件标签列表"]);
+        })->prefix("admin/File/");
 
     })->middleware([AuthCheck::class]);
     // 需要登录同时需要权限验证
@@ -166,13 +168,27 @@ Route::group('adminapi', function () {
 
 
 
-//        文件
+//        文件管理功能 - 需要file.manage权限
         Route::group('file', function () {
-            Route::get('index', 'index')->name("文件列表")->option(["description"=>"获取已有文件"]);
-            Route::get('read/:file_id', 'read')->name("读取文件")->option(["description"=>"显示某个文件"]);
-            // 图片迁移相关
-            Route::get('get-migration-preview', 'getMigrationPreview')->name("获取迁移预览")->option(["description"=>"获取图片URL迁移预览"]);
-            Route::post('migrate-urls', 'migrateUrls')->name("执行迁移")->option(["description"=>"执行图片URL迁移"]);
+            // 文件管理页面相关（需要权限）
+            Route::delete('delete/:file_id', 'delete')->name("删除文件")->option(["description"=>"删除指定文件", "permission"=>"file.manage"]);
+            Route::delete('batch_delete', 'batchDelete')->name("批量删除文件")->option(["description"=>"批量删除文件", "permission"=>"file.manage"]);
+            
+            // 分类管理功能 - 需要 file.manage 权限
+            Route::post('category/create', 'createCategory')->name("创建文件分类")->option(["description"=>"创建新的文件分类", "permission"=>"file.manage"]);
+            Route::put('category/update/:id', 'updateCategory')->name("更新文件分类")->option(["description"=>"更新文件分类信息", "permission"=>"file.manage"]);
+            Route::delete('category/delete/:id', 'deleteCategory')->name("删除文件分类")->option(["description"=>"删除文件分类", "permission"=>"file.manage"]);
+            
+            // 标签管理功能 - 需要 file.manage 权限
+            Route::post('tag/create', 'createTag')->name("创建文件标签")->option(["description"=>"创建新的文件标签", "permission"=>"file.manage"]);
+            Route::delete('tag/delete/:id', 'deleteTag')->name("删除文件标签")->option(["description"=>"删除文件标签", "permission"=>"file.manage"]);
+            
+            // 文件操作功能 - 需要 file.manage 权限
+            Route::post('move-category', 'moveCategory')->name("移动文件分类")->option(["description"=>"批量移动文件到其他分类", "permission"=>"file.manage"]);
+            
+            // 图片迁移相关 - 需要 file.manage 权限
+            Route::get('get-migration-preview', 'getMigrationPreview')->name("获取迁移预览")->option(["description"=>"获取图片URL迁移预览", "permission"=>"file.manage"]);
+            Route::post('migrate-urls', 'migrateUrls')->name("执行迁移")->option(["description"=>"执行图片URL迁移", "permission"=>"file.manage"]);
         })->prefix("admin/File/");
 
 //        部门管理

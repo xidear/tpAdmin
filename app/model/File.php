@@ -11,11 +11,29 @@ use think\model\concern\SoftDelete;
 
 /**
  * @property int $file_id
+ * @property string $origin_name
+ * @property string $file_name
  * @property string $mime_type
- * @property   string $file_name
  * @property string $url
  * @property int $size
- * @property string  $storage_permission
+ * @property string $storage_permission
+ * @property int $category_id
+ * @property string $storage_path
+ * @property string $access_domain
+ * @property string $uploader_type
+ * @property int $uploader_id
+ * @property string $storage_type
+ * @property string $storage_region
+ * @property string $storage_bucket
+ * @property string $file_version
+ * @property string $status
+ * @property string $tags
+ * @property int $local_server_id
+ * @property string $title
+ * @property string $description
+ * @property string $created_at
+ * @property string $updated_at
+ * @property string $deleted_at
  */
 class File extends BaseModel
 {
@@ -32,6 +50,14 @@ class File extends BaseModel
 
     // 软删除字段
     protected string $deleteTime = 'deleted_at';
+
+    // 字段类型转换
+    protected $type = [
+        'file_id' => 'integer',
+        'size' => 'integer',
+        'category_id' => 'integer',
+        'uploader_id' => 'integer',
+    ];
 
     /**
      * 检查文件是否为图片
@@ -77,5 +103,21 @@ class File extends BaseModel
     public function uploader()
     {
         return $this->morphTo();
+    }
+
+    /**
+     * 关联文件分类
+     */
+    public function category()
+    {
+        return $this->belongsTo(FileCategory::class, 'category_id', 'category_id');
+    }
+
+    /**
+     * 关联文件标签（通过中间表）
+     */
+    public function tags()
+    {
+        return $this->belongsToMany(FileTag::class, FileTagRelation::class, 'file_id', 'tag_id');
     }
 }

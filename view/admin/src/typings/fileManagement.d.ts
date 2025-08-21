@@ -2,8 +2,9 @@ export declare namespace FileManagement {
   // 文件信息
   interface FileInfo {
     file_id: string
+    origin_name: string  // 原始文件名
+    file_name: string    // 存储文件名
     mime_type: string
-    file_name: string
     url: string
     size: number
     storage_permission: string

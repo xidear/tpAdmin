@@ -5,7 +5,7 @@
       <div class="search-area">
         <el-input
           v-model="searchForm.keyword"
-          placeholder="搜索文件名"
+          placeholder="搜索原始文件名"
           style="width: 200px; margin-right: 10px"
           clearable
           @keyup.enter="handleSearch"
@@ -21,9 +21,9 @@
           style="width: 120px; margin-right: 10px"
           clearable
         >
-          <el-option label="图片" value="image/" />
-          <el-option label="视频" value="video/" />
-          <el-option label="文档" value="application/" />
+          <el-option label="图片" value="image" />
+          <el-option label="视频" value="video" />
+          <el-option label="文档" value="application" />
           <el-option label="其他" value="other" />
         </el-select>
         
@@ -80,10 +80,10 @@
     >
       <el-table-column type="selection" width="55" />
       
-      <el-table-column prop="file_name" label="文件名" min-width="200">
+      <el-table-column prop="origin_name" label="文件名" min-width="200">
         <template #default="{ row }">
           <div class="file-name">
-            <span class="name-text" :title="row.file_name">{{ row.file_name }}</span>
+            <span class="name-text" :title="row.origin_name">{{ row.origin_name }}</span>
             <el-tag v-if="row.storage_permission === 'private'" size="small" type="warning">
               私有
             </el-tag>
@@ -95,6 +95,14 @@
         <template #default="{ row }">
           <div class="url-display">
             <el-text type="info" size="small">{{ row.url }}</el-text>
+          </div>
+        </template>
+      </el-table-column>
+      
+      <el-table-column prop="file_name" label="存储文件名" min-width="200">
+        <template #default="{ row }">
+          <div class="storage-name">
+            <el-text type="warning" size="small">{{ row.file_name }}</el-text>
           </div>
         </template>
       </el-table-column>
@@ -219,7 +227,7 @@
     >
       <div class="file-preview-content">
         <div v-if="previewFile" class="preview-info">
-          <h3>{{ previewFile.file_name }}</h3>
+          <h3>{{ previewFile.origin_name }}</h3>
           <p><strong>类型：</strong>{{ previewFile.mime_type }}</p>
           <p><strong>大小：</strong>{{ formatFileSize(previewFile.size) }}</p>
           <p><strong>存储：</strong>{{ getStorageTypeLabel(previewFile.storage_type) }}</p>
@@ -323,8 +331,8 @@ const loadFileList = async () => {
       queryParams.storage_type = searchForm.storage_type
     }
     
-    console.log('查询参数:', queryParams)
     const res = await getFileListApi(queryParams)
+    
     const data = res.data as any
     fileList.value = data?.list || []
     pagination.total = data?.total || 0
@@ -415,7 +423,7 @@ const handlePreview = (file: FileManagement.FileInfo) => {
 const handleDelete = async (file: FileManagement.FileInfo) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除文件 "${file.file_name}" 吗？`,
+      `确定要删除文件 "${file.origin_name}" 吗？`,
       '确认删除',
       {
         confirmButtonText: '确定',
@@ -463,7 +471,7 @@ const downloadFile = (file: FileManagement.FileInfo | null) => {
   
   const link = document.createElement('a')
   link.href = file.url
-  link.download = file.file_name
+  link.download = file.origin_name
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
@@ -594,6 +602,13 @@ onMounted(() => {
 
 .url-display {
   max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storage-name {
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

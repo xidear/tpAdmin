@@ -184,9 +184,10 @@ enum ConfigType: int
             return true; // 未知类型不验证
         }
 
-        if ($allow&& empty($value)){
+        if ($allow && empty($value)){
             return true;
         }
+        
         return match ($case) {
             // 1. 基础文本类（对应前端string类型验证）
             self::TEXT, self::PASSWORD, self::TEXTAREA, self::RICH_TEXT, self::MARKDOWN, self::CODE =>
@@ -207,9 +208,12 @@ enum ConfigType: int
             self::CHECKBOX, self::MULTI_SELECT, self::CASCADER =>
                 is_array($value) || is_null($value), // 多选值必须是数组（对应前端array类型）
 
-            // 5. 媒体类（单文件字符串/多文件数组）
-            self::IMAGE, self::VIDEO, self::FILE => is_string($value), // 单媒体（字符串路径）
-            self::IMAGES, self::FILES => is_array($value) || is_null($value), // 多媒体（数组路径）
+            // 5. 媒体类（增强验证：不仅验证格式，还验证内容）
+            self::IMAGE => self::validateImageValue($value),
+            self::VIDEO => self::validateVideoValue($value),
+            self::FILE => self::validateFileValue($value),
+            self::IMAGES => is_array($value) ? self::validateImageArray($value) : is_null($value),
+            self::FILES => is_array($value) ? self::validateFileArray($value) : is_null($value),
 
             // 6. 特殊格式类（使用与前端相同的正则/逻辑）
             self::JSON => self::isValidJson($value),
@@ -222,6 +226,105 @@ enum ConfigType: int
             self::KEY_VALUE, self::TABLE, self::TREE =>
                 is_array($value) || self::isValidJson($value),
         };
+    }
+
+    /**
+     * 验证图片值
+     * @param mixed $value
+     * @return bool
+     */
+    private static function validateImageValue(mixed $value): bool
+    {
+        if (!is_string($value) || empty($value)) {
+            return false;
+        }
+
+        // 验证URL格式
+        if (!filter_var($value, FILTER_VALIDATE_URL) && !file_exists($value)) {
+            return false;
+        }
+
+        // 验证文件扩展名
+        $extension = strtolower(pathinfo($value, PATHINFO_EXTENSION));
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'];
+        
+        return in_array($extension, $allowedExtensions);
+    }
+
+    /**
+     * 验证视频值
+     * @param mixed $value
+     * @return bool
+     */
+    private static function validateVideoValue(mixed $value): bool
+    {
+        if (!is_string($value) || empty($value)) {
+            return false;
+        }
+
+        // 验证URL格式
+        if (!filter_var($value, FILTER_VALIDATE_URL) && !file_exists($value)) {
+            return false;
+        }
+
+        // 验证文件扩展名
+        $extension = strtolower(pathinfo($value, PATHINFO_EXTENSION));
+        $allowedExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm', 'm4v', '3gp'];
+        
+        return in_array($extension, $allowedExtensions);
+    }
+
+    /**
+     * 验证文件值
+     * @param mixed $value
+     * @return bool
+     */
+    private static function validateFileValue(mixed $value): bool
+    {
+        if (!is_string($value) || empty($value)) {
+            return false;
+        }
+
+        // 验证URL格式或文件存在
+        if (!filter_var($value, FILTER_VALIDATE_URL) && !file_exists($value)) {
+            return false;
+        }
+
+        // 检查高危文件类型
+        $extension = strtolower(pathinfo($value, PATHINFO_EXTENSION));
+        $dangerousExtensions = ['php', 'php3', 'php4', 'php5', 'phtml', 'exe', 'bat', 'cmd', 'com', 'scr', 'vbs', 'js', 'jse', 'wsf', 'wsh', 'msi', 'sh', 'bash', 'csh', 'tcsh', 'zsh', 'pl', 'py', 'rb', 'jar', 'war', 'ear', 'class', 'so', 'dll', 'dylib'];
+        
+        return !in_array($extension, $dangerousExtensions);
+    }
+
+    /**
+     * 验证图片数组
+     * @param array $values
+     * @return bool
+     */
+    private static function validateImageArray(array $values): bool
+    {
+        foreach ($values as $value) {
+            if (!self::validateImageValue($value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 验证文件数组
+     * @param array $values
+     * @return bool
+     */
+    private static function validateFileArray(array $values): bool
+    {
+        foreach ($values as $value) {
+            if (!self::validateFileValue($value)) {
+                return false;
+            }
+        }
+        return true;
     }
 
 

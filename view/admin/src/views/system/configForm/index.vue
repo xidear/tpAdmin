@@ -136,39 +136,22 @@
 
           <!-- 单图上传（type:20，图片） -->
           <div v-else-if="field.type === 20">
-            <ImageSelector
+            <FileSelector
+              :file-type="'image'"
               :multiple="false"
-              @change="(images) => handleImageChange(images, field, group.group_id, false)"
+              :model-value="getFileSelectorValue(group.group_id, field.key)"
+              @confirm="(files) => handleFileChange(files, field, group.group_id, false)"
             />
-
-            <!-- 预览区域 -->
-            <div v-if="formData[group.group_id]?.[field.key]" class="preview-container">
-              <el-image
-                :src="formData[group.group_id][field.key]"
-                fit="contain"
-                style="width: 200px; height: 150px; margin-top: 10px"
-              />
-            </div>
           </div>
 
           <!-- 多图上传（type:21，图片） -->
           <div v-else-if="field.type === 21">
-            <ImageSelector
+            <FileSelector
+              :file-type="'image'"
               :multiple="true"
-              @change="(images) => handleImageChange(images, field, group.group_id, true)"
+              :model-value="getFileSelectorValue(group.group_id, field.key)"
+              @confirm="(files) => handleFileChange(files, field, group.group_id, true)"
             />
-            <!-- 预览区域 -->
-            <div v-if="Array.isArray(formData[group.group_id]?.[field.key]) && formData[group.group_id][field.key].length" class="preview-container">
-              <div class="image-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-                <el-image
-                  v-for="(imgUrl, idx) in formData[group.group_id][field.key]"
-                  :key="idx"
-                  :src="imgUrl"
-                  fit="cover"
-                  style="width: 100px; height: 100px; border-radius: 4px;"
-                />
-              </div>
-            </div>
           </div>
 
           <!-- 视频上传（type:22，保持原生上传） -->
@@ -268,7 +251,7 @@ import type { ConfigForm } from '@/typings/configForm';
 import { getConfigFormApi, saveConfigFormApi } from '@/api/modules/configForm';
 import { uploadImg, uploadVideo, uploadFile } from '@/api/modules/upload';
 import type { Upload } from '@/api/interface';
-import ImageSelector from '@/components/ImageSelector/index.vue';
+import FileSelector from '@/components/FileSelector/index.vue';
 import JsonEditor from '@/components/JsonEditor/index.vue'; // 导入 JsonEditor 组件
 
 // 当前激活的分组ID
@@ -426,21 +409,41 @@ const handleFileRemove = (file: any, field: ConfigForm.ConfigField, groupId: num
 };
 
 /**
- * 处理图片选择器返回
- * images: ImageSelector 返回的图片对象数组（包含url等）
+ * 获取FileSelector组件的值，直接返回URL字符串数组
+ */
+const getFileSelectorValue = (groupId: number, fieldKey: string) => {
+  const value = formData[groupId]?.[fieldKey];
+  if (!value) return [];
+  
+  // 如果是字符串（图片URL），转换为数组
+  if (typeof value === 'string') {
+    return [value];
+  }
+  
+  // 如果已经是数组，直接返回
+  if (Array.isArray(value)) {
+    return value;
+  }
+  
+  return [];
+};
+
+/**
+ * 处理文件选择器返回
+ * files: FileSelector 返回的文件对象数组（包含url等）
  * isMultiple: 是否多选
  */
-const handleImageChange = (
-  images: any[],
+const handleFileChange = (
+  files: any[],
   field: ConfigForm.ConfigField,
   groupId: number,
   isMultiple: boolean
 ) => {
   if (!formData[groupId]) formData[groupId] = {};
   if (isMultiple) {
-    formData[groupId][field.key] = (images || []).map((img: any) => img.url || img);
+    formData[groupId][field.key] = (files || []).map((file: any) => file.url || file);
   } else {
-    const first = Array.isArray(images) ? images[0] : images;
+    const first = Array.isArray(files) ? files[0] : files;
     formData[groupId][field.key] = first ? (first.url || first) : '';
   }
 };

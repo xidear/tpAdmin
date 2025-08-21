@@ -348,7 +348,7 @@ import {
   deletePositionApi,
   type Department, 
   type DepartmentPosition 
-} from "@/api/department"
+} from "@/api/modules/department"
 import { getListApi } from "@/api/modules/account"
 import { getEnumDataApi } from "@/api/modules/enum"
 

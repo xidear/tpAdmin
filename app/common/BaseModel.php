@@ -166,6 +166,7 @@ class BaseModel extends Model
 
     public function fetchData(mixed $conditions = [], array $config = []): \think\Collection|array
     {
+        // 判断是否需要分页
         if (request()->has("page", "get") || request()->has("list_rows", "get") || isset($config['pageNum']) || isset($config['pageSize'])) {
             if (request()->has("page", "get", true)) {
                 $config['pageNum'] = request()->get("page", 1);
@@ -185,25 +186,25 @@ class BaseModel extends Model
         $conditions = [],
         array $config = []
     ): array {
-        // 处理配置参数
-        $config = $this->prepareConfig($config);
-
+        // 创建新实例避免污染当前实例
+        $query = new static();
+        
+        // 应用条件
+        if (!empty($conditions)) {
+            $query->where($conditions);
+        }
+        
+        // 应用配置
+        $this->applyConfig($query, $config);
+        
         // 获取分页参数
         $page = $this->getPageParam($config);
         $pageSize = $this->getPageSizeParam($config);
-
-        // 构建查询
-        $query = $this->buildBaseQuery($conditions, $config);
-
+        
         $total = $query->count();
         try {
-            $list = $query->page(
-                $page,
-                $pageSize
-            )->select()->toArray();
+            $list = $query->page($page, $pageSize)->select()->toArray();
         } catch (DataNotFoundException | ModelNotFoundException | DbException $e) {
-            //            这里写入错误日志
-            //            Log::error(文件名,方法,前端传参,方法传参,报错信息,用户(如果已登录)$e->getMessage());
             $list = [];
         }
         return ['total' => $total, 'list' => $list, 'current_page' => $page, 'per_page' => $pageSize];
@@ -217,12 +218,17 @@ class BaseModel extends Model
         array $config = [],
         bool $force = false
     ): Collection {
-        // 处理配置参数
-        $config = $this->prepareConfig($config);
-
-        // 构建查询
-        $query = $this->buildBaseQuery($conditions, $config);
-
+        // 创建新实例避免污染当前实例
+        $query = new static();
+        
+        // 应用条件
+        if (!empty($conditions)) {
+            $query->where($conditions);
+        }
+        
+        // 应用配置
+        $this->applyConfig($query, $config);
+        
         // 强制获取时不做限制
         if ($force) {
             return $query->select();
@@ -291,7 +297,7 @@ class BaseModel extends Model
     /**
      * 应用查询条件
      */
-    protected function applyQueryConditions(Query|Model $query, $conditions): void
+    protected function applyQueryConditions(Query $query, $conditions): void
     {
 
         // 1. 空条件返回
@@ -354,7 +360,7 @@ class BaseModel extends Model
     /**
      * 应用查询字段
      */
-    protected function applyQueryFields(Query|Model $query, $fields = null): void
+    protected function applyQueryFields(Query $query, $fields = null): void
     {
         // 未指定字段时使用默认
         if (!$fields) return;
@@ -365,7 +371,7 @@ class BaseModel extends Model
     /**
      * 应用查询关联
      */
-    protected function applyQueryRelations(Query|Model $query, $relations = []): void
+    protected function applyQueryRelations(Query $query, $relations = []): void
     {
         if (!$relations) return;
 
@@ -375,7 +381,7 @@ class BaseModel extends Model
     /**
      * 应用查询连接
      */
-    protected function applyQueryJoins(Query|Model $query, array $joins = []): void
+    protected function applyQueryJoins(Query $query, array $joins = []): void
     {
         if (!$joins) return;
 
@@ -400,7 +406,7 @@ class BaseModel extends Model
     /**
      * 应用查询排序
      */
-    protected function applyQueryOrder(Query|Model $query, $field = '', $direction = ''): void
+    protected function applyQueryOrder(Query $query, $field = '', $direction = ''): void
     {
         // 排序字段默认主键
         $field = $field ?: $this->getPk();
@@ -416,7 +422,7 @@ class BaseModel extends Model
     /**
      * 应用模型属性
      */
-    protected function applyModelAttributes(Query|Model $query, array $append = [], array $hidden = []): void
+    protected function applyModelAttributes(Query $query, array $append = [], array $hidden = []): void
     {
         if ($append) {
             $query->append($append);
@@ -513,12 +519,29 @@ class BaseModel extends Model
      */
     public function fetchOne($conditions, array $config = []): Model
     {
-        // 处理配置参数
-        $config = $this->prepareConfig($config);
-
-        // 构建查询
-        $query = $this->buildBaseQuery($conditions, $config);
-
+        // 创建新实例避免污染当前实例
+        $query = new static();
+        
+        // 应用条件
+        if (!empty($conditions)) {
+            // 如果是主键查询，直接使用 find
+            if (is_numeric($conditions) || (is_string($conditions) && !preg_match('/\s+/', $conditions))) {
+                $result = $query->find($conditions);
+                if ($result) {
+                    // 应用配置到结果模型
+                    $this->applyConfigToModel($result, $config);
+                    return $result;
+                }
+                return $query->findOrEmpty();
+            } else {
+                // 其他条件使用 where
+                $query->where($conditions);
+            }
+        }
+        
+        // 应用配置
+        $this->applyConfig($query, $config);
+        
         // 获取结果（找不到时返回空模型）
         return $query->findOrEmpty();
     }
@@ -819,5 +842,82 @@ class BaseModel extends Model
 
         $cache[$className] = $relations;
         return $relations;
+    }
+
+    /**
+     * 获取树形结构数据
+     */
+    public function fetchTree($conditions = [], array $config = []): Collection
+    {
+        // 创建新实例避免污染当前实例
+        $query = new static();
+        
+        // 应用条件
+        if (!empty($conditions)) {
+            $query->where($conditions);
+        }
+        
+        // 应用配置
+        $this->applyConfig($query, $config);
+        
+        return $query->select();
+    }
+
+    /**
+     * 应用配置到模型实例
+     */
+    protected function applyConfigToModel($model, array $config): void
+    {
+        // 追加字段
+        if (!empty($config['append'])) {
+            $model->append($config['append']);
+        }
+        
+        // 隐藏字段
+        if (!empty($config['hidden'])) {
+            $model->hidden($config['hidden']);
+        }
+        
+        // 显示字段
+        if (!empty($config['visible'])) {
+            $model->visible($config['visible']);
+        }
+    }
+
+    /**
+     * 应用配置到查询实例
+     */
+    protected function applyConfig($query, array $config): void
+    {
+        // 排序
+        if (!empty($config['orderBy'])) {
+            $orderDir = $config['orderDir'] ?? 'desc';
+            $query->order($config['orderBy'], $orderDir);
+        }
+        
+        // 字段
+        if (!empty($config['fields'])) {
+            $query->field($config['fields']);
+        }
+        
+        // 关联
+        if (!empty($config['with'])) {
+            $query->with($config['with']);
+        }
+        
+        // 追加字段
+        if (!empty($config['append'])) {
+            $query->append($config['append']);
+        }
+        
+        // 隐藏字段
+        if (!empty($config['hidden'])) {
+            $query->hidden($config['hidden']);
+        }
+        
+        // 显示字段
+        if (!empty($config['visible'])) {
+            $query->visible($config['visible']);
+        }
     }
 }

@@ -34,8 +34,11 @@ class FileUploadService
         // 从配置中获取当前磁盘的信息
         $diskConfig = config("filesystem.disks.{$disk}");
 
-        // 上传目录
-        $uploadSubDir = $options['upload_dir'] ?? 'uploads';
+        // 获取上传者信息
+        $uploaderInfo = $this->getUploaderInfo($context);
+
+        // 上传目录 - 简化为 年/月/日 格式
+        $uploadSubDir = "uploads/{$uploaderInfo['type']}/{$uploaderInfo['id']}";
 
         // 上传文件
         $path = Filesystem::disk($disk)->putFile($uploadSubDir, $file);
@@ -43,15 +46,13 @@ class FileUploadService
             throw new \Exception('文件上传失败');
         }
 
-        // 获取上传者信息
-        $uploaderInfo = $this->getUploaderInfo($context);
 
         // 构建文件信息
         $fileInfo = [
-            'origin_name' => $file->getFilename(),
+            'origin_name' => $file->getOriginalName(),
             'file_name' => basename($path),
             'size' => $file->getSize(),
-            'mime_type' => 'application/octet-stream',
+            'mime_type' => $file->getMime(),
             'storage_type' => $storageType,
             'storage_path' => $path,
             'url' => $this->generateFileUrl($disk, $diskConfig, $path),
@@ -65,7 +66,7 @@ class FileUploadService
         $fileModel = FileModel::create($fileInfo);
         
         return [
-            'file_id' => $fileModel->id,
+            'file_id' => $fileModel->getKey(),
             'url' => $fileModel->url,
             'file_name' => $fileModel->file_name,
             'size' => $fileModel->size,
@@ -150,7 +151,7 @@ class FileUploadService
             $commonConfig = SystemConfig::getCacheValue('upload_common_config', '{}');
             $config = json_decode($commonConfig, true);
             
-            if (isset($config['allowed_extensions']) && !empty($config['allowed_extensions'])) {
+            if (!empty($config['allowed_extensions'])) {
                 return explode(',', $config['allowed_extensions']);
             }
         } catch (\Exception $e) {
@@ -287,18 +288,21 @@ class FileUploadService
      */
     protected function validateFileType(File $file, string $fileType): bool
     {
-        $allowedTypes = [
-            'image' => ['jpg', 'jpeg', 'png', 'gif'],
-            'video' => ['mp4', 'avi', 'mov', 'mkv'],
-            'file' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar']
+        // 使用MIME类型验证，避免临时文件名问题
+        $mimeType = $file->getMime();
+        
+        $allowedMimeTypes = [
+            'image' => ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'],
+            'video' => ['video/mp4', 'video/avi', 'video/mov', 'video/mkv', 'video/webm'],
+            'file' => ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip', 'application/x-rar-compressed']
         ];
         
-        if ($fileType === 'all' || !isset($allowedTypes[$fileType])) {
+        if ($fileType === 'all' || !isset($allowedMimeTypes[$fileType])) {
             return true;
         }
         
-        $extension = strtolower(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
-        return in_array($extension, $allowedTypes[$fileType]);
+        // 检查MIME类型是否在允许列表中
+        return in_array($mimeType, $allowedMimeTypes[$fileType]);
     }
 
     /**
