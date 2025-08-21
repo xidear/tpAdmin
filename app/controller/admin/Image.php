@@ -352,11 +352,11 @@ class Image extends BaseController
 
     /**
      * 构建分类树形结构
-     * @param array $categories
+     * @param  $categories
      * @param int $parentId
      * @return array
      */
-    private function buildCategoryTree(array $categories, int $parentId = 0): array
+    private function buildCategoryTree( $categories, int $parentId = 0): array
     {
         $tree = [];
         
