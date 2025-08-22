@@ -59,7 +59,14 @@ class Admin extends BaseController
     public function create(Create $create): Response
     {
         $params = request()->param();
-        return $this->success((new AdminModel())->fetchOneOrCreate($params));
+        $result = (new AdminModel())->fetchOneOrCreate($params);
+        
+        if ($result && isset($result['admin_id'])) {
+            // 触发管理员信息更新事件，通知缓存清理
+            event('AdminInfoUpdated', ['admin_id' => $result['admin_id']]);
+        }
+        
+        return $this->success($result);
     }
 
 
@@ -89,8 +96,8 @@ class Admin extends BaseController
 
 //        这里需要更新角色关联表
         if ($info->intelligentUpdate($params)) {
-            // 更新成功后清除缓存
-            AdminModel::clearCache($admin_id);
+            // 触发管理员信息更新事件，通知缓存清理
+            event('AdminInfoUpdated', ['admin_id' => $admin_id]);
             return $this->success($info, "编辑成功");
         }
         return $this->error("编辑失败");
@@ -111,6 +118,10 @@ class Admin extends BaseController
             return $this->error("超级管理员禁止删除");
         }
         if ($model->batchDeleteWithRelation($ids, ["admin_role"])) {
+            // 触发管理员信息更新事件，通知缓存清理
+            foreach ($ids as $adminId) {
+                event('AdminInfoUpdated', ['admin_id' => $adminId]);
+            }
             return $this->success("删除成功");
         } else {
             return $this->error($model->getMessage());
@@ -131,6 +142,8 @@ class Admin extends BaseController
             return $this->error("超级管理员禁止删除");
         }
         if ($model->batchDeleteWithRelation($ids, ["admin_role"])) {
+            // 触发管理员信息更新事件，通知缓存清理
+            event('AdminInfoUpdated', ['admin_id' => $admin_id]);
             return $this->success("删除成功");
         } else {
             return $this->error($model->getMessage());

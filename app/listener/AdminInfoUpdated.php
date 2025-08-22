@@ -3,27 +3,26 @@
 namespace app\listener;
 
 use app\model\Admin;
-use think\facade\Cache;
+use think\facade\Log;
 
 class AdminInfoUpdated
 {
     /**
      * 处理管理员信息更新事件
-     *
-     * @param  int  $adminId 管理员 ID
-     * @return void
+     * @param array $data
      */
-    public function handle($adminId)
+    public function handle(array $data): void
     {
-        $cacheKey = 'admin_info_' . $adminId;
-        // 从数据库获取最新的管理员信息
-        $admin = (new Admin)->findOrEmpty($adminId);
-        if (!$admin->isEmpty()) {
-            // 更新缓存
-            Cache::set($cacheKey, $admin, 86400);
-        } else {
-            // 若管理员信息不存在，删除缓存
-            Cache::delete($cacheKey);
+        try {
+            $adminId = $data['admin_id'] ?? 0;
+            
+            if ($adminId > 0) {
+                // 清除管理员信息缓存
+                Admin::clearCache($adminId);
+                Log::info("管理员缓存已清除", ['admin_id' => $adminId]);
+            }
+        } catch (\Exception $e) {
+            Log::error("清除管理员缓存失败", ['admin_id' => $data['admin_id'] ?? 0, 'error' => $e->getMessage()]);
         }
     }
 }

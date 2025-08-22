@@ -9,7 +9,9 @@ use app\common\enum\Status;
 use app\common\enum\YesOrNo;
 use app\model\SystemConfig;
 use app\request\admin\my\changePassword;
+use app\request\admin\my\updateProfile;
 use think\db\exception\DataNotFoundException;
+use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
 use think\Response;
 
@@ -50,44 +52,24 @@ class My extends BaseController
 
     /**
      * 更新个人信息
-     * @param BaseRequest $request
+     * @param updateProfile $request
      * @return Response
      */
-    public function updateProfile(BaseRequest $request): Response
+    public function updateProfile(updateProfile $request): Response
     {
         $data = request()->post();
         
-        // 只允许修改特定字段
-        $allowedFields = ['username', 'nick_name', 'avatar'];
-        $updateData = [];
-        
-        foreach ($allowedFields as $field) {
-            if (isset($data[$field])) {
-                $updateData[$field] = $data[$field];
-            }
+        // 更新当前登录用户信息，只允许修改特定字段
+        $admin = (new \app\model\Admin())->fetchOne(request()->adminId);
+        if ($admin->isEmpty()) {
+            return $this->error('用户不存在');
         }
         
-        if (empty($updateData)) {
-            return $this->error('没有可更新的数据');
-        }
-        
-        // 验证用户名唯一性（排除当前用户）
-        if (isset($updateData['username'])) {
-            $existingAdmin = \app\model\Admin::where('username', $updateData['username'])
-                ->where('admin_id', '!=', request()->adminId)
-                ->find();
-            if ($existingAdmin) {
-                return $this->error('用户名已存在');
-            }
-        }
-        
-        // 更新当前登录用户信息
-        $admin = \app\model\Admin::findOrFail(request()->adminId);
-        $result = $admin->save($updateData);
+        $result = $admin->allowField(['username', 'nick_name', 'avatar'])->save($data);
         
         if ($result) {
-            // 清除缓存
-            \app\model\Admin::clearCache(request()->adminId);
+            // 触发管理员信息更新事件，通知缓存清理
+            event('AdminInfoUpdated', ['admin_id' => request()->adminId]);
             return $this->success([], '个人信息更新成功');
         } else {
             return $this->error('更新失败');
