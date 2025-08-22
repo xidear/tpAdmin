@@ -48,7 +48,7 @@ class Role extends BaseController
     public function create(Create $create): Response
     {
 
-        $params = $create->param();
+        $params = request()->param();
 
         // 调用公共处理方法（新增时无角色ID，传null）
         $processedParams = $this->processRoleParams($params, null);
@@ -76,7 +76,7 @@ class Role extends BaseController
      */
     public function update($role_id, Edit $edit): Response
     {
-        $params =$edit->param();
+        $params =request()->param();
         $roleModel = new RoleModel();
         $info = $roleModel->fetchOne($role_id);
 
@@ -180,35 +180,6 @@ class Role extends BaseController
 
         return $submittedPermissions;
     }
-//    public function update($role_id, Edit $edit): Response
-//    {
-////        未完成
-//        $params = $this->request->param();
-//        $info = (new RoleModel())->fetchOne($role_id);
-//        if ($info->isEmpty()) {
-//            return $this->error("未找到指定数据");
-//        }
-//
-//        //需要验证的数据(请注意 在新增的时候要复用这套逻辑)
-//        //      1.前端传过来的 $params['role_permissions'] 里面的 menu_id 和 permission_id 是否一一对应且存在于 MenuPermissionDependency,里面如果有 role_id ,role_id是否和当前 $role_id相同
-////              2.前端传来的 $params['role_menus'] 里面的 menu_id 是否真实存在.里面如果有 role_id ,role_id是否和当前 $role_id相同
-////                3.检查 $params['role_permissions'] 里面是否缺失必备权限,如果缺失则补充进去
-////        4.以上验证都要验证是否有重复数据 比如 role_menu里面 menu_id有重复的 role_permission里面 menu_id和permission_id同时重复
-//
-//
-//        //     $params['role_permissions']预期结构 [[role_id=>1,permission_id=>1,menu_id=>1],[role_id=>1,permission_id=>2,menu_id=>1]](新增时无role_id,如果有 unset掉)
-//        ////     $params['role_menu_id']预期结构 [[role_id=>1,menu_id=>1],[role_id=>1,menu_id=>1]](新增时无role_id,如果有 unset掉)
-//        halt($params);
-//        unset($params['role_id']);
-//
-////        这里需要更新角色关联表
-//        if ($info->intelligentUpdate($params)) {
-//            return $this->success();
-//        }
-//        return $this->error($info->getMessage());
-//
-//
-//    }
 
 
     /**

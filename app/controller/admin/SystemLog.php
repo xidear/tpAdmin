@@ -142,7 +142,7 @@ class SystemLog extends BaseController
      */
     public function batchDelete(\app\request\admin\BatchDelete $delete): Response
     {
-        $ids = $delete->delete("ids/a");
+        $ids = request()->delete("ids/a");
         $model = new \app\model\SystemLog();
         if ($model->batchDeleteWithRelation($ids)) {
             return $this->success("删除成功");

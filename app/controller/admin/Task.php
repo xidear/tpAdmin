@@ -78,13 +78,13 @@ class Task extends BaseController
         ];
 
         $config = [];
-        if ($read->has("page", "get", true)) {
-            $config['pageNum'] = $read->param('page');
+        if (request()->has("page", "get", true)) {
+            $config['pageNum'] = request()->param('page');
         } else {
             $config['pageNum'] = 1;
         }
-        if ($read->has("list_rows", "get", true)) {
-            $config['pageSize'] = $read->param('list_rows');
+        if (request()->has("list_rows", "get", true)) {
+            $config['pageSize'] = request()->param('list_rows');
         } else {
             $config['pageSize'] = 15;
         }
@@ -105,7 +105,7 @@ class Task extends BaseController
      */
     public function create(Create $create): Response
     {
-        $params = $create->param();
+        $params = request()->param();
         // 补充创建人信息
         $params['created_by'] = request()->adminId;
         $params['updated_by'] = request()->adminId;
@@ -148,7 +148,7 @@ class Task extends BaseController
      */
     public function batchDelete(BatchDelete $delete): Response
     {
-        $ids = $delete->delete("ids/a");
+        $ids = request()->delete("ids/a");
 
         $model = new TaskModel();
         if ($model->batchDeleteWithRelation($ids, ["logs"])) {

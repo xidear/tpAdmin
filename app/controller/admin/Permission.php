@@ -77,7 +77,7 @@ class Permission extends BaseController
      */
     public function create( Create $create): Response
     {
-        $params = $this->request->param();
+        $params = request()->param();
         return $this->success((new PermissionModel())->fetchOneOrCreate($params));
     }
 
@@ -89,7 +89,7 @@ class Permission extends BaseController
      */
     public function update( $permission_id,Edit $edit): Response
     {
-        $params = $this->request->param();
+        $params = request()->param();
         $info=(new PermissionModel())->fetchOne($permission_id);
         if ($info->isEmpty()){
             return $this->error("未找到指定数据");
@@ -127,7 +127,7 @@ class Permission extends BaseController
      */
     public function batchDelete(BatchDelete $delete): Response
     {
-        $ids=$delete->delete("ids/a");
+        $ids=request()->delete("ids/a");
         $model=new PermissionModel();
         if ($model->batchDeleteWithRelation($ids,["menu_dependencies"])){
             return $this->success("删除成功");

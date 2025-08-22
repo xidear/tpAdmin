@@ -76,7 +76,7 @@ class ConfigForm extends BaseController
      */
     public function saveByGroup(SaveByGroup $request): Response
     {
-        $data= $request->put();
+        $data= request()->put();
 
         if (empty($data)) {
             return $this->error('保存数据不能为空');
@@ -126,7 +126,7 @@ class ConfigForm extends BaseController
 
             $result = SystemConfig::refreshCache();
             if ($result) {
-                return $this->success($result, '缓存刷新成功');
+                return $this->success();
             } else {
                 return $this->error('缓存刷新失败');
             }

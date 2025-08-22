@@ -58,7 +58,7 @@ class Admin extends BaseController
      */
     public function create(Create $create): Response
     {
-        $params = $create->param();
+        $params = request()->param();
         return $this->success((new AdminModel())->fetchOneOrCreate($params));
     }
 
@@ -70,7 +70,7 @@ class Admin extends BaseController
      */
     public function update($admin_id, Edit $edit): Response
     {
-        $params = $this->request->param();
+        $params = request()->param();
 
         $info = (new AdminModel())->fetchOne($admin_id);
         if ($info->isEmpty()) {
@@ -105,7 +105,7 @@ class Admin extends BaseController
      */
     public function batchDelete(BatchDelete $delete): Response
     {
-        $ids = $delete->delete("ids/a");
+        $ids = request()->delete("ids/a");
         $model = new AdminModel();
         if (in_array($model->getSuperAdminId(), $ids)) {
             return $this->error("超级管理员禁止删除");

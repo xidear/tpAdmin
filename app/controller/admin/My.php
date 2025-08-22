@@ -19,9 +19,9 @@ class My extends BaseController
     public function getBaseInfo(BaseRequest $request): Response
     {
 //        获取当前登录用户的基本数据
-        $adminInfo=$request->admin->toArray();
-        $adminInfo['is_super']=$request->admin->isSuper()?YesOrNo::Yes:YesOrNo::No;
-        $adminInfo['role_name_list']=$request->admin->roles()->column("name");
+        $adminInfo=request()->admin->toArray();
+        $adminInfo['is_super']=request()->admin->isSuper()?YesOrNo::Yes:YesOrNo::No;
+        $adminInfo['role_name_list']=request()->admin->roles()->column("name");
 
         $baseInfo['admin']=$adminInfo;
 
@@ -55,7 +55,7 @@ class My extends BaseController
      */
     public function getMenu(baseRequest $request): \think\Response
     {
-        $menus= \app\model\menu::getusermenutree($request->adminId,$request);
+        $menus= \app\model\menu::getusermenutree(request()->adminId,$request);
         return $this->success($menus);
     }
 
@@ -65,7 +65,7 @@ class My extends BaseController
      * @return Response
      */
     public function getButtons(BaseRequest $request): \think\Response{
-        $buttons= \app\model\menu::getUserButtons($request->adminId);
+        $buttons= \app\model\menu::getUserButtons(request()->adminId);
         return $this->success($buttons);
     }
 }

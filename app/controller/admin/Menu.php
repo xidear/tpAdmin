@@ -65,7 +65,7 @@ class Menu extends BaseController
 
         $menu = (new \app\model\Menu)->with([
             'dependencies.permission'
-        ])->findOrEmpty($menu_id);
+        ])->fetchOne($menu_id);
 
         return $this->success($menu);
     }
@@ -78,7 +78,7 @@ class Menu extends BaseController
      */
     public function update($menu_id, Update $request): Response
     {
-        $data = $request->param();
+        $data = request()->param();
 
         $menu = (new \app\model\Menu)->findOrEmpty($menu_id);
         if ($menu->isEmpty()) {
@@ -146,7 +146,7 @@ class Menu extends BaseController
      */
     public function create(Create $request): Response
     {
-        $data = $request->param();
+        $data = request()->param();
         $menu = (new \app\model\Menu);
         $menu->startTrans();
         try {

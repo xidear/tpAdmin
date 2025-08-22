@@ -19,7 +19,7 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
   const viteEnv = wrapperEnv(env);
 
   return {
-    base: viteEnv.VITE_PUBLIC_PATH,
+    base: "/admin",
     root,
     resolve: {
       alias: {
@@ -46,15 +46,8 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
       proxy: createProxy(viteEnv.VITE_PROXY)
     },
     plugins: createVitePlugins(viteEnv),
-    // 关闭类型检查，避免构建时的 TypeScript 错误
-    esbuild: {
-      pure: viteEnv.VITE_DROP_CONSOLE ? ["console.log", "debugger"] : []
-    },
-    esbuild: {
-      pure: viteEnv.VITE_DROP_CONSOLE ? ["console.log", "debugger"] : []
-    },
     build: {
-      outDir: "../../public/admin",
+      outDir: "../../public/admin/",
       minify: "esbuild",
       // esbuild 打包更快，但是不能去除 console.log，terser打包慢，但能去除 console.log
       // minify: "terser",

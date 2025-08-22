@@ -46,8 +46,8 @@ class Department extends BaseController
      */
     public function read(int $department_id): Response
     {
-        $department = DepartmentModel::with(['leader', 'positions'])->find($department_id);
-        if (!$department) {
+        $department = DepartmentModel::with(['leader', 'positions'])->fetchOne($department_id);
+        if ($department->isEmpty()) {
             return $this->error('部门不存在');
         }
         return $this->success($department);
@@ -60,7 +60,7 @@ class Department extends BaseController
      */
     public function create(CreateRequest $request): Response
     {
-        $data = $request->post();
+        $data = request()->post();
         
         // 检查部门编码唯一性
         if (!empty($data['code'])) {
@@ -100,7 +100,7 @@ class Department extends BaseController
             return $this->error('部门不存在');
         }
 
-        $data = $request->put();
+        $data = request()->put();
         
         // 检查部门编码唯一性
         if (!empty($data['code']) && $data['code'] !== $department->code) {
@@ -166,7 +166,7 @@ class Department extends BaseController
      */
     public function batchDelete(BatchDeleteRequest $request): Response
     {
-        $ids = $request->post('ids');
+        $ids = request()->post('ids');
         
         $departments = DepartmentModel::whereIn('department_id', $ids)->select();
         $canDeleteIds = [];
@@ -204,7 +204,7 @@ class Department extends BaseController
             return $this->error('部门不存在');
         }
 
-        $status = $request->put('status');
+        $status = request()->put('status');
         $department->status = $status;
         $department->save();
 
@@ -233,7 +233,7 @@ class Department extends BaseController
      */
     public function createPosition(CreatePositionRequest $request): Response
     {
-        $data = $request->post();
+        $data = request()->post();
         
         // 检查部门是否存在
         $department = DepartmentModel::find($data['department_id']);
@@ -270,7 +270,7 @@ class Department extends BaseController
             return $this->error('职位不存在');
         }
 
-        $data = $request->put();
+        $data = request()->put();
         
         // 检查职位编码唯一性
         if (!empty($data['code']) && $data['code'] !== $position->code) {

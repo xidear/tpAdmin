@@ -24,8 +24,8 @@ class Region extends \app\common\BaseController
      */
     public function tree()
     {
-        $level = $this->request->get('level', 0); // 0表示所有层级，1-4表示指定层级
-        $forceRefresh = $this->request->get('force_refresh', 0) == 1;
+        $level = request()->get('level', 0); // 0表示所有层级，1-4表示指定层级
+        $forceRefresh = request()->get('force_refresh', 0) == 1;
         
         try {
             if ($level == 0) {
@@ -99,7 +99,7 @@ class Region extends \app\common\BaseController
      */
     public function create(): \think\Response
     {
-        $data = $this->request->param();
+        $data = request()->param();
         $region = new RegionModel();
 
         // 处理路径
@@ -136,7 +136,7 @@ class Region extends \app\common\BaseController
      */
     public function update(int $region_id): 	\think\Response
     {
-        $data = $this->request->param();
+        $data = request()->param();
         $region = RegionModel::findOrEmpty($region_id);
 
         if ($region->isEmpty()) {
@@ -222,7 +222,7 @@ class Region extends \app\common\BaseController
      */
     public function merge(): \think\Response
     {
-        $data = $this->request->param();
+        $data = request()->param();
         $region = new RegionModel();
 
         $result = $region->mergeRegions($data['target_region_id'], $data['source_region_ids']);
@@ -242,7 +242,7 @@ class Region extends \app\common\BaseController
      */
     public function split(): \think\Response
     {
-        $data = $this->request->param();
+        $data = request()->param();
         $region = new RegionModel();
 
         $result = $region->splitRegion($data['parent_region_id'], $data['new_regions']);

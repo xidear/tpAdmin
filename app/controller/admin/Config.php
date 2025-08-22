@@ -21,7 +21,7 @@ class Config extends BaseController
 
 
         $conditions = [];
-        $params = $this->request->param();
+        $params = request()->param();
         if (!empty($params['config_key'])) {
             $conditions[] = ["config_key", "like", "%" . $params['config_key'] . "%"];
         }
@@ -52,7 +52,7 @@ class Config extends BaseController
      */
     public function create(CreateConfig $request): Response
     {
-        $data = $request->post();
+        $data = request()->post();
         // 调用公共方法处理数据（标记为新增）
         $processedData = $this->processConfigData($data, true);
 
@@ -102,7 +102,7 @@ class Config extends BaseController
             return $this->error("配置项不存在：{$system_config_id}");
         }
 
-        $data = $request->put();
+        $data = request()->put();
         // 调用公共方法处理数据（标记为更新）
         $processedData = $this->processConfigData($data, false);
         if ($config->update($processedData)) {

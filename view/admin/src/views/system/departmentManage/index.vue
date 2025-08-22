@@ -205,16 +205,7 @@
             </el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="drawerProps.row!.description"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入部门描述"
-            maxlength="500"
-            show-word-limit
-          />
-        </el-form-item>
+
       </el-form>
       <template #footer>
         <el-button @click="drawerVisible = false">取消</el-button>
@@ -282,9 +273,7 @@
         <el-form-item label="职位名称" prop="name">
           <el-input v-model="positionDrawerProps.row!.name" placeholder="请输入职位名称" clearable />
         </el-form-item>
-        <el-form-item label="职位编码" prop="code">
-          <el-input v-model="positionDrawerProps.row!.code" placeholder="请输入职位编码" clearable />
-        </el-form-item>
+
         <el-form-item label="排序" prop="sort">
           <el-input-number v-model="positionDrawerProps.row!.sort" :min="0" :max="999" style="width: 100%" />
         </el-form-item>
@@ -527,12 +516,10 @@ const openDrawer = async (title: string, parentId?: number, row?: Department) =>
   
   const defaultRow: Partial<Department> = {
     name: "",
-    code: "",
     parent_id: parentId || null,
     leader_id: undefined,
     sort: 0,
     status: 1, // 使用枚举值：1=启用
-    description: ""
   }
 
   // 处理编辑时的数据，确保顶级部门的 parent_id 为 null
@@ -634,10 +621,8 @@ const openPositionDrawer = (title: string, row?: DepartmentPosition) => {
   const defaultRow: Partial<DepartmentPosition> = {
     department_id: currentDepartment.value?.department_id || 0,
     name: "",
-    code: "",
     sort: 0,
     status: 1, // 使用枚举值：1=启用
-    description: ""
   }
 
   positionDrawerProps.value = {

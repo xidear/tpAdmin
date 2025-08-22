@@ -25,7 +25,7 @@ class ConfigGroup extends BaseController
 
 
         $conditions = [];
-        $params = $this->request->param();
+        $params = request()->param();
         if (!empty($params['group_name'])) {
             $conditions[] = ["group_name", "like", "%" . $params['group_name'] . "%"];
         }
@@ -59,7 +59,7 @@ class ConfigGroup extends BaseController
      */
     public function create(Create $create): Response
     {
-        $params = $create->post();
+        $params = request()->post();
 
         // 补充创建人ID（假设当前登录用户ID通过BaseController的getLoginAdminId方法获取）
         $params['created_by'] = request()->adminId;
@@ -85,7 +85,7 @@ class ConfigGroup extends BaseController
      */
     public function update(int $group_id, Update $update): Response
     {
-        $params = $update->put();
+        $params = request()->put();
 
         // 补充更新人ID
         $params['updated_by'] = request()->adminId;

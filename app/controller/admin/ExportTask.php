@@ -4,6 +4,7 @@ namespace app\controller;
 use app\common\BaseController;
 use app\common\model\ExportTask as ExportTaskModel;
 use app\common\service\export\ExportService;
+use app\common\service\PermissionService;
 use app\model\Admin;
 use app\model\Permission;
 use think\exception\ValidateException;
@@ -78,8 +79,8 @@ class ExportTask extends BaseController
     {
         try {
             $currentUserId = $this->getCurrentUserId();
-            $page = $this->request->param('page', 1, 'intval');
-            $limit = $this->request->param('limit', 10, 'intval');
+            $page = request()->param('page', 1, 'intval');
+            $limit = request()->param('limit', 10, 'intval');
 
             // 获取用户权限规则
             $permissionService = new PermissionService();
@@ -92,7 +93,7 @@ class ExportTask extends BaseController
             });
 
             // 状态筛选
-            $status = $this->request->param('status');
+            $status = request()->param('status');
             if (!empty($status)) {
                 $query->where('status', $status);
             }
@@ -342,6 +343,6 @@ class ExportTask extends BaseController
     protected function getCurrentUserId()
     {
         // 根据实际登录逻辑获取用户ID（示例）
-        return $this->request->user_id ?? 0;
+        return request()->user_id ?? 0;
     }
 }

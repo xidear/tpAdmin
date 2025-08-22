@@ -29,7 +29,7 @@ class Login extends BaseController{
      */
     public function doLogin(DoLogin $request): \think\Response
     {
-        $data = $request->post();
+        $data = request()->post();
 
         // 验证账号密码
         $admin = (new \app\model\Admin)->where('username', $data['username'])
