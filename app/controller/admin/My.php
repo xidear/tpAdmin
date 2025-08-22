@@ -49,6 +49,52 @@ class My extends BaseController
     }
 
     /**
+     * 更新个人信息
+     * @param BaseRequest $request
+     * @return Response
+     */
+    public function updateProfile(BaseRequest $request): Response
+    {
+        $data = request()->post();
+        
+        // 只允许修改特定字段
+        $allowedFields = ['username', 'nick_name', 'avatar'];
+        $updateData = [];
+        
+        foreach ($allowedFields as $field) {
+            if (isset($data[$field])) {
+                $updateData[$field] = $data[$field];
+            }
+        }
+        
+        if (empty($updateData)) {
+            return $this->error('没有可更新的数据');
+        }
+        
+        // 验证用户名唯一性（排除当前用户）
+        if (isset($updateData['username'])) {
+            $existingAdmin = \app\model\Admin::where('username', $updateData['username'])
+                ->where('admin_id', '!=', request()->adminId)
+                ->find();
+            if ($existingAdmin) {
+                return $this->error('用户名已存在');
+            }
+        }
+        
+        // 更新当前登录用户信息
+        $admin = \app\model\Admin::findOrFail(request()->adminId);
+        $result = $admin->save($updateData);
+        
+        if ($result) {
+            // 清除缓存
+            \app\model\Admin::clearCache(request()->adminId);
+            return $this->success([], '个人信息更新成功');
+        } else {
+            return $this->error('更新失败');
+        }
+    }
+
+    /**
      * 获取菜单
      * @param baserequest $request
      * @return response

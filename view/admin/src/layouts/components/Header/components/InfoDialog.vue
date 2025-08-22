@@ -7,6 +7,17 @@
     :close-on-click-modal="false"
   >
     <div class="info-container">
+      <!-- 编辑模式切换 -->
+      <div class="edit-toggle">
+        <el-button 
+          type="primary" 
+          @click="toggleEditMode"
+          :icon="isEditMode ? 'Close' : 'Edit'"
+        >
+          {{ isEditMode ? '取消编辑' : '编辑信息' }}
+        </el-button>
+      </div>
+
       <!-- 头像区域 -->
       <div class="avatar-section">
         <div class="avatar-wrapper" @click="showLargeAvatar = true">
@@ -18,12 +29,35 @@
           <el-icon class="zoom-icon"><ZoomIn /></el-icon>
         </div>
         <div class="avatar-tip">点击查看大图</div>
+        
+        <!-- 编辑模式下的头像上传 -->
+        <div v-if="isEditMode" class="avatar-upload">
+          <el-upload
+            class="avatar-uploader"
+            :action="uploadUrl"
+            :show-file-list="false"
+            :on-success="handleAvatarSuccess"
+            :before-upload="beforeAvatarUpload"
+            accept="image/*"
+          >
+            <el-button size="small" type="primary">更换头像</el-button>
+          </el-upload>
+        </div>
       </div>
       
       <!-- 信息表格 -->
       <el-descriptions :column="1" border class="info-table">
         <el-descriptions-item label="账号">
-          {{ userInfo.username }}
+          <template v-if="isEditMode">
+            <el-input 
+              v-model="editForm.username" 
+              placeholder="请输入用户名"
+              maxlength="20"
+            />
+          </template>
+          <template v-else>
+            {{ userInfo.username }}
+          </template>
         </el-descriptions-item>
         <el-descriptions-item label="ID">
           {{ userInfo.admin_id }}
@@ -32,7 +66,16 @@
           {{ userInfo.real_name || '未知' }}
         </el-descriptions-item>
         <el-descriptions-item label="昵称">
-          {{ userInfo.nick_name || '未知' }}
+          <template v-if="isEditMode">
+            <el-input 
+              v-model="editForm.nick_name" 
+              placeholder="请输入昵称"
+              maxlength="20"
+            />
+          </template>
+          <template v-else>
+            {{ userInfo.nick_name || '未知' }}
+          </template>
         </el-descriptions-item>
         <el-descriptions-item label="角色">
           <span v-if="userInfo.role_name_list && userInfo.role_name_list.length">
@@ -52,70 +95,65 @@
           {{ userInfo.created_at || '未知' }}
         </el-descriptions-item>
         <el-descriptions-item label="是否超级管理员">
-          <el-switch 
-            v-model="isSuperAdmin" 
-            :active-value="1" 
-            :inactive-value="0" 
-            disabled
-          />
-        </el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="userInfo.status === 1 ? 'success' : 'danger'">
-            {{ userInfo.status === 1 ? '正常' : '禁用' }}
+          <el-tag :type="isSuperAdmin ? 'danger' : 'info'" size="small">
+            {{ isSuperAdmin ? '是' : '否' }}
           </el-tag>
         </el-descriptions-item>
       </el-descriptions>
-    </div>
-    
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="dialogVisible = false">确认</el-button>
-      </span>
-    </template>
-  </el-dialog>
-  
-  <!-- 头像大图查看器 -->
-  <el-dialog
-    v-model="showLargeAvatar"
-    title=" "
-    width="80%"
-    :border="false"
-    :show-close="true"
-    :close-on-click-modal="true"
-    :header-style="{ padding: '15px', borderBottom: 'none' }"
-    :body-style="{ padding: '20px', minHeight: '100px', margin: 0 }"
-    :footer="null"
-  >
-    <!-- 新增容器用于居中图片 -->
-    <div class="large-avatar-container">
-      <img 
-        :src="userInfo.avatar || defaultAvatar" 
-        :alt="userInfo.nick_name || userInfo.username" 
-        class="large-avatar"
-        @load="handleImageLoad"
-      />
 
-      <div v-if="imageLoading" class="image-loading">
-        <!-- 静态图标 + 文本 -->
-        <el-icon class="loading-icon"><Loading /></el-icon>
-        <span class="loading-text">加载中</span>
+      <!-- 编辑模式下的保存按钮 -->
+      <div v-if="isEditMode" class="edit-actions">
+        <el-button type="primary" @click="saveProfile" :loading="saving">
+          保存修改
+        </el-button>
+        <el-button @click="cancelEdit">取消</el-button>
       </div>
     </div>
+
+    <!-- 大图查看 -->
+    <el-dialog
+      v-model="showLargeAvatar"
+      title="头像预览"
+      width="400px"
+      :close-on-click-modal="true"
+      append-to-body
+    >
+      <div class="large-avatar-container">
+        <img 
+          :src="userInfo.avatar || defaultAvatar" 
+          :alt="userInfo.nick_name || userInfo.username"
+          class="large-avatar"
+          @load="handleImageLoad"
+        />
+        <div v-if="imageLoading" class="image-loading">
+          <el-icon class="is-loading"><Loading /></el-icon>
+        </div>
+      </div>
+    </el-dialog>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useUserStore } from "@/stores/modules/user";
-import {Loading, ZoomIn} from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { ZoomIn, Loading } from "@element-plus/icons-vue";
+import { updateProfileApi } from "@/api/modules/base";
 
-// 状态管理
 const dialogVisible = ref(false);
 const showLargeAvatar = ref(false);
 const imageLoading = ref(false);
+const isEditMode = ref(false);
+const saving = ref(false);
 const userStore = useUserStore();
 const defaultAvatar = "@/assets/images/avatar.gif";
+
+// 编辑表单数据
+const editForm = ref({
+  username: '',
+  nick_name: '',
+  avatar: ''
+});
 
 // 响应式用户信息
 const userInfo = ref({
@@ -137,11 +175,107 @@ const dialogWidth = computed(() => {
   return window.innerWidth < 768 ? '90%' : '600px';
 });
 
+// 上传URL
+const uploadUrl = computed(() => {
+  return `${import.meta.env.VITE_API_URL}/upload/image`;
+});
+
 // 打开弹窗
 const openDialog = () => {
   dialogVisible.value = true;
   // 从store获取用户信息
   userInfo.value = { ...userStore.userInfo };
+  // 初始化编辑表单
+  editForm.value = {
+    username: userInfo.value.username,
+    nick_name: userInfo.value.nick_name,
+    avatar: userInfo.value.avatar
+  };
+};
+
+// 切换编辑模式
+const toggleEditMode = () => {
+  if (isEditMode.value) {
+    cancelEdit();
+  } else {
+    isEditMode.value = true;
+  }
+};
+
+// 取消编辑
+const cancelEdit = () => {
+  isEditMode.value = false;
+  // 重置编辑表单
+  editForm.value = {
+    username: userInfo.value.username,
+    nick_name: userInfo.value.nick_name,
+    avatar: userInfo.value.avatar
+  };
+};
+
+// 头像上传成功
+const handleAvatarSuccess = (response: any) => {
+  if (response.code === 200) {
+    editForm.value.avatar = response.data.url;
+    ElMessage.success('头像上传成功');
+  } else {
+    ElMessage.error(response.message || '头像上传失败');
+  }
+};
+
+// 头像上传前验证
+const beforeAvatarUpload = (file: File) => {
+  const isImage = file.type.startsWith('image/');
+  const isLt2M = file.size / 1024 / 1024 < 2;
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件!');
+    return false;
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!');
+    return false;
+  }
+  return true;
+};
+
+// 保存个人信息
+const saveProfile = async () => {
+  try {
+    saving.value = true;
+    
+    // 检查是否有修改
+    const hasChanges = editForm.value.username !== userInfo.value.username ||
+                      editForm.value.nick_name !== userInfo.value.nick_name ||
+                      editForm.value.avatar !== userInfo.value.avatar;
+    
+    if (!hasChanges) {
+      ElMessage.warning('没有修改任何信息');
+      return;
+    }
+    
+    const response = await updateProfileApi(editForm.value);
+    
+    if (response.code === 200) {
+      ElMessage.success('个人信息更新成功');
+      
+      // 更新本地数据
+      userInfo.value = { ...userInfo.value, ...editForm.value };
+      
+      // 更新store中的用户信息
+      userStore.setUserInfo({ ...userStore.userInfo, ...editForm.value });
+      
+      // 退出编辑模式
+      isEditMode.value = false;
+    } else {
+      ElMessage.error(response.message || '更新失败');
+    }
+  } catch (error) {
+    console.error('更新个人信息失败:', error);
+    ElMessage.error('更新失败，请重试');
+  } finally {
+    saving.value = false;
+  }
 };
 
 // 处理图片加载
@@ -176,6 +310,11 @@ defineExpose({ openDialog });
 <style scoped lang="scss">
 .info-container {
   padding: 10px 0;
+}
+
+.edit-toggle {
+  text-align: right;
+  margin-bottom: 20px;
 }
 
 .avatar-section {
@@ -223,8 +362,12 @@ defineExpose({ openDialog });
   color: #666;
 }
 
+.avatar-upload {
+  margin-top: 10px;
+}
+
 .info-table {
-  margin-top: 15px;
+  margin-bottom: 20px;
   
   ::v-deep .el-descriptions__label {
     font-weight: 500;
@@ -242,20 +385,24 @@ defineExpose({ openDialog });
   margin-bottom: 5px;
 }
 
-/* 大图查看器样式 - 重点修改区域 */
+.edit-actions {
+  text-align: center;
+  margin-top: 20px;
+  
+  .el-button {
+    margin: 0 10px;
+  }
+}
+
 .large-avatar-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px; /* 确保小图片也能垂直居中 */
-  width: 100%;
+  text-align: center;
   position: relative;
 }
 
 .large-avatar {
   max-width: 100%;
-  max-height: 80vh;
-  object-fit: contain;
+  max-height: 400px;
+  border-radius: 8px;
 }
 
 .image-loading {
@@ -263,14 +410,7 @@ defineExpose({ openDialog });
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-}
-
-/* 修复弹窗默认样式影响居中 */
-::v-deep .el-dialog__body {
-  padding: 0 !important;
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  font-size: 24px;
+  color: #409eff;
 }
 </style>

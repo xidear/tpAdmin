@@ -1,5 +1,4 @@
 <?php
-
 return [
     'http'       => [
         'enable'     => true,
@@ -29,7 +28,10 @@ return [
                 'max_wait_time' => 5,
             ],
         ],
-        'listen'        => [],
+        'listen'        => [
+            'host' => '0.0.0.0',
+            'port' => 2346,  // 指定WebSocket端口
+        ],
         'subscribe'     => [],
     ],
     'rpc'        => [

@@ -67,3 +67,16 @@ export const changePassword = (data: ChangePasswordParams) => {
     { loading: true }
   );
 };
+
+// 更新个人信息
+export const updateProfileApi = (data: {
+  username?: string;
+  nick_name?: string;
+  avatar?: string;
+}) => {
+  return http.post<ResultData>(
+    `/update_profile`,
+    data,
+    { loading: true }
+  );
+};

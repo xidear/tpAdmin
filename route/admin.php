@@ -41,6 +41,8 @@ Route::group('adminapi', function () {
         Route::get('dashboard', 'Index/dashboard')->name("数据看板")->option(["description"=>"获取数据看板"]);
         //修改密码
         Route::post('change_password', 'My/changePassword')->name("改密码")->option(["description"=>"修改个人密码"]);
+        // 更新个人信息
+        Route::post('update_profile', 'My/updateProfile')->name("更新个人信息")->option(["description"=>"更新个人头像、用户名、昵称"]);
 //        获取菜单
         Route::get('get_menu', 'My/getMenu')->name("菜单")->option(["description"=>"获取左侧树状菜单"]);
         Route::get('get_buttons', 'My/getButtons')->name("权限按钮")->option(["description"=>"获取左侧树状菜单匹配的权限按钮"]);

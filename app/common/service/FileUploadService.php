@@ -282,6 +282,13 @@ class FileUploadService
         }
         
         if ($storageType === FileStorageType::Local->value) {
+            // 优先使用系统配置的 site_url
+            $siteUrl = SystemConfig::getCacheValue('site_url');
+            if ($siteUrl) {
+                return rtrim($siteUrl, '/'); // 去掉结尾的 /
+            }
+            
+            // 兜底使用其他方式
             return request()->domain();
         }
         
