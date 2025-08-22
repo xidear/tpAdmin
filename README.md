@@ -212,9 +212,9 @@ php think swoole
 
 ## 📞 联系我们
 
-- **项目地址**: [https://gitee.com/xidear/tp_admin](https://github.com/your-username/tp_admin)
-- **问题反馈**: [Issues](https://github.com/your-username/tp_admin/issues)
-- **邮箱**: your-email@example.com
+- **项目地址**: [https://gitee.com/xidear/tp_admin](https://gitee.com/xidear/tp_admin)
+- **问题反馈**: [Issues](https://gitee.com/xidear/tp_admin/issues)
+- **邮箱**: xidear@126.com
 
 ## 🙏 致谢
 
