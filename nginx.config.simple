@@ -1,0 +1,104 @@
+server
+{
+    listen 80;
+    listen 443 ssl;
+    listen 443 quic;
+    http2 on;
+    server_name 你的域名;
+    index index.html index.php index.htm default.php default.htm default.html;
+    root /你的路径/public;
+    
+    #CERT-APPLY-CHECK--START
+    # 用于SSL证书申请时的文件验证相关配置 -- 请勿删除
+    include /路径/你的域名.conf;
+    #CERT-APPLY-CHECK--END
+
+    #SSL-START SSL相关配置，请勿删除或修改下一行带注释的404规则
+    #error_page 404/404.html;
+    #HTTP_TO_HTTPS_START
+    if ($server_port !~ 443){
+        rewrite ^(/.*)$ https://$host$1 permanent;
+    }
+    #HTTP_TO_HTTPS_END
+    ssl_certificate    你的证书;
+    ssl_certificate_key    你的密钥;
+    ssl_protocols TLSv1.1 TLSv1.2 TLSv1.3;
+    ssl_ciphers EECDH+CHACHA20:EECDH+CHACHA20-draft:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_tickets on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    add_header Strict-Transport-Security "max-age=31536000";
+    add_header Alt-Svc 'quic=":443"; h3=":443"; h3-29=":443"; h3-27=":443";h3-25=":443"; h3-T050=":443"; h3-Q050=":443";h3-Q049=":443";h3-Q048=":443"; h3-Q046=":443"; h3-Q043=":443"';
+    error_page 497  https://$host$request_uri;
+
+    #SSL-END
+
+    #ERROR-PAGE-START  错误页配置，可以注释、删除或修改
+    #error_page 404/404.html;
+    #error_page 502/502.html;
+    #ERROR-PAGE-END
+
+    #PHP-INFO-START  PHP引用配置，可以注释或修改
+    include enable-php-83.conf;
+    #PHP-INFO-END
+
+    #REWRITE-START URL重写规则引用,修改后将导致面板设置的伪静态规则失效
+    include /路径/其他配置.conf;
+    #REWRITE-END
+
+    # 处理上传文件 - 必须在伪静态规则之后，其他规则之前 这里要和你的上传配置文件对应
+    location /storage/ {
+        try_files $uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 静态文件处理规则
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # 处理 assets 目录
+    location /assets/ {
+        try_files $uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 处理其他静态资源
+    location ~* \.(html|txt|xml|json)$ {
+        try_files $uri =404;
+        add_header Cache-Control "no-cache";
+    }
+
+    #清理缓存规则
+    location ~ /purge(/.*) {
+        proxy_cache_purge cache_one $host$1$is_args$args;
+        #access_log  /访问日志.log;
+    }
+    
+    #引用反向代理规则，注释后配置的反向代理将无效
+    include /你的路径/*.conf;
+
+    #禁止访问的文件或目录
+    location ~ ^/(\.user.ini|\.htaccess|\.git|\.env|\.svn|\.project|LICENSE|README.md)
+    {
+        return 404;
+    }
+
+    #一键申请SSL证书验证目录相关设置
+    location ~ \.well-known{
+        allow all;
+    }
+
+    #禁止在证书验证目录放入敏感文件
+    if ( $uri ~ "^/\.well-known/.*\.(php|jsp|py|js|css|lua|ts|go|zip|tar\.gz|rar|7z|sql|bak)$" ) {
+        return 403;
+    }
+
+    access_log  /你的访问日志.log;
+    error_log  /你的错误日志.error.log;
+}
