@@ -34,9 +34,9 @@
         <div v-if="isEditMode" class="avatar-upload">
           <el-upload
             class="avatar-uploader"
-            :action="uploadUrl"
+            action="#"
+            :http-request="handleAvatarUpload"
             :show-file-list="false"
-            :on-success="handleAvatarSuccess"
             :before-upload="beforeAvatarUpload"
             accept="image/*"
           >
@@ -136,9 +136,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { useUserStore } from "@/stores/modules/user";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
 import { ZoomIn, Loading } from "@element-plus/icons-vue";
 import { updateProfileApi } from "@/api/modules/base";
+import { uploadImg } from "@/api/modules/upload";
+import type { UploadRequestOptions } from "element-plus";
 
 const dialogVisible = ref(false);
 const showLargeAvatar = ref(false);
@@ -157,7 +159,7 @@ const editForm = ref({
 
 // 响应式用户信息
 const userInfo = ref({
-  admin_id: '',
+  admin_id: 0,
   username: '',
   created_at: '',
   updated_at: '',
@@ -173,11 +175,6 @@ const userInfo = ref({
 const isSuperAdmin = computed(() => userInfo.value.is_super);
 const dialogWidth = computed(() => {
   return window.innerWidth < 768 ? '90%' : '600px';
-});
-
-// 上传URL
-const uploadUrl = computed(() => {
-  return `${import.meta.env.VITE_API_URL}/upload/image`;
 });
 
 // 打开弹窗
@@ -213,16 +210,6 @@ const cancelEdit = () => {
   };
 };
 
-// 头像上传成功
-const handleAvatarSuccess = (response: any) => {
-  if (response.code === 200) {
-    editForm.value.avatar = response.data.url;
-    ElMessage.success('头像上传成功');
-  } else {
-    ElMessage.error(response.message || '头像上传失败');
-  }
-};
-
 // 头像上传前验证
 const beforeAvatarUpload = (file: File) => {
   const isImage = file.type.startsWith('image/');
@@ -237,6 +224,26 @@ const beforeAvatarUpload = (file: File) => {
     return false;
   }
   return true;
+};
+
+// 处理头像上传请求 - 使用项目中标准的文件上传模式
+const handleAvatarUpload = async (options: UploadRequestOptions) => {
+  const { file, onSuccess, onError } = options;
+  
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await uploadImg(formData);
+    
+    // 同时更新编辑表单和显示的头像，让用户立即看到新头像
+    editForm.value.avatar = response.data.url;
+    userInfo.value.avatar = response.data.url;
+    onSuccess(response);
+    
+  } catch (error: any) {
+    onError(error);
+  }
 };
 
 // 保存个人信息
@@ -256,20 +263,13 @@ const saveProfile = async () => {
     
     const response = await updateProfileApi(editForm.value);
     
-    if (response.code === 200) {
-      ElMessage.success('个人信息更新成功');
-      
-      // 更新本地数据
-      userInfo.value = { ...userInfo.value, ...editForm.value };
-      
-      // 更新store中的用户信息
-      userStore.setUserInfo({ ...userStore.userInfo, ...editForm.value });
-      
-      // 退出编辑模式
-      isEditMode.value = false;
-    } else {
-      ElMessage.error(response.message || '更新失败');
-    }
+    // 直接更新数据，不需要判断code
+    userInfo.value = { ...userInfo.value, ...editForm.value };
+    userStore.setUserInfo({ ...userStore.userInfo, ...editForm.value });
+    isEditMode.value = false;
+    
+    ElMessage.success('个人信息更新成功');
+    
   } catch (error) {
     console.error('更新个人信息失败:', error);
     ElMessage.error('更新失败，请重试');

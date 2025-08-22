@@ -26,7 +26,7 @@ export interface ReqPage {
 // 文件上传模块
 export namespace Upload {
   export interface ResFileUrl {
-    fileUrl: string;
+    url: string;  // 修复：使用后端实际返回的url属性
   }
 }
 
