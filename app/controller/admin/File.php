@@ -314,7 +314,7 @@ class File extends BaseController
      */
     public function upload(): Response
     {
-        try {
+
             $file = request()->file('file');
             if (!$file) {
                 return $this->error('请选择要上传的文件');
@@ -329,9 +329,9 @@ class File extends BaseController
             $routeAction = request()->action();
             if ($routeAction === 'upload') {
                 $routePath = request()->pathinfo();
-                if (strpos($routePath, 'upload/image') !== false) {
+                if (str_contains($routePath, 'upload/image')) {
                     $fileType = 'image';
-                } elseif (strpos($routePath, 'upload/video') !== false) {
+                } elseif (str_contains($routePath, 'upload/video')) {
                     $fileType = 'video';
                 } else {
                     $fileType = 'all';
@@ -357,9 +357,7 @@ class File extends BaseController
 
             return $this->success($result, '文件上传成功');
 
-        } catch (\Exception $e) {
-            return $this->error('上传失败：' . $e->getMessage());
-        }
+
     }
 
     /**

@@ -37,8 +37,16 @@ class FileUploadService
         // 获取上传者信息
         $uploaderInfo = $this->getUploaderInfo($context);
 
-        // 上传目录 - 简化为 年/月/日 格式
+        // 上传目录 - 添加日期子目录，确保目录存在
         $uploadSubDir = "uploads/{$uploaderInfo['type']}/{$uploaderInfo['id']}";
+        
+        // 确保目录存在
+        $fullPath = public_path($uploadSubDir);
+        if (!is_dir($fullPath)) {
+            if (!mkdir($fullPath, 0755, true)) {
+                throw new \Exception('无法创建上传目录：' . $fullPath);
+            }
+        }
 
         // 上传文件
         $path = Filesystem::disk($disk)->putFile($uploadSubDir, $file);

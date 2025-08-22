@@ -6,7 +6,6 @@ use app\common\BaseController;
 use app\model\Department as DepartmentModel;
 use app\model\DepartmentPosition as DepartmentPositionModel;
 use app\model\DepartmentAdmin as DepartmentAdminModel;
-use app\model\Admin as AdminModel;
 use app\request\admin\department\Create as CreateRequest;
 use app\request\admin\department\Update as UpdateRequest;
 use app\request\admin\department\BatchDelete as BatchDeleteRequest;
@@ -46,7 +45,10 @@ class Department extends BaseController
      */
     public function read(int $department_id): Response
     {
-        $department = DepartmentModel::with(['leader', 'positions'])->fetchOne($department_id);
+        $department = (new DepartmentModel())->fetchOne($department_id, [
+            'with' => ['leader', 'positions']
+        ]);
+        
         if ($department->isEmpty()) {
             return $this->error('部门不存在');
         }
@@ -78,8 +80,7 @@ class Department extends BaseController
             }
         }
 
-        $department = new DepartmentModel();
-        $department->save($data);
+        $department = DepartmentModel::create($data);
         
         // 更新部门路径
         $department->updatePath();
@@ -95,8 +96,8 @@ class Department extends BaseController
      */
     public function update(int $department_id, UpdateRequest $request): Response
     {
-        $department = DepartmentModel::find($department_id);
-        if (!$department) {
+        $department = (new DepartmentModel())->fetchOne($department_id);
+        if ($department->isEmpty()) {
             return $this->error('部门不存在');
         }
 
@@ -104,8 +105,10 @@ class Department extends BaseController
         
         // 检查部门编码唯一性
         if (!empty($data['code']) && $data['code'] !== $department->code) {
-            $exists = DepartmentModel::where('code', $data['code'])->where('department_id', '<>', $department_id)->find();
-            if ($exists) {
+            $exists = DepartmentModel::where('code', $data['code'])
+                ->where('department_id', '<>', $department_id)
+                ->findOrEmpty();
+            if (!$exists->isEmpty()) {
                 return $this->error('部门编码已存在');
             }
         }
@@ -146,8 +149,8 @@ class Department extends BaseController
      */
     public function delete(int $department_id): Response
     {
-        $department = DepartmentModel::find($department_id);
-        if (!$department) {
+        $department = (new DepartmentModel())->fetchOne($department_id);
+        if ($department->isEmpty()) {
             return $this->error('部门不存在');
         }
 
@@ -199,8 +202,8 @@ class Department extends BaseController
      */
     public function updateStatus(int $department_id, UpdateStatusRequest $request): Response
     {
-        $department = DepartmentModel::find($department_id);
-        if (!$department) {
+        $department = (new DepartmentModel())->fetchOne($department_id);
+        if ($department->isEmpty()) {
             return $this->error('部门不存在');
         }
 
@@ -218,11 +221,10 @@ class Department extends BaseController
      */
     public function positions(int $departmentId): Response
     {
-        $positions = DepartmentPositionModel::where('department_id', $departmentId)
-            ->where('status', 1)
-            ->order('sort', 'asc')
-            ->select();
+        $conditions = [['department_id', '=', $departmentId], ['status', '=', 1]];
+        $config = ['orderBy' => ['sort' => 'asc']];
         
+        $positions = (new DepartmentPositionModel())->fetchData($conditions, $config);
         return $this->success($positions);
     }
 
@@ -236,8 +238,8 @@ class Department extends BaseController
         $data = request()->post();
         
         // 检查部门是否存在
-        $department = DepartmentModel::find($data['department_id']);
-        if (!$department) {
+        $department = (new DepartmentModel())->fetchOne($data['department_id']);
+        if ($department->isEmpty()) {
             return $this->error('部门不存在');
         }
 
@@ -251,9 +253,7 @@ class Department extends BaseController
             }
         }
 
-        $position = new DepartmentPositionModel();
-        $position->save($data);
-        
+        $position = DepartmentPositionModel::create($data);
         return $this->success($position, '创建成功');
     }
 
@@ -265,8 +265,8 @@ class Department extends BaseController
      */
     public function updatePosition(int $position_id, UpdatePositionRequest $request): Response
     {
-        $position = DepartmentPositionModel::find($position_id);
-        if (!$position) {
+        $position = (new DepartmentPositionModel())->fetchOne($position_id);
+        if ($position->isEmpty()) {
             return $this->error('职位不存在');
         }
 
@@ -284,7 +284,6 @@ class Department extends BaseController
         }
 
         $position->save($data);
-        
         return $this->success($position, '更新成功');
     }
 
@@ -295,8 +294,8 @@ class Department extends BaseController
      */
     public function deletePosition(int $position_id): Response
     {
-        $position = DepartmentPositionModel::find($position_id);
-        if (!$position) {
+        $position = (new DepartmentPositionModel())->fetchOne($position_id);
+        if ($position->isEmpty()) {
             return $this->error('职位不存在');
         }
 
@@ -316,9 +315,12 @@ class Department extends BaseController
      */
     public function export(): Response
     {
-        // 构建查询条件
         $conditions = $this->buildConditions();
-        $model = DepartmentModel::with(['leader', 'parentDepartment'])->where($conditions);
+        $config = [
+            'with' => ['leader', 'parentDepartment']
+        ];
+        
+        $model = (new DepartmentModel())->where($conditions,$config);
 
         // 定义导出表头
         $headers = [
@@ -334,7 +336,6 @@ class Department extends BaseController
             ['label' => '创建时间', 'field' => 'created_at', 'format' => 'datetime', 'format_options' => ['format' => 'Y-m-d H:i:s']],
         ];
 
-        // 调用父级的统一导出方法
         return $this->doExport($model, $headers, '部门数据', 'xlsx');
     }
 

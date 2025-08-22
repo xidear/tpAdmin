@@ -27,7 +27,7 @@ class My extends BaseController
 
 
 
-        $baseInfo['system']=SystemConfig::getCacheValues(["site_name","admin_logo","phone","company_name","site_url","icp"]);
+        $baseInfo['system']=SystemConfig::getCacheValues(["site_name","admin_logo","phone","company_name","company_url","icp"]);
         return  $this->success($baseInfo);
     }
 
@@ -55,7 +55,7 @@ class My extends BaseController
      */
     public function getMenu(baseRequest $request): \think\Response
     {
-        $menus= \app\model\menu::getusermenutree(request()->adminId,$request);
+        $menus= \app\model\Menu::getUserMenuTree(request()->adminId,$request);
         return $this->success($menus);
     }
 
@@ -65,7 +65,7 @@ class My extends BaseController
      * @return Response
      */
     public function getButtons(BaseRequest $request): \think\Response{
-        $buttons= \app\model\menu::getUserButtons(request()->adminId);
+        $buttons= \app\model\Menu::getUserButtons(request()->adminId);
         return $this->success($buttons);
     }
 }

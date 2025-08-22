@@ -8,7 +8,7 @@ export interface SystemState {
   admin_logo: string |null;
   phone: string;
   company_name: string
-  site_url?: string;
+  company_url?: string;
   icp: string;
 }
 
@@ -18,7 +18,7 @@ const defaultState: SystemState = {
   admin_logo: null,
   phone: '',
   company_name: '',
-  site_url: '',
+  company_url: '',
   icp: ''
 };
 
