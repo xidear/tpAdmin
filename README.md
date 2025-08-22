@@ -1,112 +1,227 @@
+# TP Admin - 现代化后台管理系统
 
+## 🌟 系统简介
 
-# TP Admin
+TP Admin 是一个基于 ThinkPHP 8.x + Vue 3 + Element Plus 构建的现代化后台管理系统。系统采用前后端分离架构，提供完整的权限管理、用户管理、系统配置等功能，适用于企业级应用开发。
 
-基于 ThinkPHP 8 的后台管理系统框架，提供完整的权限管理、菜单管理、角色管理、管理员管理等功能。系统采用现代化架构设计，整合了 Websocket 消息推送、JWT 认证、文件存储等实用功能，适用于快速搭建企业级后台系统。
+## 🚀 在线演示
 
-## 特性
+- **演示地址**: [https://admin.test.binary.ha.cn/admin](https://admin.test.binary.ha.cn/admin)
+- **默认账号**: `admin`
+- **默认密码**: `admin@test1`
 
-- **权限管理**：支持基于菜单和接口的权限配置，实现细粒度权限控制。
-- **角色管理**：支持角色创建、编辑、菜单与权限绑定，便于权限体系搭建。
-- **菜单管理**：支持菜单树结构管理，权限依赖配置，实现菜单与权限的联动控制。
-- **管理员管理**：支持管理员的增删改查，密码加密修改，角色分配。
-- **文件上传**：支持本地、阿里云 OSS、腾讯云 COS、AWS S3 等多种存储类型。
-- **消息推送**：通过 Websocket 与 Redis 订阅实现后台消息实时推送。
-- **JWT 认证**：支持 Token 生成、验证、刷新、登出等认证相关操作。
-- **数据导出**：支持 Excel 数据导出，整合 Laravel Collection 的树形结构处理。
-- **多环境配置**：支持开发、测试、生产等多环境配置文件管理。
-- **前端组件**：基于 Vue 3 + Vite 构建，整合 ECharts、WangEditor、ProTable、Upload、SearchForm、SvgIcon、ThemeSetting 策略。
-- **国际化支持**：系统支持多语言切换，集成 i18n 多语言体系。
-- **主题定制**：支持深色模式、动态主题配置，提升用户体验。
-- **动态路由**：基于 Vue Router 实现动态菜单路由加载。
+## ✨ 核心功能
 
-## 安装
+### 🔐 权限管理
+- **角色管理**: 支持多角色配置，灵活分配权限
+- **菜单权限**: 动态菜单配置，支持多级菜单结构
+- **按钮权限**: 细粒度权限控制，精确到按钮级别
+- **数据权限**: 支持按部门、角色等维度控制数据访问
 
-1. 克隆项目：
-   ```bash
-   git clone https://gitee.com/xidear/tp_admin
-   ```
+### 👥 用户管理
+- **管理员管理**: 完整的用户CRUD操作
+- **部门管理**: 支持多级部门结构，树形展示
+- **职位管理**: 灵活的职位配置系统
+- **个人信息**: 支持头像、用户名、昵称等个人信息编辑
 
-2. 安装依赖：
-   ```bash
-   cd tp_admin
-   composer install
-   cd view/admin
-   pnpm install
-   ```
+### 📁 文件管理
+- **文件上传**: 支持图片、视频、文档等多种文件类型
+- **文件分类**: 灵活的文件分类管理
+- **权限控制**: 支持私有、公共、共享等存储权限
+- **文件选择器**: 可复用的文件选择组件
 
-3. 配置环境：
-   - 修改 `config/database.php` 配置数据库连接。
-   - 修改 `config/jwt.php` 配置 JWT 认证信息。
-   - 修改 `config/filesystem.php` 配置文件存储。
-   - 修改 `.env` 文件，配置前端相关参数。
+### ⚙️ 系统配置
+- **配置管理**: 支持分组配置，便于系统参数管理
+- **配置表单**: 动态表单生成，支持多种数据类型
+- **缓存管理**: 智能缓存策略，提升系统性能
 
-4. 导入数据库：
-   - 使用 `tp_admin.sql` 导入数据库结构和基础数据。
+### 📊 数据管理
+- **地区管理**: 完整的省市区三级联动
+- **任务调度**: 支持定时任务和队列处理
+- **日志记录**: 完整的操作日志和系统日志
+- **数据导出**: 支持Excel等格式的数据导出
 
-5. 启动前端：
-   ```bash
-   cd view/admin
-   pnpm run dev
-   ```
+### 🔧 开发工具
+- **代码生成**: 快速生成CRUD代码
+- **API文档**: 自动生成API接口文档
+- **调试工具**: 完善的调试和错误处理机制
 
-6. 启动后端服务：
-   ```bash
-   cd ../..
-   php think run
-   ```
+## 🛠️ 技术架构
 
-7. 启动 Websocket 消息服务（如使用消息推送）：
-   - 修改 `admin_websocket.php` 中 Redis 配置。
-   - 运行：
-     ```bash
-     php think worker
-     ```
+### 后端技术栈
+- **框架**: ThinkPHP 8.x
+- **数据库**: MySQL 8.0+
+- **缓存**: Redis
+- **队列**: ThinkPHP Queue
+- **WebSocket**: Swoole（生产环境）/ Workerman（开发环境，仅Linux/WSL2）
+- **PHP版本**: PHP 8.3+
 
-## 使用说明
+### 前端技术栈
+- **框架**: Vue 3 + TypeScript
+- **UI组件**: Element Plus
+- **状态管理**: Pinia
+- **路由**: Vue Router 4
+- **构建工具**: Vite
+- **HTTP客户端**: Axios
 
-- **管理员**：通过 `/admin/admin` 路由管理后台用户。
-- **角色**：通过 `/admin/role` 进行角色创建与权限配置。
-- **权限**：通过 `/admin/permission` 进行接口权限管理。
-- **菜单**：通过 `/admin/menu` 实现菜单树的管理与权限依赖配置。
-- **文件**：通过 `/admin/file` 实现文件上传、下载、管理。
-- **消息推送**：系统通过 Redis 订阅和 Websocket 实现实时消息推送，相关类位于 `app/controller/admin/websocket/Message.php`。
-- **JWT 认证**：系统使用 `JwtService` 实现 Token 的生成、验证、刷新、登出等功能，位于 `app/service/JwtService.php`。
-- **数据导出**：通过 `app/service/export/ExportService.php` 实现 Excel 数据导出功能。
-- **前端构建**：使用 Vite 构建，支持自动代码压缩、PWA、环境变量注入、代理设置等高级功能。
-- **主题与国际化**：前端支持深色模式、动态主题、多语言切换（zh/en）。
-- **自定义指令**：包括权限控制 `v-auth`、复制 `v-copy`、防抖 `v-debounce`、水印 `v-waterMarker`、拖动 `v-draggable` �:// 等。
+### 核心特性
+- **前后端分离**: 清晰的API接口设计
+- **响应式设计**: 支持PC端和移动端
+- **主题定制**: 支持明暗主题切换
+- **国际化**: 支持多语言切换
+- **权限验证**: 完整的权限验证体系
 
-## 命名规范
+## 📦 安装部署
 
-- 控制器使用 `PascalCase`，如 `Index.php`。
-- 模型文件采用 `PascalCase`，如 `Admin.php`。
-- 请求验证类采用 `PascalCase`，如 `Create.php`、`Edit.php`。
-- 前端组件命名采用 `kebab-case`，如 `search-form`。
-- 前端路由模块使用 `PascalCase`，如 `StaticRouter.ts`、`DynamicRouter.ts`。
-- 枚举命名采用 `PascalCase`，如 `AdminStatus.php`、`Code.php`。
+### 环境要求
+- PHP >= 8.3
+- MySQL >= 8.0
+- Redis >= 6.0
+- Node.js >= 16.0
+- Composer >= 2.0
 
-## 版权信息
+### 开发环境说明
+- **生产环境**: 仅支持Linux，使用Swoole（已弃用Workerman）
+- **开发环境**: 
+  - 支持Windows（WSL2推荐）
+  - 使用 `php think run` 启动Web服务
+  - 使用 `php think queue:work` 启动队列处理
+  - 如需WebSocket和定时任务调试，使用 `php admin_websocket.php start`
 
-本项目使用 MIT 开源协议，详情请参考 `LICENSE.txt`。
+### 快速开始
 
-## 参与开发
+#### 1. 克隆项目
+```bash
+git clone https://github.com/xidear/tp_admin.git
+cd tp_admin
+```
 
-欢迎提交 PR 或 Issue，帮助完善系统功能。前端基于 Vue 3 + Vite 构建，后端基于 ThinkPHP 8 + Composer 管理，数据库使用 MySQL。
+#### 2. 安装后端依赖
+```bash
+composer install
+```
 
-## 贡献者
+#### 3. 配置环境
+```bash
+# 复制环境配置文件
+cp env.example .env
 
-- [xidear](https://gitee.com/xidear)
-- [HalseySpicy](https://github.com/HalseySpicy)
+# 修改 .env 文件中的配置项：
+# - 数据库密码 (DB_PASS)
+# - Redis配置 (如果Redis有密码)
+# - 文件上传路径和大小限制 (如果需要调整)
 
-## 赞助
+# 详细配置说明请参考项目根目录的 ENV_CONFIG_README.md 文件
+```
 
-如果你觉得这个项目对你有帮助，欢迎赞助以支持项目持续发展。你可以通过 Gitee 或 GitHub 联系作者进行捐赠。
+#### 4. 导入数据库
+```bash
+# 使用项目根目录的 tp_admin.sql 文件导入数据库
+# 方法1: 使用命令行
+mysql -u root -p tp_admin < tp_admin.sql
 
-## 文档
+# 方法2: 使用phpMyAdmin或其他数据库管理工具
+# 创建数据库 tp_admin，然后导入 tp_admin.sql 文件
+```
 
-详细文档请参考 `README.md` 和前端 `CHANGELOG.md` 文件，其中包含前端功能更新日志与后端接口文档。
+#### 5. 安装前端依赖
+```bash
+cd view/admin
+npm install  # 推荐使用npm，项目未测试pnpm
+```
 
-## 联系
+#### 6. 构建前端
+```bash
+npm run build
+```
 
-如有问题或合作意向，欢迎通过 Gitee 联系作者。
+#### 7. 启动服务
+
+**开发环境**:
+```bash
+# 启动Web服务
+php think run
+
+# 启动队列处理（可选）
+php think queue:work
+
+# 启动WebSocket和定时任务（可选，仅Linux/WSL2）
+php admin_websocket.php start
+```
+
+**生产环境**:
+```bash
+# 启动Swoole服务（仅Linux）
+php think swoole start
+
+# 启动队列处理
+php think queue:work -d
+```
+
+## 🚀 部署说明
+
+### Nginx配置
+系统已提供完整的Nginx配置示例，支持：
+- 静态文件缓存优化
+- 上传文件直接访问
+- 前端路由支持
+- SSL证书配置
+
+### 缓存配置
+- **Redis缓存**: 用户信息、系统配置等
+- **文件缓存**: 静态资源、上传文件等
+- **智能清理**: 数据更新后自动清理相关缓存
+
+### 安全配置
+- **权限验证**: 完整的权限验证中间件
+- **数据过滤**: 防止SQL注入和XSS攻击
+- **文件上传**: 严格的文件类型和大小验证
+
+## 📚 开发文档
+
+### API接口
+- 所有API接口遵循RESTful规范
+- 支持JWT Token认证
+- 完整的错误码和错误信息
+
+### 前端组件
+- 提供丰富的可复用组件
+- 支持TypeScript类型定义
+- 完整的组件文档和示例
+
+### 数据库设计
+- 清晰的数据库表结构
+- 完整的字段说明
+- 支持软删除和审计字段
+
+## 🤝 贡献指南
+
+欢迎提交Issue和Pull Request来帮助改进项目！
+
+### 开发规范
+- 遵循PSR-12编码规范
+- 使用TypeScript进行前端开发
+- 完善的代码注释和文档
+
+### 提交规范
+- 使用语义化的提交信息
+- 提供完整的测试用例
+- 更新相关文档
+
+## 📄 开源协议
+
+本项目采用 [MIT License](LICENSE) 开源协议。
+
+## 📞 联系我们
+
+- **项目地址**: [https://github.com/your-username/tp_admin](https://github.com/your-username/tp_admin)
+- **问题反馈**: [Issues](https://github.com/your-username/tp_admin/issues)
+- **邮箱**: your-email@example.com
+
+## 🙏 致谢
+
+感谢所有为这个项目做出贡献的开发者和用户！
+
+---
+
+**如果这个项目对你有帮助，请给个⭐️ Star 支持一下！**
