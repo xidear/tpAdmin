@@ -92,7 +92,7 @@ TP Admin 是一个基于 ThinkPHP 8.x + Vue 3 + Element Plus 构建的现代化�
 
 #### 1. 克隆项目
 ```bash
-git clone https://github.com/xidear/tp_admin.git
+git clone https://gitee.com/xidear/tp_admin.git
 cd tp_admin
 ```
 
@@ -145,17 +145,15 @@ php think run
 # 启动队列处理（可选）
 php think queue:work
 
-# 启动WebSocket和定时任务（可选，仅Linux/WSL2）
+# 启动WebSocket和定时任务（可选，仅Windows）
 php admin_websocket.php start
 ```
 
 **生产环境**:
 ```bash
 # 启动Swoole服务（仅Linux）
-php think swoole start
+php think swoole
 
-# 启动队列处理
-php think queue:work -d
 ```
 
 ## 🚀 部署说明
@@ -214,7 +212,7 @@ php think queue:work -d
 
 ## 📞 联系我们
 
-- **项目地址**: [https://github.com/your-username/tp_admin](https://github.com/your-username/tp_admin)
+- **项目地址**: [https://gitee.com/xidear/tp_admin](https://github.com/your-username/tp_admin)
 - **问题反馈**: [Issues](https://github.com/your-username/tp_admin/issues)
 - **邮箱**: your-email@example.com
 
