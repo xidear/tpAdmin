@@ -21,6 +21,13 @@ Route::group('adminapi', function () {
 //    需要登录不需要权限验证
     Route::group(function () {
 
+
+            // 首页统计
+            Route::group('home', function () {
+                Route::get('getStats', 'getStats')->name("首页统计")->option(["description"=>"获取首页统计数据"]);
+            })->prefix("admin/Home/");
+
+            
         Route::group('enum', function () {
             // 获取指定枚举数据（免权限）
             Route::get('read/:enum_code', 'getEnum')
@@ -192,6 +199,8 @@ Route::group('adminapi', function () {
             Route::get('get-migration-preview', 'getMigrationPreview')->name("获取迁移预览")->option(["description"=>"获取图片URL迁移预览", "permission"=>"file.manage"]);
             Route::post('migrate-urls', 'migrateUrls')->name("执行迁移")->option(["description"=>"执行图片URL迁移", "permission"=>"file.manage"]);
         })->prefix("admin/File/");
+
+    
 
 //        部门管理
         Route::group('department', function () {
