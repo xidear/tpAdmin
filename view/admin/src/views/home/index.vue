@@ -525,7 +525,8 @@ const initRoleRadarChart = async () => {
         trigger: 'item'
       },
       legend: {
-        data: rolePermissions.map(r => r.name)
+        data: rolePermissions.map(r => r.name),
+        bottom: 10
       },
       radar: {
         indicator: [
@@ -534,12 +535,45 @@ const initRoleRadarChart = async () => {
           { name: '权限管理', max: 100 },
           { name: '日志查看', max: 100 },
           { name: '数据导出', max: 100 }
-        ]
+        ],
+        center: ['50%', '50%'],
+        radius: '65%',
+        name: {
+          textStyle: {
+            color: '#333',
+            fontSize: 12,
+            padding: [5, 0]
+          }
+        },
+        splitArea: {
+          show: true,
+          areaStyle: {
+            color: ['rgba(250,250,250,0.3)', 'rgba(200,200,200,0.3)']
+          }
+        },
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(0,0,0,.1)'
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(0,0,0,.1)'
+          }
+        }
       },
       series: [
         {
           type: 'radar',
-          data: rolePermissions
+          data: rolePermissions,
+          areaStyle: {
+            opacity: 0.3
+          },
+          lineStyle: {
+            width: 2
+          },
+          symbol: 'circle',
+          symbolSize: 6
         }
       ]
     };
@@ -559,7 +593,16 @@ const initRoleRadarChart = async () => {
             { name: '权限管理', max: 100 },
             { name: '日志查看', max: 100 },
             { name: '数据导出', max: 100 }
-          ]
+          ],
+          center: ['50%', '50%'],
+          radius: '65%',
+          name: {
+            textStyle: {
+              color: '#333',
+              fontSize: 12,
+              padding: [5, 0]
+            }
+          }
         },
         series: [{
           type: 'radar',
