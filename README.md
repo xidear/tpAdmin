@@ -6,7 +6,7 @@ TP Admin 是一个基于 ThinkPHP 8.x + Vue 3 + Element Plus 构建的现代化�
 
 ## 🚀 在线演示
 
-- **演示地址**: [https://admin.test.binary.ha.cn/admin](https://admin.test.binary.ha.cn/admin)
+- **演示地址**: [https://admin.test.binary.ha.cn/admin/](https://admin.test.binary.ha.cn/admin/index.html)
 - **默认账号**: `admin`
 - **默认密码**: `admin@test1`
 
