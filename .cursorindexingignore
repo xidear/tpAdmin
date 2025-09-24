@@ -1,0 +1,16 @@
+# Cursor 索引忽略文件配置
+# 允许环境配置文件被索引和访问
+!.env*
+!.env
+!.env.local
+!.env.production
+!.env.staging
+!.env.backup
+
+# 忽略其他不需要索引的文件
+node_modules/
+vendor/
+storage/
+*.log
+.DS_Store
+Thumbs.db
